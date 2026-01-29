@@ -33,4 +33,17 @@ export default defineSchema({
   })
     .index("by_user_day", ["userId", "day"])
     .index("by_user_status", ["userId", "status"]),
+
+  tasks: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    notes: v.optional(v.string()),
+    estimateMin: v.number(),
+    priority: v.number(),
+    status: v.string(),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_created", ["userId", "createdAt"]),
 });

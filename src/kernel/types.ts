@@ -1,4 +1,9 @@
 export type KernelCommand =
+  | {
+      cmd: "create_task";
+      input: { title: string; estimateMin: number; priority?: 1 | 2 | 3; notes?: string };
+      idempotencyKey: string;
+    }
   | { cmd: "complete_task"; input: { taskId: string }; idempotencyKey: string }
   | {
       cmd: "set_daily_plan";
@@ -12,11 +17,16 @@ export type KernelCommand =
     };
 
 export type KernelEvent =
-  | { type: "TASK_COMPLETED"; ts: number; meta: { taskId: string } }
+  | {
+      type: "TASK_CREATED";
+      ts: number;
+      meta: { taskId: string; estimateMin: number };
+    }
+  | { type: "TASK_COMPLETED"; ts: number; meta: { taskId: string; estimateMin: number } }
   | {
       type: "PLAN_SET";
       ts: number;
-      meta: { day: string; top3TaskIds: string[] };
+      meta: { day: string; top3TaskIds: string[]; plannedMinutes?: number };
     }
   | {
       type: "SUGGESTION_FEEDBACK";

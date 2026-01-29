@@ -14,7 +14,10 @@ import type * as http from "../http.js";
 import type * as kernel_commands from "../kernel/commands.js";
 import type * as kernel_policies from "../kernel/policies.js";
 import type * as kernel_reducer from "../kernel/reducer.js";
+import type * as kernel_taskCommands from "../kernel/taskCommands.js";
+import type * as kernel_taskQueries from "../kernel/taskQueries.js";
 import type * as privateData from "../privateData.js";
+import type * as tasks from "../tasks.js";
 
 import type {
   ApiFromModules,
@@ -29,7 +32,10 @@ declare const fullApi: ApiFromModules<{
   "kernel/commands": typeof kernel_commands;
   "kernel/policies": typeof kernel_policies;
   "kernel/reducer": typeof kernel_reducer;
+  "kernel/taskCommands": typeof kernel_taskCommands;
+  "kernel/taskQueries": typeof kernel_taskQueries;
   privateData: typeof privateData;
+  tasks: typeof tasks;
 }>;
 
 /**

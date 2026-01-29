@@ -11,12 +11,11 @@ const DEFAULT_FREE_MINUTES = 240;
 
 export function computeDailyState(day: string, events: KernelEvent[]): LifeState {
   let completed = 0;
-  const COMPLETE_MINUTES = 25;
   let planned = 0;
 
   for (const event of events) {
-    if (event.type === "TASK_COMPLETED") completed += COMPLETE_MINUTES;
-    if (event.type === "PLAN_SET") planned = 120;
+    if (event.type === "TASK_CREATED") planned += event.meta.estimateMin;
+    if (event.type === "TASK_COMPLETED") completed += event.meta.estimateMin;
   }
 
   const freeMinutes = DEFAULT_FREE_MINUTES;

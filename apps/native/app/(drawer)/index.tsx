@@ -1,6 +1,13 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useConvexAuth, useQuery } from "convex/react";
-import { Button, Chip, Divider, Spinner, Surface, useThemeColor } from "heroui-native";
+import {
+  Button,
+  Chip,
+  Divider,
+  Spinner,
+  Surface,
+  useThemeColor,
+} from "heroui-native";
 import { Text, View } from "react-native";
 
 import { Container } from "@/components/container";
@@ -24,7 +31,9 @@ export default function Home() {
         <Text className="text-3xl font-semibold text-foreground tracking-tight">
           Better T Stack
         </Text>
-        <Text className="text-muted text-sm mt-1">Full-stack TypeScript starter</Text>
+        <Text className="text-muted text-sm mt-1">
+          Full-stack TypeScript starter
+        </Text>
       </View>
 
       {user ? (
@@ -35,7 +44,7 @@ export default function Home() {
               <Text className="text-muted text-xs mt-0.5">{user.email}</Text>
             </View>
             <Button
-              variant="destructive"
+              variant="danger"
               size="sm"
               onPress={() => {
                 authClient.signOut();

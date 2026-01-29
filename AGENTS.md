@@ -19,7 +19,7 @@ Primary apps are a Convex backend and a React Native Expo app with Uniwind (Tail
 Run commands from the repo root unless noted. Turborepo handles caching.
 
 - Install deps: `bun install`
-- Dev (all): `bun run dev`
+- Dev (all): `bun run dev` (Note: This command is always running in the background)
 - Dev (native only): `bun run dev:native`
 - Dev (backend only): `bun run dev:server`
 - Convex setup/dev bootstrap: `bun run dev:setup`

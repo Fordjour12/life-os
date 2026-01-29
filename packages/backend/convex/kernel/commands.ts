@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
-
 import type { KernelEvent } from "../../../../src/kernel/types";
+import type { Id } from "../_generated/dataModel";
+import { mutation, query } from "../_generated/server";
 
 import { computeDailyState } from "./reducer";
 import { runPolicies } from "./policies";
@@ -45,12 +45,72 @@ export const executeCommand = mutation({
     let meta: Record<string, unknown> = {};
     let day = getTodayYYYYMMDD();
 
-    if (command.cmd === "complete_task") {
+    if (command.cmd === "create_task") {
+      const title = String(command.input.title ?? "").trim();
+      const estimateMin = Number(command.input.estimateMin ?? 0);
+      const priority = Number(command.input.priority ?? 2);
+      const notes = command.input.notes ? String(command.input.notes) : undefined;
+
+      if (!title) {
+        throw new Error("Task title is required");
+      }
+
+      if (!Number.isFinite(estimateMin) || estimateMin <= 0) {
+        throw new Error("Task estimate must be a positive number");
+      }
+
+      if (![1, 2, 3].includes(priority)) {
+        throw new Error("Task priority must be 1, 2, or 3");
+      }
+
+      const taskId = await ctx.db.insert("tasks", {
+        userId,
+        title,
+        notes,
+        estimateMin,
+        priority,
+        status: "active",
+        createdAt: now,
+      });
+
+      eventType = "TASK_CREATED";
+      meta = { taskId, estimateMin };
+    } else if (command.cmd === "complete_task") {
+      const taskId = command.input.taskId as Id<"tasks">;
+      const task = await ctx.db.get(taskId);
+
+      if (!task || task.userId !== userId) {
+        throw new Error("Task not found");
+      }
+
+      if (task.status === "completed") {
+        return { ok: true, alreadyCompleted: true };
+      }
+
+      await ctx.db.patch(taskId, {
+        status: "completed",
+        completedAt: now,
+      });
+
       eventType = "TASK_COMPLETED";
-      meta = { taskId: command.input.taskId };
+      meta = { taskId, estimateMin: task.estimateMin };
     } else if (command.cmd === "set_daily_plan") {
+      const top3TaskIds = command.input.top3TaskIds as string[];
+      const plannedTasks = await Promise.all(
+        top3TaskIds.map(async (taskId) => ctx.db.get(taskId as Id<"tasks">)),
+      );
+      for (const task of plannedTasks) {
+        if (!task || task.userId !== userId) {
+          throw new Error("Task not found for daily plan");
+        }
+      }
+      const plannedMinutes = plannedTasks.reduce(
+        (total, task) => total + (task?.estimateMin ?? 0),
+        0,
+      );
+
       eventType = "PLAN_SET";
-      meta = { day: command.input.day, top3TaskIds: command.input.top3TaskIds };
+      meta = { day: command.input.day, top3TaskIds, plannedMinutes };
       day = command.input.day;
     } else if (command.cmd === "submit_feedback") {
       eventType = "SUGGESTION_FEEDBACK";
@@ -75,11 +135,11 @@ export const executeCommand = mutation({
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
       .collect();
 
-    const kernelEvents: KernelEvent[] = dayEvents.map((event) => ({
-      type: event.type,
+    const kernelEvents = dayEvents.map((event) => ({
+      type: event.type as KernelEvent["type"],
       ts: event.ts,
       meta: event.meta,
-    }));
+    })) as KernelEvent[];
 
     const state = computeDailyState(day, kernelEvents);
 
