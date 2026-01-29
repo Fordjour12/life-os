@@ -16,6 +16,8 @@ export function computeDailyState(day: string, events: KernelEvent[]): LifeState
   for (const event of events) {
     if (event.type === "TASK_CREATED") planned += event.meta.estimateMin;
     if (event.type === "TASK_COMPLETED") completed += event.meta.estimateMin;
+    if (event.type === "PLAN_SET") planned = event.meta.plannedMinutes ?? planned;
+    if (event.type === "PLAN_RESET_APPLIED") planned = event.meta.plannedMinutes;
   }
 
   const freeMinutes = DEFAULT_FREE_MINUTES;

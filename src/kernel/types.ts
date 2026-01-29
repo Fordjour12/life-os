@@ -6,6 +6,11 @@ export type KernelCommand =
     }
   | { cmd: "complete_task"; input: { taskId: string }; idempotencyKey: string }
   | {
+      cmd: "apply_plan_reset";
+      input: { keepTaskIds: string[]; pauseOthers?: boolean };
+      idempotencyKey: string;
+    }
+  | {
       cmd: "set_daily_plan";
       input: { day: string; top3TaskIds: string[] };
       idempotencyKey: string;
@@ -23,6 +28,11 @@ export type KernelEvent =
       meta: { taskId: string; estimateMin: number };
     }
   | { type: "TASK_COMPLETED"; ts: number; meta: { taskId: string; estimateMin: number } }
+  | {
+      type: "PLAN_RESET_APPLIED";
+      ts: number;
+      meta: { keptTaskIds: string[]; pausedTaskIds: string[]; plannedMinutes: number };
+    }
   | {
       type: "PLAN_SET";
       ts: number;
