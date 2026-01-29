@@ -1,3 +1,9 @@
+export type PlanFocusItem = {
+  id: string;
+  label: string;
+  estimatedMinutes: number;
+};
+
 export type KernelCommand =
   | {
       cmd: "create_task";
@@ -12,7 +18,7 @@ export type KernelCommand =
     }
   | {
       cmd: "set_daily_plan";
-      input: { day: string; top3TaskIds: string[] };
+      input: { day: string; focusItems: PlanFocusItem[] };
       idempotencyKey: string;
     }
   | {
@@ -41,7 +47,7 @@ export type KernelEvent =
   | {
       type: "PLAN_SET";
       ts: number;
-      meta: { day: string; top3TaskIds: string[]; plannedMinutes?: number };
+      meta: { day: string; focusItems: PlanFocusItem[]; plannedMinutes?: number };
     }
   | {
       type: "SUGGESTION_FEEDBACK";

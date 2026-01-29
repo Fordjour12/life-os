@@ -95,23 +95,47 @@ export const executeCommand = mutation({
       eventType = "TASK_COMPLETED";
       meta = { taskId, estimateMin: task.estimateMin };
     } else if (command.cmd === "set_daily_plan") {
-      const top3TaskIds = command.input.top3TaskIds as string[];
-      const plannedTasks = await Promise.all(
-        top3TaskIds.map(async (taskId) => ctx.db.get(taskId as Id<"tasks">)),
-      );
-      for (const task of plannedTasks) {
-        if (!task || task.userId !== userId) {
-          throw new Error("Task not found for daily plan");
-        }
+      const allowedEstimates = [10, 25, 45, 60];
+      const dayInput = String(command.input.day ?? "").trim();
+      const rawItems = Array.isArray(command.input.focusItems)
+        ? (command.input.focusItems as Array<{
+            id?: string;
+            label?: string;
+            estimatedMinutes?: number;
+          }>)
+        : [];
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dayInput)) {
+        throw new Error("Plan day must be YYYY-MM-DD");
       }
-      const plannedMinutes = plannedTasks.reduce(
-        (total, task) => total + (task?.estimateMin ?? 0),
-        0,
-      );
+
+      const normalizeEstimate = (value: number) => {
+        if (!Number.isFinite(value)) return 25;
+        return allowedEstimates.reduce((closest, estimate) =>
+          Math.abs(estimate - value) < Math.abs(closest - value) ? estimate : closest,
+        );
+      };
+
+      const focusItems = rawItems
+        .slice(0, 3)
+        .map((item, index) => {
+          const label = String(item?.label ?? "").trim();
+          if (!label) return null;
+          const estimatedMinutes = normalizeEstimate(Number(item?.estimatedMinutes ?? 0));
+          const id = String(item?.id ?? "").trim() || `focus-${now}-${index}`;
+          return { id, label, estimatedMinutes };
+        })
+        .filter((item): item is { id: string; label: string; estimatedMinutes: number } =>
+          Boolean(item),
+        );
+
+      if (focusItems.length === 0) {
+        throw new Error("Daily plan needs at least one focus item");
+      }
 
       eventType = "PLAN_SET";
-      meta = { day: command.input.day, top3TaskIds, plannedMinutes };
-      day = command.input.day;
+      meta = { day: dayInput, focusItems };
+      day = dayInput;
     } else if (command.cmd === "apply_plan_reset") {
       const keepCount = command.input.keepCount as 1 | 2 | undefined;
       const keepN = keepCount ?? 1;
@@ -246,9 +270,34 @@ export const getToday = query({
       .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
       .collect();
 
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_user_ts", (q) => q.eq("userId", userId))
+      .collect();
+
+    let plan: { day: string; focusItems: Array<{ id: string; label: string; estimatedMinutes: number }> } | null =
+      null;
+    for (const event of events) {
+      if (event.type !== "PLAN_SET") continue;
+      const meta = event.meta as {
+        day?: string;
+        focusItems?: Array<{ id?: string; label?: string; estimatedMinutes?: number }>;
+      };
+      if (meta?.day !== day || !Array.isArray(meta.focusItems)) continue;
+      const focusItems = meta.focusItems
+        .map((item) => ({
+          id: String(item?.id ?? "").trim(),
+          label: String(item?.label ?? "").trim(),
+          estimatedMinutes: Number(item?.estimatedMinutes ?? 0),
+        }))
+        .filter((item) => item.id && item.label && Number.isFinite(item.estimatedMinutes));
+      plan = { day, focusItems };
+    }
+
     return {
       day,
       state: stateDoc?.state ?? null,
+      plan,
       suggestions: suggestions
         .filter((suggestion) => suggestion.status === "new")
         .sort((a, b) => b.priority - a.priority),

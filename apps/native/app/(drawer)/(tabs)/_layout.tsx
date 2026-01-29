@@ -33,6 +33,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="planner"
+        options={{
+          title: "Planner",
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name="compass" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="tasks"
         options={{
           title: "Tasks",
