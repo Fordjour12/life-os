@@ -13,7 +13,7 @@ export function runPolicies(state: LifeState): KernelSuggestion[] {
         code: "OVERLOAD_GUARD",
         detail: "Your plan is heavier than your available time/energy.",
       },
-      payload: { suggestedTopTasks: 1 },
+      payload: { keepCount: 1 },
       status: "new",
       cooldownKey: "plan_reset",
     });

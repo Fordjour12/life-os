@@ -15,3 +15,15 @@ export const getActiveTasks = query({
       .collect();
   },
 });
+
+export const getPausedTasks = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = getUserId();
+
+    return ctx.db
+      .query("tasks")
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
+      .collect();
+  },
+});

@@ -113,45 +113,48 @@ export const executeCommand = mutation({
       meta = { day: command.input.day, top3TaskIds, plannedMinutes };
       day = command.input.day;
     } else if (command.cmd === "apply_plan_reset") {
-      const keepTaskIds = command.input.keepTaskIds as Id<"tasks">[];
-      const pauseOthers = command.input.pauseOthers !== false;
+      const keepCount = command.input.keepCount as 1 | 2 | undefined;
+      const keepN = keepCount ?? 1;
 
-      if (!Array.isArray(keepTaskIds) || keepTaskIds.length < 1 || keepTaskIds.length > 2) {
-        throw new Error("Plan reset requires 1 or 2 tasks to keep");
+      if (![1, 2].includes(keepN)) {
+        throw new Error("Plan reset keep count must be 1 or 2");
       }
 
       const activeTasks = await ctx.db
         .query("tasks")
         .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
         .collect();
+      day = command.input.day;
 
-      const activeTaskIds = new Set(activeTasks.map((task) => task._id));
-      const invalidKeep = keepTaskIds.filter((taskId) => !activeTaskIds.has(taskId));
-      if (invalidKeep.length) {
-        throw new Error("Plan reset keep list must be active tasks");
+      const sorted = [...activeTasks].sort((a, b) => {
+        if (a.estimateMin !== b.estimateMin) return a.estimateMin - b.estimateMin;
+        return (a.priority ?? 2) - (b.priority ?? 2);
+      });
+
+      const kept = sorted.slice(0, keepN);
+      const paused = sorted.slice(keepN);
+
+      for (const task of paused) {
+        await ctx.db.patch(task._id, {
+          status: "paused",
+          pausedAt: now,
+          pauseReason: "plan_reset",
+        });
+
+        await ctx.db.insert("events", {
+          userId,
+          ts: now,
+          type: "TASK_PAUSED",
+          meta: { taskId: task._id, reason: "plan_reset" },
+          idempotencyKey: `${command.idempotencyKey}:pause:${task._id}`,
+        });
       }
-
-      const pausedTaskIds: Id<"tasks">[] = [];
-      if (pauseOthers) {
-        for (const task of activeTasks) {
-          if (!keepTaskIds.includes(task._id)) {
-            await ctx.db.patch(task._id, { status: "paused" });
-            pausedTaskIds.push(task._id);
-          }
-        }
-      }
-
-      const keptTasks = activeTasks.filter((task) => keepTaskIds.includes(task._id));
-      const plannedMinutes = keptTasks.reduce(
-        (total, task) => total + (task?.estimateMin ?? 0),
-        0,
-      );
 
       eventType = "PLAN_RESET_APPLIED";
       meta = {
-        keptTaskIds: keepTaskIds,
-        pausedTaskIds,
-        plannedMinutes,
+        day,
+        keptTaskIds: kept.map((task) => task._id),
+        pausedTaskIds: paused.map((task) => task._id),
       };
     } else if (command.cmd === "submit_feedback") {
       eventType = "SUGGESTION_FEEDBACK";

@@ -11,6 +11,7 @@ type SuggestionItem = {
   _id: string;
   type: string;
   reason?: { detail?: string };
+  payload?: { keepCount?: 1 | 2 };
 };
 
 type TaskItem = {
@@ -29,6 +30,7 @@ export default function Today() {
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
   const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
+  const applyPlanResetMutation = useMutation(api.kernel.planReset.applyPlanReset);
   const [title, setTitle] = useState("");
   const [estimate, setEstimate] = useState("25");
   const [isCreating, setIsCreating] = useState(false);
@@ -146,6 +148,21 @@ export default function Today() {
             >
               <Text className="text-foreground font-semibold">{suggestion.type}</Text>
               <Text className="text-muted">{suggestion.reason?.detail}</Text>
+              {suggestion.type === "PLAN_RESET" ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onPress={() =>
+                    applyPlanResetMutation({
+                      day: data.day,
+                      keepCount: suggestion.payload?.keepCount ?? 1,
+                      idempotencyKey: idem(),
+                    })
+                  }
+                >
+                  Apply Plan Reset
+                </Button>
+              ) : null}
             </Surface>
           ))
         ) : (

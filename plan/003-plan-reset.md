@@ -1,4 +1,4 @@
-Awesome. **Plan Reset** is the feature that turns your app from “tasks” into a real **Life OS**.
+**Plan Reset** is the feature that turns your app from “tasks” into a real **Life OS**.
 
 We’ll implement it as a **safe, gentle, reversible** flow:
 

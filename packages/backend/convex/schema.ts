@@ -43,6 +43,8 @@ export default defineSchema({
     status: v.string(),
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
+    pausedAt: v.optional(v.number()),
+    pauseReason: v.optional(v.string()),
   })
     .index("by_user_status", ["userId", "status"])
     .index("by_user_created", ["userId", "createdAt"]),

@@ -20,13 +20,16 @@ function idem() {
 
 export default function Tasks() {
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
+  const pausedTasksData = useQuery(api.kernel.taskQueries.getPausedTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
   const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
   const [title, setTitle] = useState("");
   const [estimate, setEstimate] = useState("25");
   const [isCreating, setIsCreating] = useState(false);
+  const [showPaused, setShowPaused] = useState(false);
 
   const tasks = (tasksData ?? []) as TaskItem[];
+  const pausedTasks = (pausedTasksData ?? []) as TaskItem[];
 
   const createTask = async () => {
     const trimmedTitle = title.trim();
@@ -55,7 +58,7 @@ export default function Tasks() {
     await completeTaskMutation({ taskId, idempotencyKey: idem() });
   };
 
-  if (!tasksData) {
+  if (!tasksData || !pausedTasksData) {
     return (
       <Container className="p-6">
         <View className="flex-1 justify-center items-center">
@@ -120,6 +123,31 @@ export default function Tasks() {
           <Text className="text-muted">No active tasks yet</Text>
         )}
       </Surface>
+
+      {pausedTasks.length ? (
+        <Surface variant="secondary" className="p-4 rounded-2xl gap-3">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-foreground font-semibold">
+              Paused for now (Plan Reset)
+            </Text>
+            <Button size="sm" variant="secondary" onPress={() => setShowPaused(!showPaused)}>
+              {showPaused ? "Hide" : `Show ${pausedTasks.length}`}
+            </Button>
+          </View>
+          {showPaused ? (
+            pausedTasks.map((task) => (
+              <Surface key={task._id} variant="default" className="p-3 rounded-xl">
+                <View className="gap-1">
+                  <Text className="text-foreground font-semibold">{task.title}</Text>
+                  <Text className="text-muted text-xs">{task.estimateMin} min</Text>
+                </View>
+              </Surface>
+            ))
+          ) : (
+            <Text className="text-muted text-sm">Kept safe until you are ready.</Text>
+          )}
+        </Surface>
+      ) : null}
     </Container>
   );
 }

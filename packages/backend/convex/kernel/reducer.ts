@@ -12,12 +12,21 @@ const DEFAULT_FREE_MINUTES = 240;
 export function computeDailyState(day: string, events: KernelEvent[]): LifeState {
   let completed = 0;
   let planned = 0;
+  const taskEstimates = new Map<string, number>();
 
   for (const event of events) {
-    if (event.type === "TASK_CREATED") planned += event.meta.estimateMin;
+    if (event.type === "TASK_CREATED") {
+      taskEstimates.set(event.meta.taskId, event.meta.estimateMin);
+      planned += event.meta.estimateMin;
+    }
     if (event.type === "TASK_COMPLETED") completed += event.meta.estimateMin;
     if (event.type === "PLAN_SET") planned = event.meta.plannedMinutes ?? planned;
-    if (event.type === "PLAN_RESET_APPLIED") planned = event.meta.plannedMinutes;
+    if (event.type === "PLAN_RESET_APPLIED") {
+      planned = event.meta.keptTaskIds.reduce(
+        (total, taskId) => total + (taskEstimates.get(taskId) ?? 0),
+        0,
+      );
+    }
   }
 
   const freeMinutes = DEFAULT_FREE_MINUTES;
@@ -55,6 +64,11 @@ export function computeDailyState(day: string, events: KernelEvent[]): LifeState
     reasons.push({
       code: "MOMENTUM_LOW",
       detail: "No meaningful progress detected yet",
+    });
+  if (events.some((event) => event.type === "PLAN_RESET_APPLIED"))
+    reasons.push({
+      code: "PLAN_RESET",
+      detail: "Plan was softened to protect recovery and momentum.",
     });
 
   return {

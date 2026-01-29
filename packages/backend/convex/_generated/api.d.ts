@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as kernel_commands from "../kernel/commands.js";
+import type * as kernel_planReset from "../kernel/planReset.js";
 import type * as kernel_policies from "../kernel/policies.js";
 import type * as kernel_reducer from "../kernel/reducer.js";
 import type * as kernel_taskCommands from "../kernel/taskCommands.js";
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   healthCheck: typeof healthCheck;
   http: typeof http;
   "kernel/commands": typeof kernel_commands;
+  "kernel/planReset": typeof kernel_planReset;
   "kernel/policies": typeof kernel_policies;
   "kernel/reducer": typeof kernel_reducer;
   "kernel/taskCommands": typeof kernel_taskCommands;
