@@ -1,19 +1,34 @@
 import type { KernelSuggestion, LifeState } from "../../../../src/kernel/types";
 
-export function runPolicies(state: LifeState): KernelSuggestion[] {
+type PolicyContext = {
+  lastPlanResetAt?: number;
+  planResetCountToday: number;
+};
+
+const PLAN_RESET_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+export function runPolicies(state: LifeState, context?: PolicyContext): KernelSuggestion[] {
   const out: KernelSuggestion[] = [];
   const day = state.day;
+  const lastPlanResetAt = context?.lastPlanResetAt ?? 0;
+  const planResetCountToday = context?.planResetCountToday ?? 0;
+  const resetCooldownActive = Date.now() - lastPlanResetAt < PLAN_RESET_COOLDOWN_MS;
 
-  if (state.load === "overloaded") {
+  if (state.load === "overloaded" && !resetCooldownActive) {
+    const suggestRest = planResetCountToday >= 3;
     out.push({
       day,
       type: "PLAN_RESET",
       priority: 5,
       reason: {
         code: "OVERLOAD_GUARD",
-        detail: "Your plan is heavier than your available time/energy.",
+        detail: suggestRest
+          ? "You've reset a few times. A rest plan might be kinder today."
+          : "Your plan is heavier than your available time/energy.",
       },
-      payload: { keepCount: 1 },
+      payload: suggestRest
+        ? { mode: "rest", suggestedMinutes: 10 }
+        : { mode: "reset", keepCount: 1 },
       status: "new",
       cooldownKey: "plan_reset",
     });

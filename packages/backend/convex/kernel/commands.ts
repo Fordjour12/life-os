@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import type { KernelEvent } from "../../../../src/kernel/types";
+import type { KernelEvent, PlannerState, PlanSetReason } from "../../../../src/kernel/types";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 
@@ -14,6 +14,22 @@ function getTodayYYYYMMDD() {
   const dd = String(date.getUTCDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
+
+function formatYYYYMMDD(date: Date) {
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(date.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function daysBetween(fromDay: string, toDay: string) {
+  const fromDate = new Date(`${fromDay}T00:00:00Z`);
+  const toDate = new Date(`${toDay}T00:00:00Z`);
+  const diff = toDate.getTime() - fromDate.getTime();
+  return Math.floor(diff / (24 * 60 * 60 * 1000));
+}
+
+const planReasons: PlanSetReason[] = ["initial", "adjust", "reset", "recovery", "return"];
 
 function getUserId(): string {
   return "user_me";
@@ -104,6 +120,7 @@ export const executeCommand = mutation({
             estimatedMinutes?: number;
           }>)
         : [];
+      const reasonInput = String(command.input.reason ?? "").trim() as PlanSetReason;
 
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dayInput)) {
         throw new Error("Plan day must be YYYY-MM-DD");
@@ -133,8 +150,29 @@ export const executeCommand = mutation({
         throw new Error("Daily plan needs at least one focus item");
       }
 
+      const existingPlans = await ctx.db
+        .query("events")
+        .withIndex("by_user_ts", (q) => q.eq("userId", userId))
+        .collect();
+
+      let latestVersion = 0;
+      for (const event of existingPlans) {
+        if (event.type !== "PLAN_SET") continue;
+        const meta = event.meta as { day?: string; version?: number };
+        if (meta?.day !== dayInput) continue;
+        const version = Number(meta.version ?? 0);
+        if (version > latestVersion) latestVersion = version;
+      }
+
+      const reason: PlanSetReason = planReasons.includes(reasonInput)
+        ? reasonInput
+        : latestVersion === 0
+          ? "initial"
+          : "adjust";
+      const version = latestVersion + 1;
+
       eventType = "PLAN_SET";
-      meta = { day: dayInput, focusItems };
+      meta = { day: dayInput, focusItems, version, reason };
       day = dayInput;
     } else if (command.cmd === "apply_plan_reset") {
       const keepCount = command.input.keepCount as 1 | 2 | undefined;
@@ -158,12 +196,10 @@ export const executeCommand = mutation({
       const kept = sorted.slice(0, keepN);
       const paused = sorted.slice(keepN);
 
-      for (const task of paused) {
-        await ctx.db.patch(task._id, {
-          status: "paused",
-          pausedAt: now,
-          pauseReason: "plan_reset",
-        });
+        for (const task of paused) {
+          await ctx.db.patch(task._id, {
+            status: "paused",
+          });
 
         await ctx.db.insert("events", {
           userId,
@@ -222,7 +258,26 @@ export const executeCommand = mutation({
       await ctx.db.insert("stateDaily", { userId, day, state, updatedAt: now });
     }
 
-    const suggestions = runPolicies(state);
+    let planResetCountToday = 0;
+    let lastPlanResetAt = 0;
+    for (const event of dayEvents) {
+      if (event.type === "PLAN_SET") {
+        const meta = event.meta as { day?: string; reason?: PlanSetReason };
+        if (meta?.day === day && (meta.reason === "reset" || meta.reason === "recovery")) {
+          planResetCountToday += 1;
+          if (event.ts > lastPlanResetAt) lastPlanResetAt = event.ts;
+        }
+      }
+      if (event.type === "PLAN_RESET_APPLIED") {
+        const meta = event.meta as { day?: string };
+        if (meta?.day === day) {
+          planResetCountToday += 1;
+          if (event.ts > lastPlanResetAt) lastPlanResetAt = event.ts;
+        }
+      }
+    }
+
+    const suggestions = runPolicies(state, { lastPlanResetAt, planResetCountToday });
 
     const existingSugs = await ctx.db
       .query("suggestions")
@@ -275,15 +330,29 @@ export const getToday = query({
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
       .collect();
 
-    let plan: { day: string; focusItems: Array<{ id: string; label: string; estimatedMinutes: number }> } | null =
-      null;
+    let plan:
+      | {
+          day: string;
+          version: number;
+          reason: PlanSetReason;
+          focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
+        }
+      | null = null;
+    let latestPlanVersion = -1;
+    let latestPlanTs = 0;
     for (const event of events) {
       if (event.type !== "PLAN_SET") continue;
       const meta = event.meta as {
         day?: string;
+        version?: number;
+        reason?: PlanSetReason;
         focusItems?: Array<{ id?: string; label?: string; estimatedMinutes?: number }>;
       };
       if (meta?.day !== day || !Array.isArray(meta.focusItems)) continue;
+      const version = Number(meta.version ?? 0);
+      const shouldReplace =
+        version > latestPlanVersion || (version === latestPlanVersion && event.ts > latestPlanTs);
+      if (!shouldReplace) continue;
       const focusItems = meta.focusItems
         .map((item) => ({
           id: String(item?.id ?? "").trim(),
@@ -291,13 +360,50 @@ export const getToday = query({
           estimatedMinutes: Number(item?.estimatedMinutes ?? 0),
         }))
         .filter((item) => item.id && item.label && Number.isFinite(item.estimatedMinutes));
-      plan = { day, focusItems };
+      plan = {
+        day,
+        version,
+        reason: meta.reason && planReasons.includes(meta.reason) ? meta.reason : "initial",
+        focusItems,
+      };
+      latestPlanVersion = version;
+      latestPlanTs = event.ts;
+    }
+
+    const hasTodayEvents = events.some((event) => formatYYYYMMDD(new Date(event.ts)) === day);
+    const lastEventDay = events
+      .map((event) => formatYYYYMMDD(new Date(event.ts)))
+      .filter((eventDay) => eventDay < day)
+      .sort();
+    const lastEventDayValue = lastEventDay.length
+      ? lastEventDay[lastEventDay.length - 1]
+      : null;
+    const returning =
+      Boolean(lastEventDayValue) &&
+      hasTodayEvents &&
+      daysBetween(lastEventDayValue as string, day) >= 3;
+
+    const lifeState = stateDoc?.state ?? null;
+    let plannerState: PlannerState = "NO_PLAN";
+    if (returning) {
+      plannerState = "RETURNING";
+    } else if (lifeState?.mode === "recovery") {
+      plannerState = "RECOVERY";
+    } else if (!plan) {
+      plannerState = "NO_PLAN";
+    } else if (lifeState?.load === "overloaded") {
+      plannerState = "OVERLOADED";
+    } else if (lifeState?.momentum === "stalled") {
+      plannerState = "STALLED";
+    } else {
+      plannerState = "PLANNED_OK";
     }
 
     return {
       day,
-      state: stateDoc?.state ?? null,
+      state: lifeState,
       plan,
+      plannerState,
       suggestions: suggestions
         .filter((suggestion) => suggestion.status === "new")
         .sort((a, b) => b.priority - a.priority),

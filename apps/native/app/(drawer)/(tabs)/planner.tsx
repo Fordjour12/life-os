@@ -20,8 +20,18 @@ type DraftItem = {
 
 type PlanData = {
   day: string;
+  version: number;
+  reason: "initial" | "adjust" | "reset" | "recovery" | "return";
   focusItems: PlanItem[];
 };
+
+type PlannerState =
+  | "NO_PLAN"
+  | "PLANNED_OK"
+  | "OVERLOADED"
+  | "STALLED"
+  | "RECOVERY"
+  | "RETURNING";
 
 const allowedEstimates = [10, 25, 45, 60];
 
@@ -66,6 +76,9 @@ export default function Planner() {
   const [draftItems, setDraftItems] = useState<DraftItem[]>(() => createEmptyDraft());
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [nextStepIndex, setNextStepIndex] = useState(0);
+  const [nextStepMinutes, setNextStepMinutes] = useState(10);
+  const [showNextStep, setShowNextStep] = useState(false);
 
   if (!data) {
     return (
@@ -78,16 +91,38 @@ export default function Planner() {
   }
 
   const plan = (data.plan ?? null) as PlanData | null;
+  const plannerState = (data.plannerState ?? "NO_PLAN") as PlannerState;
+  const lifeState = data.state ?? null;
   const totalMinutes = plan
     ? plan.focusItems.reduce((sum, item) => sum + item.estimatedMinutes, 0)
     : 0;
 
-  const showEditor = !plan || isEditing;
+  const showEditor = plannerState === "NO_PLAN" || isEditing;
 
   const updateDraft = (index: number, patch: Partial<DraftItem>) => {
     setDraftItems((items) =>
       items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)),
     );
+  };
+
+  const setPlan = async (
+    reason: "initial" | "adjust" | "reset" | "recovery" | "return",
+    items: PlanItem[],
+  ) => {
+    if (!items.length) return;
+    setIsSaving(true);
+    try {
+      await execute({
+        command: {
+          cmd: "set_daily_plan",
+          input: { day: data.day, focusItems: items.slice(0, 3), reason },
+          idempotencyKey: idem(),
+        },
+      });
+      setIsEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const savePlan = async () => {
@@ -101,23 +136,9 @@ export default function Planner() {
       })
       .filter((item): item is PlanItem => Boolean(item));
 
-    if (!focusItems.length) {
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await execute({
-        command: {
-          cmd: "set_daily_plan",
-          input: { day: data.day, focusItems: focusItems.slice(0, 3) },
-          idempotencyKey: idem(),
-        },
-      });
-      setIsEditing(false);
-    } finally {
-      setIsSaving(false);
-    }
+    if (!focusItems.length) return;
+    const reason = plan ? "adjust" : "initial";
+    await setPlan(reason, focusItems);
   };
 
   const startAdjust = () => {
@@ -128,35 +149,73 @@ export default function Planner() {
   };
 
   const resetPlan = async () => {
-    setIsSaving(true);
-    try {
-      await execute({
-        command: {
-          cmd: "set_daily_plan",
-          input: {
-            day: data.day,
-            focusItems: [
-              {
-                id: "recovery",
-                label: "One small stabilizing task",
-                estimatedMinutes: 10,
-              },
-            ],
-          },
-          idempotencyKey: idem(),
-        },
-      });
-      setIsEditing(false);
-    } finally {
-      setIsSaving(false);
-    }
+    await setPlan("reset", [
+      {
+        id: "recovery",
+        label: "One small stabilizing task",
+        estimatedMinutes: 10,
+      },
+    ]);
   };
+
+  const restPlan = async () => {
+    await setPlan("recovery", [
+      {
+        id: "rest",
+        label: "Rest and recover",
+        estimatedMinutes: 5,
+      },
+    ]);
+  };
+
+  const shrinkPlan = async (keepCount: 1 | 2) => {
+    if (!plan) return;
+    const items = plan.focusItems.slice(0, keepCount);
+    await setPlan("reset", items);
+  };
+
+  const getNextStepMinutes = () => {
+    if (lifeState?.mode === "recovery" || lifeState?.focusCapacity === "very_low") return 10;
+    if (lifeState?.focusCapacity === "low") return 10;
+    if (lifeState?.focusCapacity === "high") return 25;
+    return 15;
+  };
+
+  const startNextStep = (forcedMinutes?: number) => {
+    if (!plan || plan.focusItems.length === 0) return;
+    setNextStepIndex(0);
+    setNextStepMinutes(forcedMinutes ?? getNextStepMinutes());
+    setShowNextStep(true);
+  };
+
+  const shrinkNextStep = () => {
+    const min = lifeState?.mode === "recovery" || lifeState?.focusCapacity === "very_low" ? 5 : 10;
+    setNextStepMinutes((minutes) => Math.max(min, minutes - 5));
+  };
+
+  const skipNextStep = () => {
+    if (!plan) return;
+    const nextIndex = nextStepIndex + 1;
+    if (nextIndex >= plan.focusItems.length) {
+      setShowNextStep(false);
+      return;
+    }
+    setNextStepIndex(nextIndex);
+  };
+
+  const subtitle = (() => {
+    if (plannerState === "RETURNING") return "Welcome back. No pressure.";
+    if (plannerState === "RECOVERY") return "Recovery mode. Keep it small.";
+    if (plannerState === "OVERLOADED") return "This plan is heavier than your available time.";
+    if (plannerState === "STALLED") return "No momentum yet. Let's make it easy.";
+    return "What would make today a win?";
+  })();
 
   return (
     <Container className="p-6 gap-4">
       <View>
         <Text className="text-3xl font-semibold text-foreground tracking-tight">Planner</Text>
-        <Text className="text-muted text-sm mt-1">What would make today a win?</Text>
+        <Text className="text-muted text-sm mt-1">{subtitle}</Text>
       </View>
 
       {showEditor ? (
@@ -201,6 +260,11 @@ export default function Planner() {
                 Cancel
               </Button>
             ) : null}
+            {plannerState === "NO_PLAN" ? (
+              <Button onPress={restPlan} isDisabled={isSaving} variant="secondary">
+                Rest day
+              </Button>
+            ) : null}
           </View>
         </Surface>
       ) : (
@@ -221,12 +285,101 @@ export default function Planner() {
               </Surface>
             ))}
           </View>
+          {showNextStep ? (
+            <Surface variant="default" className="p-3 rounded-xl gap-3">
+              <View className="gap-1">
+                <Text className="text-foreground font-semibold">Next step</Text>
+                <Text className="text-muted text-sm">Keep it small and doable.</Text>
+              </View>
+              <View>
+                <Text className="text-foreground font-semibold">
+                  {plan?.focusItems[nextStepIndex]?.label}
+                </Text>
+                <Text className="text-muted text-xs">{nextStepMinutes} min</Text>
+              </View>
+              <View className="flex-row gap-2">
+                <Button variant="secondary" onPress={() => setShowNextStep(false)}>
+                  Start
+                </Button>
+                <Button variant="secondary" onPress={shrinkNextStep}>
+                  Make smaller
+                </Button>
+                {plan && plan.focusItems.length > 1 ? (
+                  <Button variant="secondary" onPress={skipNextStep}>
+                    Skip
+                  </Button>
+                ) : null}
+              </View>
+            </Surface>
+          ) : null}
           <View className="flex-row gap-2">
+            {plannerState === "OVERLOADED" ? (
+              <>
+                <Button onPress={resetPlan} variant="secondary" isDisabled={isSaving}>
+                  Plan reset
+                </Button>
+                <Button onPress={() => shrinkPlan(1)} variant="secondary" isDisabled={isSaving}>
+                  Shrink to 1
+                </Button>
+                {plan && plan.focusItems.length > 1 ? (
+                  <Button
+                    onPress={() => shrinkPlan(2)}
+                    variant="secondary"
+                    isDisabled={isSaving}
+                  >
+                    Shrink to 2
+                  </Button>
+                ) : null}
+              </>
+            ) : null}
+            {plannerState === "STALLED" || plannerState === "PLANNED_OK" ? (
+              <>
+                <Button onPress={() => startNextStep()} variant="secondary" isDisabled={isSaving}>
+                  Start
+                </Button>
+                {plannerState === "STALLED" ? (
+                  <Button
+                    onPress={() => startNextStep(10)}
+                    variant="secondary"
+                    isDisabled={isSaving}
+                  >
+                    Tiny win
+                  </Button>
+                ) : null}
+              </>
+            ) : null}
+            {plannerState === "RECOVERY" ? (
+              <>
+                <Button onPress={resetPlan} variant="secondary" isDisabled={isSaving}>
+                  One stabilizer
+                </Button>
+                <Button onPress={restPlan} variant="secondary" isDisabled={isSaving}>
+                  Rest is valid
+                </Button>
+                <Button onPress={() => setPlan("recovery", [{
+                  id: "tidy",
+                  label: "Light tidy",
+                  estimatedMinutes: 10,
+                }])} variant="secondary" isDisabled={isSaving}>
+                  Light tidy
+                </Button>
+              </>
+            ) : null}
+            {plannerState === "RETURNING" ? (
+              <Button
+                onPress={() =>
+                  setPlan("return", [
+                    { id: "return", label: "One small thing", estimatedMinutes: 10 },
+                  ])
+                }
+                variant="secondary"
+                isDisabled={isSaving}
+              >
+                Reset with 1 small thing
+              </Button>
+            ) : null}
             <Button onPress={startAdjust} variant="secondary" isDisabled={isSaving}>
               Adjust
-            </Button>
-            <Button onPress={resetPlan} variant="secondary" isDisabled={isSaving}>
-              Reset plan
             </Button>
           </View>
         </Surface>

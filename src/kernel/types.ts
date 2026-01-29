@@ -4,6 +4,16 @@ export type PlanFocusItem = {
   estimatedMinutes: number;
 };
 
+export type PlanSetReason = "initial" | "adjust" | "reset" | "recovery" | "return";
+
+export type PlannerState =
+  | "NO_PLAN"
+  | "PLANNED_OK"
+  | "OVERLOADED"
+  | "STALLED"
+  | "RECOVERY"
+  | "RETURNING";
+
 export type KernelCommand =
   | {
       cmd: "create_task";
@@ -18,7 +28,7 @@ export type KernelCommand =
     }
   | {
       cmd: "set_daily_plan";
-      input: { day: string; focusItems: PlanFocusItem[] };
+      input: { day: string; focusItems: PlanFocusItem[]; reason?: PlanSetReason };
       idempotencyKey: string;
     }
   | {
@@ -47,7 +57,13 @@ export type KernelEvent =
   | {
       type: "PLAN_SET";
       ts: number;
-      meta: { day: string; focusItems: PlanFocusItem[]; plannedMinutes?: number };
+      meta: {
+        day: string;
+        version: number;
+        reason: PlanSetReason;
+        focusItems: PlanFocusItem[];
+        plannedMinutes?: number;
+      };
     }
   | {
       type: "SUGGESTION_FEEDBACK";
@@ -84,7 +100,7 @@ export type SuggestionStatus =
 
 export type KernelSuggestion = {
   day: string;
-  type: "PLAN_RESET" | "TINY_WIN" | "DAILY_REVIEW_QUESTION";
+  type: "PLAN_RESET" | "TINY_WIN" | "DAILY_REVIEW_QUESTION" | "NEXT_STEP";
   priority: 1 | 2 | 3 | 4 | 5;
   reason: { code: string; detail: string };
   payload: Record<string, unknown>;

@@ -12,19 +12,34 @@ const DEFAULT_FREE_MINUTES = 240;
 export function computeDailyState(day: string, events: KernelEvent[]): LifeState {
   let completed = 0;
   let planned = 0;
+  let latestPlanVersion = -1;
+  let latestPlanTs = 0;
+  let hadPlanReset = false;
 
   for (const event of events) {
     if (event.type === "TASK_COMPLETED") completed += event.meta.estimateMin;
     if (event.type === "PLAN_SET" && event.meta.day === day) {
-      planned = Array.isArray(event.meta.focusItems)
-        ? event.meta.focusItems.reduce(
-            (sum: number, item: { estimatedMinutes?: number }) =>
-              sum + (Number(item.estimatedMinutes) || 0),
-            0,
-          )
-        : (event.meta.plannedMinutes ?? planned);
+      const version = Number(event.meta.version ?? 0);
+      const shouldReplace =
+        version > latestPlanVersion || (version === latestPlanVersion && event.ts > latestPlanTs);
+      if (shouldReplace) {
+        latestPlanVersion = version;
+        latestPlanTs = event.ts;
+        planned = Array.isArray(event.meta.focusItems)
+          ? event.meta.focusItems.reduce(
+              (sum: number, item: { estimatedMinutes?: number }) =>
+                sum + (Number(item.estimatedMinutes) || 0),
+              0,
+            )
+          : (event.meta.plannedMinutes ?? planned);
+      }
+      if (event.meta.reason === "reset" || event.meta.reason === "recovery") {
+        hadPlanReset = true;
+      }
     }
-    if (event.type === "PLAN_RESET_APPLIED") planned = event.meta.plannedMinutes;
+    if (event.type === "PLAN_RESET_APPLIED") {
+      hadPlanReset = true;
+    }
   }
 
   const freeMinutes = DEFAULT_FREE_MINUTES;
@@ -63,7 +78,7 @@ export function computeDailyState(day: string, events: KernelEvent[]): LifeState
       code: "MOMENTUM_LOW",
       detail: "No meaningful progress detected yet",
     });
-  if (events.some((event) => event.type === "PLAN_RESET_APPLIED"))
+  if (hadPlanReset)
     reasons.push({
       code: "PLAN_RESET",
       detail: "Plan was softened to protect recovery and momentum.",
