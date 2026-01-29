@@ -50,6 +50,11 @@ export type KernelEvent =
       meta: { taskId: string; reason: "plan_reset" };
     }
   | {
+      type: "TASK_RESUMED";
+      ts: number;
+      meta: { taskId: string; reason: "manual" | "gentle_return" };
+    }
+  | {
       type: "PLAN_RESET_APPLIED";
       ts: number;
       meta: { day: string; keptTaskIds: string[]; pausedTaskIds: string[] };

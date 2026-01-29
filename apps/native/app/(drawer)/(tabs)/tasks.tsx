@@ -23,6 +23,7 @@ export default function Tasks() {
   const pausedTasksData = useQuery(api.kernel.taskQueries.getPausedTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
   const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
+  const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
   const [title, setTitle] = useState("");
   const [estimate, setEstimate] = useState("25");
   const [isCreating, setIsCreating] = useState(false);
@@ -56,6 +57,14 @@ export default function Tasks() {
 
   const completeTask = async (taskId: Id<"tasks">) => {
     await completeTaskMutation({ taskId, idempotencyKey: idem() });
+  };
+
+  const resumeTask = async (taskId: Id<"tasks">) => {
+    await resumeTaskMutation({
+      taskId,
+      reason: "manual",
+      idempotencyKey: idem(),
+    });
   };
 
   if (!tasksData || !pausedTasksData) {
@@ -137,9 +146,14 @@ export default function Tasks() {
           {showPaused ? (
             pausedTasks.map((task) => (
               <Surface key={task._id} variant="default" className="p-3 rounded-xl">
-                <View className="gap-1">
-                  <Text className="text-foreground font-semibold">{task.title}</Text>
-                  <Text className="text-muted text-xs">{task.estimateMin} min</Text>
+                <View className="flex-row items-center justify-between">
+                  <View className="gap-1">
+                    <Text className="text-foreground font-semibold">{task.title}</Text>
+                    <Text className="text-muted text-xs">{task.estimateMin} min</Text>
+                  </View>
+                  <Button size="sm" variant="secondary" onPress={() => resumeTask(task._id)}>
+                    Resume
+                  </Button>
                 </View>
               </Surface>
             ))

@@ -15,6 +15,7 @@ import type * as kernel_commands from "../kernel/commands.js";
 import type * as kernel_planReset from "../kernel/planReset.js";
 import type * as kernel_policies from "../kernel/policies.js";
 import type * as kernel_reducer from "../kernel/reducer.js";
+import type * as kernel_resumeTasks from "../kernel/resumeTasks.js";
 import type * as kernel_taskCommands from "../kernel/taskCommands.js";
 import type * as kernel_taskQueries from "../kernel/taskQueries.js";
 import type * as privateData from "../privateData.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   "kernel/planReset": typeof kernel_planReset;
   "kernel/policies": typeof kernel_policies;
   "kernel/reducer": typeof kernel_reducer;
+  "kernel/resumeTasks": typeof kernel_resumeTasks;
   "kernel/taskCommands": typeof kernel_taskCommands;
   "kernel/taskQueries": typeof kernel_taskQueries;
   privateData: typeof privateData;
