@@ -24,20 +24,20 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="today"
         options={{
-          title: "Home",
+          title: "Today",
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="inbox"
         options={{
-          title: "Explore",
+          title: "Inbox",
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="compass" size={size} color={color} />
+            <Ionicons name="mail" size={size} color={color} />
           ),
         }}
       />

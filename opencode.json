@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["./docs/"],
+  "tui": {
+    "scroll_speed": 3,
+    "scroll_acceleration": {
+      "enabled": true
+    }
+  },
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "enabled": true,
+      "command": ["npx", "-y", "@upstash/context7-mcp"]
+    },
+    "convex": {
+      "type": "local",
+      "enabled": true,
+      "command": ["npx", "-y", "convex@latest", "mcp", "start"]
+    },
+    "better-auth": {
+      "type": "remote",
+      "enabled": true,
+      "url": "https://mcp.chonkie.ai/better-auth/better-auth-builder/mcp"
+    },
+    "heroui-native": {
+      "type": "local",
+      "enabled": true,
+      "command": ["npx", "-y", "@heroui/native-mcp@latest"]
+    }
+  }
+}

@@ -1,0 +1,62 @@
+export type KernelCommand =
+  | { cmd: "complete_task"; input: { taskId: string }; idempotencyKey: string }
+  | {
+      cmd: "set_daily_plan";
+      input: { day: string; top3TaskIds: string[] };
+      idempotencyKey: string;
+    }
+  | {
+      cmd: "submit_feedback";
+      input: { suggestionId: string; vote: "up" | "down" | "ignore" };
+      idempotencyKey: string;
+    };
+
+export type KernelEvent =
+  | { type: "TASK_COMPLETED"; ts: number; meta: { taskId: string } }
+  | {
+      type: "PLAN_SET";
+      ts: number;
+      meta: { day: string; top3TaskIds: string[] };
+    }
+  | {
+      type: "SUGGESTION_FEEDBACK";
+      ts: number;
+      meta: { suggestionId: string; vote: "up" | "down" | "ignore" };
+    };
+
+export type LoadState = "underloaded" | "balanced" | "overloaded";
+export type Momentum = "stalled" | "steady" | "strong";
+export type FocusCapacity = "very_low" | "low" | "medium" | "high";
+export type LifeMode = "recovery" | "maintain" | "build" | "sprint";
+
+export type LifeState = {
+  day: string;
+  mode: LifeMode;
+
+  plannedMinutes: number;
+  completedMinutes: number;
+  freeMinutes: number;
+
+  load: LoadState;
+  momentum: Momentum;
+  focusCapacity: FocusCapacity;
+
+  reasons: Array<{ code: string; detail: string }>;
+};
+
+export type SuggestionStatus =
+  | "new"
+  | "accepted"
+  | "downvoted"
+  | "ignored"
+  | "expired";
+
+export type KernelSuggestion = {
+  day: string;
+  type: "PLAN_RESET" | "TINY_WIN" | "DAILY_REVIEW_QUESTION";
+  priority: 1 | 2 | 3 | 4 | 5;
+  reason: { code: string; detail: string };
+  payload: Record<string, unknown>;
+  status: SuggestionStatus;
+  cooldownKey?: string;
+};
