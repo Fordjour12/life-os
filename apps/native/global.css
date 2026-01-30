@@ -3,3 +3,30 @@
 @import "heroui-native/styles";
 
 @source './node_modules/heroui-native/lib';
+
+@theme {
+  /* Life OS "Compassionate" Palette */
+  
+  /* Soft Off-White / Deep Charcoal */
+  --color-background: #fcfcfc;
+  --color-foreground: #1c1917;
+  
+  /* Natural Teal */
+  --color-primary: #14b8a6;
+  --color-primary-foreground: #ffffff;
+  
+  /* Semantic */
+  --color-danger: #f43f5e; /* Rose */
+  --color-success: #10b981; /* Emerald */
+  --color-warning: #f59e0b; /* Amber */
+  
+  /* Surface */
+  --color-card: #ffffff;
+  --color-card-foreground: #1c1917;
+  
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+}
+
+/* Dark Mode Overrides (if supported by uniwind directly in one file, else relying on nativewind/uniwind mechanics) */
+/* Ideally handled via class strategy or native appearance hooks, but defining base vars here */
