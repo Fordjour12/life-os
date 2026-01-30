@@ -5,6 +5,7 @@ import { tv } from "tailwind-variants";
 interface GlassCardProps extends ViewProps {
     intensity?: number;
     variant?: "default" | "highlight";
+    className?: string;
 }
 
 const cardStyles = tv({

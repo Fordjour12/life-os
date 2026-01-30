@@ -1,3 +1,4 @@
+import React from "react";
 import { Text, TextProps } from "react-native";
 import { tv } from "tailwind-variants";
 
@@ -27,6 +28,8 @@ const textStyles = tv({
 interface TypographyProps extends TextProps {
     variant?: "h1" | "h2" | "h3" | "body" | "caption" | "label";
     emphasis?: "low" | "normal" | "high";
+    className?: string;
+    children?: React.ReactNode;
 }
 
 export function Typography({
