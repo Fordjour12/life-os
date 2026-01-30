@@ -33,11 +33,11 @@ function EngBadge({
   const dotColor = colorMap[intent];
 
   return (
-    <View className="items-start min-w-[80px]">
+    <View className="items-start min-w-20">
       <MachineText variant="label" className="mb-1 text-[10px]">
         {label}
       </MachineText>
-      <View className="flex-row items-center gap-2 border border-divider items-center px-2 py-1 bg-surface">
+      <View className="flex-row gap-2 border border-divider items-center px-2 py-1 bg-surface">
         <View className={`w-2 h-2 ${dotColor}`} />
         <MachineText className="text-[12px] font-bold">
           {value.toUpperCase()}
@@ -545,49 +545,49 @@ export default function Today() {
           </View>
 
           {/* Quick Add Form */}
-        <HardCard label="CMD_LINE_INPUT" className="bg-surface">
-          <View className="gap-3">
-            <View className="bg-surface border border-divider p-1">
-              <TextField>
-                <TextField.Input
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="> TYPE_TASK_NAME..."
-                  className="font-mono text-sm h-8"
-                  style={{ fontFamily: "Menlo", fontSize: 14 }}
-                />
-              </TextField>
-            </View>
-
-            <View className="flex-row gap-3">
-              <View className="flex-1 bg-surface border border-divider p-1">
+          <HardCard label="CMD_LINE_INPUT" className="bg-surface">
+            <View className="gap-3">
+              <View className="bg-surface border border-divider p-1">
                 <TextField>
                   <TextField.Input
-                    value={estimate}
-                    onChangeText={setEstimate}
-                    placeholder="MIN"
-                    keyboardType="number-pad"
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="> TYPE_TASK_NAME..."
                     className="font-mono text-sm h-8"
-                    style={{ fontFamily: "Menlo" }}
+                    style={{ fontFamily: "Menlo", fontSize: 14 }}
                   />
                 </TextField>
               </View>
-              <Button
-                onPress={createTask}
-                isDisabled={isCreating}
-                className="bg-foreground px-6 shadow-[2px_2px_0px_var(--color-accent)]"
-              >
-                {isCreating ? (
-                  <Spinner size="sm" color="white" />
-                ) : (
-                  <MachineText className="text-background font-bold">
-                    ENTER
-                  </MachineText>
-                )}
-              </Button>
+
+              <View className="flex-row gap-3">
+                <View className="flex-1 bg-surface border border-divider p-1">
+                  <TextField>
+                    <TextField.Input
+                      value={estimate}
+                      onChangeText={setEstimate}
+                      placeholder="MIN"
+                      keyboardType="number-pad"
+                      className="font-mono text-sm h-8"
+                      style={{ fontFamily: "Menlo" }}
+                    />
+                  </TextField>
+                </View>
+                <Button
+                  onPress={createTask}
+                  isDisabled={isCreating}
+                  className="bg-foreground px-6 shadow-[2px_2px_0px_var(--color-accent)]"
+                >
+                  {isCreating ? (
+                    <Spinner size="sm" color="white" />
+                  ) : (
+                    <MachineText className="text-background font-bold">
+                      ENTER
+                    </MachineText>
+                  )}
+                </Button>
+              </View>
             </View>
-          </View>
-        </HardCard>
+          </HardCard>
         </View>
       </ScrollView>
     </SafeAreaView>

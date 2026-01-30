@@ -5,15 +5,10 @@ import { View } from "react-native";
 import { Container } from "@/components/container";
 import { SignUp } from "@/components/sign-up";
 import { MachineText } from "@/components/ui/machine-text";
+import { formatLongDate } from "@/lib/date";
 
 export default function SignUpScreen() {
-  const currentDate = new Date()
-    .toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    })
-    .toUpperCase();
+  const currentDate = formatLongDate();
 
   return (
     <Container className="bg-background">
