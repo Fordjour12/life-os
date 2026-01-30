@@ -55,10 +55,10 @@ function shiftDay(day: string, deltaDays: number) {
 }
 
 const kindStyles: Record<CalendarBlock["kind"], { label: string; badge: string }> = {
-  busy: { label: "BUSY", badge: "bg-[#FF5800]" },
-  focus: { label: "FOCUS", badge: "bg-[#1F6FEB]" },
-  rest: { label: "REST", badge: "bg-[#32CD32]" },
-  personal: { label: "PERSONAL", badge: "bg-[#111111]" },
+  busy: { label: "BUSY", badge: "bg-accent" },
+  focus: { label: "FOCUS", badge: "bg-warning" },
+  rest: { label: "REST", badge: "bg-success" },
+  personal: { label: "PERSONAL", badge: "bg-foreground" },
 };
 
 export default function TimeReality() {
@@ -200,9 +200,9 @@ export default function TimeReality() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <View className="mb-6 flex-row justify-between items-end border-b-2 border-primary/20 pb-2">
+        <View className="mb-6 flex-row justify-between items-end border-b-2 border-divider pb-2">
           <View>
-            <MachineText variant="label" className="text-primary mb-1">
+            <MachineText variant="label" className="text-accent mb-1">
               REALITY_LAYER
             </MachineText>
             <MachineText variant="header" size="2xl">
@@ -268,7 +268,7 @@ export default function TimeReality() {
               sortedBlocks.map((block) => (
                 <View
                   key={block._id}
-                  className="flex-row items-start justify-between border border-black/10 bg-white px-3 py-2"
+                  className="flex-row items-start justify-between border border-divider bg-surface px-3 py-2"
                 >
                   <View className={`w-1 self-stretch ${kindStyles[block.kind].badge}`} />
                   <Pressable
@@ -305,30 +305,30 @@ export default function TimeReality() {
                     <View className="flex-row flex-wrap justify-end gap-2">
                       <Button
                         size="sm"
-                        className="bg-white border border-black shadow-[2px_2px_0px_black] px-2"
+                        className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
                         onPress={() => editBlock(block._id)}
                       >
-                        <MachineText className="text-[10px] font-bold text-black">
+                        <MachineText className="text-[10px] font-bold text-foreground">
                           EDIT
                         </MachineText>
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-white border border-black shadow-[2px_2px_0px_black] px-2"
+                        className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
                         onPress={() => duplicateBlock(block)}
                         isDisabled={removingId === block._id}
                       >
                         {removingId === block._id ? (
                           <Spinner size="sm" color="black" />
                         ) : (
-                          <MachineText className="text-[9px] font-bold text-black">
+                          <MachineText className="text-[9px] font-bold text-foreground">
                             DUPLICATE
                           </MachineText>
                         )}
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-white border border-black shadow-[2px_2px_0px_black] px-2"
+                        className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
                         onPress={() =>
                           duplicateBlock(block, shiftDay(today.day, 1))
                         }
@@ -337,21 +337,21 @@ export default function TimeReality() {
                         {removingId === block._id ? (
                           <Spinner size="sm" color="black" />
                         ) : (
-                          <MachineText className="text-[9px] font-bold text-black">
+                          <MachineText className="text-[9px] font-bold text-foreground">
                             TOMORROW
                           </MachineText>
                         )}
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-white border border-black shadow-[2px_2px_0px_black] px-2"
+                        className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
                         onPress={() => confirmRemove(block)}
                         isDisabled={removingId === block._id}
                       >
                         {removingId === block._id ? (
                           <Spinner size="sm" color="black" />
                         ) : (
-                          <MachineText className="text-[9px] font-bold text-black">
+                          <MachineText className="text-[9px] font-bold text-foreground">
                             REMOVE
                           </MachineText>
                         )}
@@ -367,16 +367,16 @@ export default function TimeReality() {
         <HardCard label="ACTION">
           <View className="gap-3 p-4">
             <Button
-              className="bg-primary border border-black shadow-[2px_2px_0px_black]"
+              className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
               onPress={() => router.push("/add-busy-time" as any)}
             >
-              <MachineText className="text-white font-bold">ADD BUSY TIME</MachineText>
+              <MachineText className="text-accent-foreground font-bold">ADD BUSY TIME</MachineText>
             </Button>
             <Button
-              className="bg-white border border-black shadow-[2px_2px_0px_black]"
+              className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
               onPress={() => router.push("/import-calendar" as any)}
             >
-              <MachineText className="text-black font-bold">IMPORT CALENDAR</MachineText>
+              <MachineText className="text-foreground font-bold">IMPORT CALENDAR</MachineText>
             </Button>
             <MachineText className="text-xs text-foreground/70">
               Reason: protect what the day allows.
@@ -386,8 +386,8 @@ export default function TimeReality() {
       </ScrollView>
       {toastMessage ? (
         <View className="absolute bottom-6 left-4 right-4">
-          <View className="bg-black px-3 py-2 border border-black shadow-[2px_2px_0px_black]">
-            <MachineText className="text-white text-xs">{toastMessage}</MachineText>
+          <View className="bg-foreground px-3 py-2 border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]">
+            <MachineText className="text-background text-xs">{toastMessage}</MachineText>
           </View>
         </View>
       ) : null}

@@ -214,7 +214,7 @@ export default function Planner() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-        <View className="mb-6 border-b-2 border-black/10 pb-2">
+        <View className="mb-6 border-b-2 border-divider pb-2">
           <MachineText variant="header" size="2xl">PLANNER</MachineText>
           <MachineText className="text-muted text-xs mt-1">{subtitle}</MachineText>
         </View>
@@ -227,7 +227,7 @@ export default function Planner() {
             </View>
             <View className="gap-4">
               {draftItems.map((item, index) => (
-                <HardCard key={item.id} variant="flat" padding="sm" className="gap-2 bg-white border-dashed">
+                <HardCard key={item.id} variant="flat" padding="sm" className="gap-2 bg-surface border-dashed">
                   <View>
                     <MachineText variant="label" className="mb-1">FOCUS ITEM {index + 1}</MachineText>
                     <TextField>
@@ -235,8 +235,7 @@ export default function Planner() {
                         value={item.label}
                         onChangeText={(value) => updateDraft(index, { label: value })}
                         placeholder="Small, meaningful thing"
-                        placeholderTextColor="#999"
-                        className="font-mono text-sm text-white bg-black border-b border-white/10 py-2 h-10"
+                        className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
                         style={{ fontFamily: "Menlo" }}
                       />
                     </TextField>
@@ -248,9 +247,8 @@ export default function Planner() {
                         value={item.estimatedMinutes}
                         onChangeText={(value) => updateDraft(index, { estimatedMinutes: value })}
                         placeholder="25"
-                        placeholderTextColor="#999"
                         keyboardType="number-pad"
-                        className="font-mono text-sm text-white bg-black border-b border-white/10 py-2 h-10"
+                        className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
                         style={{ fontFamily: "Menlo" }}
                       />
                     </TextField>
@@ -259,22 +257,22 @@ export default function Planner() {
               ))}
             </View>
             <View className="flex-row gap-2 flex-wrap">
-              <Button onPress={savePlan} isDisabled={isSaving} className="bg-black rounded-none shadow-[2px_2px_0px_#FF5800]" size="sm">
-                {isSaving ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">SAVE_PLAN</MachineText>}
+              <Button onPress={savePlan} isDisabled={isSaving} className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]" size="sm">
+                {isSaving ? <Spinner size="sm" color="white" /> : <MachineText className="text-background font-bold">SAVE_PLAN</MachineText>}
               </Button>
               {plan ? (
                 <Button
                   onPress={() => setIsEditing(false)}
                   isDisabled={isSaving}
-                  className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]"
+                  className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
                   size="sm"
                 >
-                  <MachineText className="text-black font-bold">CANCEL</MachineText>
+                  <MachineText className="text-foreground font-bold">CANCEL</MachineText>
                 </Button>
               ) : null}
               {plannerState === "NO_PLAN" ? (
-                <Button onPress={restPlan} isDisabled={isSaving} className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]" size="sm">
-                  <MachineText className="text-black font-bold">REST_DAY</MachineText>
+                <Button onPress={restPlan} isDisabled={isSaving} className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" size="sm">
+                  <MachineText className="text-foreground font-bold">REST_DAY</MachineText>
                 </Button>
               ) : null}
             </View>
@@ -287,7 +285,7 @@ export default function Planner() {
             </View>
             <View className="gap-3">
               {plan?.focusItems.map((item) => (
-                <HardCard key={item.id} variant="default" padding="sm" className="bg-white">
+                <HardCard key={item.id} variant="default" padding="sm" className="bg-surface">
                   <View className="flex-row items-center justify-between">
                     <View className="gap-1">
                       <MachineText className="font-bold">{item.label}</MachineText>
@@ -299,9 +297,9 @@ export default function Planner() {
             </View>
 
             {showNextStep ? (
-              <HardCard variant="flat" className="gap-3 border-primary/50 bg-primary/5">
+              <HardCard variant="flat" className="gap-3 border-accent/40 bg-accent/10">
                 <View className="gap-1">
-                  <MachineText className="font-bold text-primary">NEXT_STEP</MachineText>
+                  <MachineText className="font-bold text-accent">NEXT_STEP</MachineText>
                   <MachineText className="text-xs text-muted">Keep it small and doable.</MachineText>
                 </View>
                 <View>
@@ -311,15 +309,15 @@ export default function Planner() {
                   <MachineText className="text-xs text-muted">{nextStepMinutes} MIN</MachineText>
                 </View>
                 <View className="flex-row gap-2 flex-wrap">
-                  <Button className="bg-primary rounded-none shadow-[2px_2px_0px_black]" onPress={() => setShowNextStep(false)} size="sm">
-                    <MachineText className="text-white font-bold">START</MachineText>
+                  <Button className="bg-accent rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" onPress={() => setShowNextStep(false)} size="sm">
+                    <MachineText className="text-accent-foreground font-bold">START</MachineText>
                   </Button>
-                  <Button className="bg-white border border-black rounded-none" onPress={shrinkNextStep} size="sm">
-                    <MachineText className="text-black text-[10px] font-bold">SMALLER</MachineText>
+                  <Button className="bg-surface border border-foreground rounded-none" onPress={shrinkNextStep} size="sm">
+                    <MachineText className="text-foreground text-[10px] font-bold">SMALLER</MachineText>
                   </Button>
                   {plan && plan.focusItems.length > 1 ? (
-                    <Button className="bg-white border border-black rounded-none" onPress={skipNextStep} size="sm">
-                      <MachineText className="text-black text-[10px] font-bold">SKIP</MachineText>
+                    <Button className="bg-surface border border-foreground rounded-none" onPress={skipNextStep} size="sm">
+                      <MachineText className="text-foreground text-[10px] font-bold">SKIP</MachineText>
                     </Button>
                   ) : null}
                 </View>
@@ -329,33 +327,33 @@ export default function Planner() {
             <View className="flex-row gap-2 flex-wrap mt-2">
               {plannerState === "OVERLOADED" ? (
                 <>
-                  <Button onPress={resetPlan} className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]" isDisabled={isSaving} size="sm">
-                    <MachineText className="text-black text-[10px] font-bold">PLAN_RESET</MachineText>
+                  <Button onPress={resetPlan} className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" isDisabled={isSaving} size="sm">
+                    <MachineText className="text-foreground text-[10px] font-bold">PLAN_RESET</MachineText>
                   </Button>
-                  <Button onPress={() => shrinkPlan(1)} className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]" isDisabled={isSaving} size="sm">
-                    <MachineText className="text-black text-[10px] font-bold">SHRINK_TO_1</MachineText>
+                  <Button onPress={() => shrinkPlan(1)} className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" isDisabled={isSaving} size="sm">
+                    <MachineText className="text-foreground text-[10px] font-bold">SHRINK_TO_1</MachineText>
                   </Button>
                 </>
               ) : null}
               {plannerState === "STALLED" || plannerState === "PLANNED_OK" ? (
                 <>
-                  <Button onPress={() => startNextStep()} className="bg-black rounded-none shadow-[2px_2px_0px_#FF5800]" isDisabled={isSaving} size="sm">
-                    <MachineText className="text-white font-bold">START_SESSION</MachineText>
+                  <Button onPress={() => startNextStep()} className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]" isDisabled={isSaving} size="sm">
+                    <MachineText className="text-background font-bold">START_SESSION</MachineText>
                   </Button>
                   {plannerState === "STALLED" ? (
                     <Button
                       onPress={() => startNextStep(10)}
-                      className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]"
+                      className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
                       isDisabled={isSaving}
                       size="sm"
                     >
-                      <MachineText className="text-black font-bold">TINY_WIN</MachineText>
+                      <MachineText className="text-foreground font-bold">TINY_WIN</MachineText>
                     </Button>
                   ) : null}
                 </>
               ) : null}
-              <Button onPress={startAdjust} className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]" isDisabled={isSaving} size="sm">
-                <MachineText className="text-black font-bold">ADJUST</MachineText>
+              <Button onPress={startAdjust} className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" isDisabled={isSaving} size="sm">
+                <MachineText className="text-foreground font-bold">ADJUST</MachineText>
               </Button>
             </View>
           </HardCard>

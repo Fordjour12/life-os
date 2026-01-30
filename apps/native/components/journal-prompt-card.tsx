@@ -50,16 +50,16 @@ export function JournalPromptCard({
 
   if (!prompt) {
     return (
-      <HardCard label="REFLECTION_MODULE" className="mb-6 bg-white">
+      <HardCard label="REFLECTION_MODULE" className="mb-6 bg-surface">
         <View className="gap-3 p-2">
-          <MachineText variant="label" className="text-primary">NO_PROMPT</MachineText>
+          <MachineText variant="label" className="text-accent">NO_PROMPT</MachineText>
           <MachineText className="text-sm">NO_PROMPT_TODAY.</MachineText>
           <Button
             size="sm"
             onPress={() => setShowHints((value) => !value)}
-            className="border-2 rounded-none bg-white border-black/10 shadow-[2px_2px_0px_black]"
+            className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
           >
-            <MachineText className="text-black font-bold text-[10px]">
+            <MachineText className="text-foreground font-bold text-[10px]">
               {showHints ? "HIDE_HINTS" : "SHOW_HINTS"}
             </MachineText>
           </Button>
@@ -99,10 +99,10 @@ export function JournalPromptCard({
             : null;
 
   return (
-    <HardCard label="REFLECTION_MODULE" className="mb-6 bg-white">
+    <HardCard label="REFLECTION_MODULE" className="mb-6 bg-surface">
       <View className="gap-6 p-2">
         <View className="gap-2">
-          <MachineText variant="label" className="text-primary">CORE_PROMPT</MachineText>
+          <MachineText variant="label" className="text-accent">CORE_PROMPT</MachineText>
           <MachineText
             className="text-lg font-bold"
             style={{ opacity: promptOpacity }}
@@ -112,9 +112,9 @@ export function JournalPromptCard({
           <Button
             size="sm"
             onPress={() => setShowHints((value) => !value)}
-            className="border-2 rounded-none bg-white border-black/10 shadow-[2px_2px_0px_black]"
+            className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
           >
-            <MachineText className="text-black font-bold text-[10px]">
+            <MachineText className="text-foreground font-bold text-[10px]">
               {showHints ? "HIDE_HINTS" : "SHOW_HINTS"}
             </MachineText>
           </Button>
@@ -133,7 +133,7 @@ export function JournalPromptCard({
         </View>
 
         <View className="gap-3">
-          <MachineText variant="label" className="text-primary">STATE_SELECTOR</MachineText>
+          <MachineText variant="label" className="text-accent">STATE_SELECTOR</MachineText>
           <View className="flex-row flex-wrap gap-2">
             {moods.map((item) => {
               const selected = mood === item.value;
@@ -142,16 +142,16 @@ export function JournalPromptCard({
                   key={item.value}
                   size="sm"
                   onPress={() => setMood(selected ? undefined : item.value)}
-                  className={`border-2 ${selected ? "bg-black border-black shadow-none" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
+                  className={`border-2 ${selected ? "bg-foreground border-foreground shadow-none" : "bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"}`}
                 >
-                  <MachineText className={`${selected ? "text-white" : "text-black"} font-bold text-[10px]`}>{item.label}</MachineText>
+                  <MachineText className={`${selected ? "text-background" : "text-foreground"} font-bold text-[10px]`}>{item.label}</MachineText>
                 </Button>
               );
             })}
           </View>
         </View>
 
-        <View className="bg-black/5 border border-black/10 p-2">
+        <View className="bg-muted border border-divider p-2">
           <TextField>
             <TextField.Input
               value={text}
@@ -168,15 +168,15 @@ export function JournalPromptCard({
           <Button
             onPress={submit}
             isDisabled={!canSubmit || isSubmitting}
-            className="flex-1 bg-black rounded-none shadow-[4px_4px_0px_#FF5800]"
+            className="flex-1 bg-foreground rounded-none shadow-[4px_4px_0px_var(--color-accent)]"
           >
-            {isSubmitting ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">SAVE_ENTRY</MachineText>}
+            {isSubmitting ? <Spinner size="sm" color="white" /> : <MachineText className="text-background font-bold">SAVE_ENTRY</MachineText>}
           </Button>
           <Button
             variant="secondary"
             onPress={skip}
             isDisabled={isSkipping}
-            className="border border-black rounded-none shadow-[2px_2px_0px_black] bg-white"
+            className="border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)] bg-surface"
           >
             {isSkipping ? <Spinner size="sm" /> : <MachineText className="font-bold">SKIP</MachineText>}
           </Button>
@@ -189,7 +189,7 @@ export function JournalPromptCard({
         ) : null}
 
         <View className="gap-4">
-          <MachineText variant="label" className="text-primary">HISTORY_LOG</MachineText>
+          <MachineText variant="label" className="text-accent">HISTORY_LOG</MachineText>
           {entries.length === 0 ? (
             <MachineText className="text-xs text-muted">
               NO_LOGS_FOUND.
@@ -197,7 +197,7 @@ export function JournalPromptCard({
           ) : (
             <View className="gap-4">
               {entries.slice(0, 3).map((entry) => (
-                <View key={entry._id} className="gap-1 border-l-2 border-black/5 pl-3">
+                <View key={entry._id} className="gap-1 border-l-2 border-divider pl-3">
                   {entry.text ? (
                     <MachineText className="text-sm">
                       {entry.text}

@@ -11,61 +11,62 @@ import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { authClient } from "@/lib/auth-client";
 
 export const unstable_settings = {
-  initialRouteName: "(drawer)",
+   initialRouteName: "(tabs)",
 };
 
 const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
-  unsavedChangesWarning: false,
+   unsavedChangesWarning: false,
 });
 
 function StackLayout() {
-  return (
-    <Stack screenOptions={{}}>
-      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="modal"
-        options={{
-          presentation: "transparentModal",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="add-busy-time"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="edit-busy-time"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="import-calendar"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
-      />
-    </Stack>
-  );
+   return (
+      <Stack screenOptions={{}}>
+         <Stack.Screen name="index" options={{ headerShown: false }} />
+         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+         <Stack.Screen
+            name="modal"
+            options={{
+               presentation: "transparentModal",
+               headerShown: false,
+            }}
+         />
+         <Stack.Screen
+            name="add-busy-time"
+            options={{
+               presentation: "modal",
+               headerShown: false,
+            }}
+         />
+         <Stack.Screen
+            name="edit-busy-time"
+            options={{
+               presentation: "modal",
+               headerShown: false,
+            }}
+         />
+         <Stack.Screen
+            name="import-calendar"
+            options={{
+               presentation: "modal",
+               headerShown: false,
+            }}
+         />
+      </Stack>
+   );
 }
 
 export default function Layout() {
-  return (
-    <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <KeyboardProvider>
-          <AppThemeProvider>
-            <HeroUINativeProvider>
-              <StackLayout />
-            </HeroUINativeProvider>
-          </AppThemeProvider>
-        </KeyboardProvider>
-      </GestureHandlerRootView>
-    </ConvexBetterAuthProvider>
-  );
+   return (
+      <ConvexBetterAuthProvider client={convex} authClient={authClient}>
+         <GestureHandlerRootView style={{ flex: 1 }}>
+            <KeyboardProvider>
+               <AppThemeProvider>
+                  <HeroUINativeProvider>
+                     <StackLayout />
+                  </HeroUINativeProvider>
+               </AppThemeProvider>
+            </KeyboardProvider>
+         </GestureHandlerRootView>
+      </ConvexBetterAuthProvider>
+   );
 }

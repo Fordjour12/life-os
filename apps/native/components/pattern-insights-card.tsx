@@ -22,10 +22,10 @@ export function PatternInsightsCard({ insights, windowLabel }: Props) {
   const label = windowLabel ?? "WEEK_WINDOW";
 
   return (
-    <HardCard label="PATTERN_MIRROR" className="mb-6 bg-[#E0E0DE]">
+    <HardCard label="PATTERN_MIRROR" className="mb-6 bg-surface">
       <View className="gap-4 p-2">
         <View className="gap-1">
-          <MachineText variant="label" className="text-primary">
+          <MachineText variant="label" className="text-accent">
             OBSERVATIONS
           </MachineText>
           <MachineText className="text-[10px] text-muted">{label}</MachineText>
@@ -36,7 +36,7 @@ export function PatternInsightsCard({ insights, windowLabel }: Props) {
         ) : (
           <View className="gap-4">
             {items.map((item) => (
-              <View key={item.id} className="gap-2 border border-black/10 bg-white p-3">
+              <View key={item.id} className="gap-2 border border-divider bg-surface p-3">
                 <MachineText className="text-sm">{item.observation}</MachineText>
                 <View className="flex-row gap-4">
                   <MachineText className="text-[10px] text-muted">

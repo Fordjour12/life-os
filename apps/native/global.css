@@ -4,41 +4,148 @@
 
 @source './node_modules/heroui-native/lib';
 
-@theme {
-  /* Teenage Engineering "Operator" Palette */
-  
-  /* Chassis */
-  --color-background: #EBEBE8; /* Engineering Off-White */
-  --color-foreground: #111111; /* Technical Black */
-  
-  /* Signals */
-  --color-primary: #FF5800; /* Safety Orange */
-  --color-primary-foreground: #FFFFFF;
-  
-  /* Actions */
-  --color-secondary: #0033CC; /* Cobalt Blue */
-  --color-secondary-foreground: #FFFFFF;
-  
-  /* Display */
-  --color-success: #32CD32; /* LED Green */
-  --color-warning: #FFBF00; /* Amber */
-  --color-danger: #FF0000; /* LED Red */
-  
-  /* Surface / Modules */
-  --color-card: #E0E0DE; /* Slightly darker chassis for depth */
-  --color-card-foreground: #111111;
-  
-  /* Physics (Strict, sharp) */
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 4px;
-  --radius-xl: 6px; 
-  --radius-2xl: 8px; /* Replaces the previous 32px soft curves */
-  
-  /* Typography */
-  /* We will attempt to enforce monospace globally if possible, 
-     otherwise specific components will use font-mono */
-}
 
-/* Dark Mode Overrides (if supported by uniwind directly in one file, else relying on nativewind/uniwind mechanics) */
-/* Ideally handled via class strategy or native appearance hooks, but defining base vars here */
+@layer theme {
+  :root {
+    @variant light {
+      /* TE-ish warm paper + ink + coral */
+      --background: oklch(0.975 0.004 82);
+      --foreground: oklch(0.215 0.006 70);
+
+      --surface: oklch(0.975 0.004 82);
+      --surface-foreground: oklch(0.215 0.006 70);
+
+      --overlay: oklch(0.975 0.004 82);
+      --overlay-foreground: oklch(0.215 0.006 70);
+
+      --muted: oklch(0.915 0.012 85);
+      --muted-foreground: oklch(0.455 0.018 70);
+
+      --accent: oklch(0.665 0.205 29); /* coral */
+      --accent-foreground: oklch(0.975 0.004 82);
+
+      --default: oklch(0.915 0.012 85);
+      --default-foreground: oklch(0.215 0.006 70);
+
+      /* TE-tuned status (muted, hardware-y) */
+      --success: oklch(0.68 0.12 145);
+      --success-foreground: oklch(0.146 0.003 68.6);
+
+      --warning: oklch(0.74 0.14 85);
+      --warning-foreground: oklch(0.146 0.003 68.6);
+
+      --danger: oklch(0.62 0.20 29);
+      --danger-foreground: oklch(0.975 0.004 82);
+
+      --segment: oklch(0.915 0.012 85);
+      --segment-foreground: oklch(0.215 0.006 70);
+
+      --field-background: oklch(0.975 0.004 82);
+      --field-foreground: oklch(0.215 0.006 70);
+      --field-border: oklch(0.895 0.015 85);
+      --field-placeholder: oklch(0.455 0.018 70);
+
+      --border: oklch(0.895 0.015 85);
+      --divider: oklch(0.895 0.015 85);
+
+      --link: oklch(0.665 0.205 29);
+
+      /* updated radius scale */
+      --radius-sm: 2px;
+      --radius-md: 4px;
+      --radius-lg: 4px;
+      --radius-xl: 6px;
+      --radius-2xl: 8px;
+      --radius: 4px; /* base used by your inline calc helpers */
+    }
+
+    @variant dark {
+      /* warm anodized black */
+      --background: oklch(0.155 0.004 70);
+      --foreground: oklch(0.975 0.004 82);
+
+      --surface: oklch(0.195 0.006 70);
+      --surface-foreground: oklch(0.975 0.004 82);
+
+      --overlay: oklch(0.195 0.006 70);
+      --overlay-foreground: oklch(0.975 0.004 82);
+
+      --muted: oklch(0.275 0.010 70);
+      --muted-foreground: oklch(0.915 0.012 85);
+
+      --accent: oklch(0.665 0.205 29);
+      --accent-foreground: oklch(0.155 0.004 70);
+
+      --default: oklch(0.195 0.006 70);
+      --default-foreground: oklch(0.975 0.004 82);
+
+      /* dark mode status: slightly brighter for contrast */
+      --success: oklch(0.72 0.13 145);
+      --success-foreground: oklch(0.155 0.004 70);
+
+      --warning: oklch(0.78 0.15 85);
+      --warning-foreground: oklch(0.155 0.004 70);
+
+      --danger: oklch(0.68 0.22 29);
+      --danger-foreground: oklch(0.155 0.004 70);
+
+      --segment: oklch(0.275 0.010 70);
+      --segment-foreground: oklch(0.975 0.004 82);
+
+      --field-background: oklch(0.195 0.006 70);
+      --field-foreground: oklch(0.975 0.004 82);
+      --field-border: oklch(0.325 0.012 70);
+      --field-placeholder: oklch(0.915 0.012 85);
+
+      --border: oklch(0.325 0.012 70);
+      --divider: oklch(0.325 0.012 70);
+
+      --link: oklch(0.665 0.205 29);
+
+      /* keep the same radius scale */
+      --radius-sm: 2px;
+      --radius-md: 4px;
+      --radius-lg: 4px;
+      --radius-xl: 6px;
+      --radius-2xl: 8px;
+      --radius: 4px;
+    }
+
+    @theme inline {
+      --color-background: var(--background);
+      --color-foreground: var(--foreground);
+      --color-surface: var(--surface);
+      --color-surface-foreground: var(--surface-foreground);
+      --color-muted: var(--muted);
+      --color-muted-foreground: var(--muted-foreground);
+      --color-accent: var(--accent);
+      --color-accent-foreground: var(--accent-foreground);
+      --color-default: var(--default);
+      --color-default-foreground: var(--default-foreground);
+      --color-success: var(--success);
+      --color-success-foreground: var(--success-foreground);
+      --color-warning: var(--warning);
+      --color-warning-foreground: var(--warning-foreground);
+      --color-danger: var(--danger);
+      --color-danger-foreground: var(--danger-foreground);
+      --color-segment: var(--segment);
+      --color-segment-foreground: var(--segment-foreground);
+      --color-field-background: var(--field-background);
+      --color-field-foreground: var(--field-foreground);
+      --color-field-border: var(--field-border);
+      --color-field-placeholder: var(--field-placeholder);
+      --color-border: var(--border);
+      --color-divider: var(--divider);
+      --color-link: var(--link);
+      --color-overlay: var(--overlay);
+      --color-overlay-foreground: var(--overlay-foreground);
+
+      /* use your explicit radius tokens */
+      --radius-sm: var(--radius-sm);
+      --radius-md: var(--radius-md);
+      --radius-lg: var(--radius-lg);
+      --radius-xl: var(--radius-xl);
+      --radius-2xl: var(--radius-2xl);
+    }
+  }
+}

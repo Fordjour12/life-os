@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { Button } from "heroui-native";
 import { View } from "react-native";
 
@@ -8,16 +8,26 @@ import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 
 function Modal() {
+  const navigation = useNavigation();
+
   function handleClose() {
-    router.back();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    router.replace("/(tabs)/today");
   }
 
   return (
-    <Container className="bg-black/50 justify-center items-center p-6">
-      <HardCard label="SYS_MSG_001" className="w-full max-w-sm shadow-[8px_8px_0px_black] bg-[#EBEBE8]">
+    <Container className="bg-foreground/40 justify-center items-center p-6">
+      <HardCard
+        label="SYS_MSG_001"
+        className="w-full max-w-sm shadow-[8px_8px_0px_var(--color-foreground)] bg-surface"
+      >
         <View className="items-center p-2 gap-3">
-          <View className="w-12 h-12 border border-black items-center justify-center bg-white shadow-[2px_2px_0px_black]">
-            <Ionicons name="information" size={24} color="black" />
+          <View className="w-12 h-12 border border-foreground items-center justify-center bg-surface shadow-[2px_2px_0px_var(--color-foreground)]">
+            <Ionicons name="information" size={24} color="var(--color-foreground)" />
           </View>
 
           <View className="items-center">
@@ -29,10 +39,10 @@ function Modal() {
 
           <Button
             onPress={handleClose}
-            className="w-full bg-primary rounded-none shadow-[2px_2px_0px_black]"
+            className="w-full bg-accent rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
             size="lg"
           >
-            <MachineText className="text-white font-bold">ACKNOWLEDGE</MachineText>
+            <MachineText className="text-accent-foreground font-bold">ACKNOWLEDGE</MachineText>
           </Button>
         </View>
       </HardCard>

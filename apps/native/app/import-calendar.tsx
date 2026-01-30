@@ -1,6 +1,6 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useAction } from "convex/react";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { Button, Spinner, TextField } from "heroui-native";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -11,6 +11,7 @@ import { MachineText } from "@/components/ui/machine-text";
 
 export default function ImportCalendar() {
   const router = useRouter();
+  const navigation = useNavigation();
   const calendarImportApi = api as unknown as {
     calendarImport: { importFromIcsUrl: any };
   };
@@ -28,6 +29,15 @@ export default function ImportCalendar() {
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
     };
   }, []);
+
+  const safeBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    router.replace("/(tabs)/today");
+  };
 
   const submit = async () => {
     const trimmed = url.trim();
@@ -59,9 +69,9 @@ export default function ImportCalendar() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <View className="mb-6 flex-row justify-between items-end border-b-2 border-primary/20 pb-2">
+        <View className="mb-6 flex-row justify-between items-end border-b-2 border-divider pb-2">
           <View>
-            <MachineText variant="label" className="text-primary mb-1">
+            <MachineText variant="label" className="text-accent mb-1">
               CALENDAR_IMPORT
             </MachineText>
             <MachineText variant="header" size="2xl">
@@ -75,13 +85,12 @@ export default function ImportCalendar() {
             <MachineText className="text-xs text-foreground/70">
               Paste a public ICS URL. Busy events become blocks.
             </MachineText>
-            <View className="bg-white border border-black/20 p-1">
+            <View className="bg-surface border border-divider p-1">
               <TextField>
                 <TextField.Input
                   value={url}
                   onChangeText={setUrl}
                   placeholder="https://calendar.example.com/public.ics"
-                  placeholderTextColor="#999"
                   className="font-mono text-sm h-8"
                   style={{ fontFamily: "Menlo" }}
                   autoCapitalize="none"
@@ -90,7 +99,7 @@ export default function ImportCalendar() {
               </TextField>
             </View>
             {error ? (
-              <MachineText className="text-xs text-red-600">{error}</MachineText>
+              <MachineText className="text-xs text-danger">{error}</MachineText>
             ) : null}
           </View>
         </HardCard>
@@ -98,21 +107,21 @@ export default function ImportCalendar() {
         <HardCard label="ACTION" className="mb-6">
           <View className="gap-3 p-4">
             <Button
-              className="bg-primary border border-black shadow-[2px_2px_0px_black]"
+              className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
               onPress={submit}
               isDisabled={isImporting}
             >
               {isImporting ? (
                 <Spinner size="sm" color="white" />
               ) : (
-                <MachineText className="text-white font-bold">IMPORT</MachineText>
+                <MachineText className="text-accent-foreground font-bold">IMPORT</MachineText>
               )}
             </Button>
             <Button
-              className="bg-white border border-black shadow-[2px_2px_0px_black]"
-              onPress={() => router.back()}
+              className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+              onPress={safeBack}
             >
-              <MachineText className="text-black font-bold">CLOSE</MachineText>
+              <MachineText className="text-foreground font-bold">CLOSE</MachineText>
             </Button>
             <MachineText className="text-xs text-foreground/70">
               Reason: reality should match your actual calendar.
@@ -135,8 +144,8 @@ export default function ImportCalendar() {
       </ScrollView>
       {toastMessage ? (
         <View className="absolute bottom-6 left-4 right-4">
-          <View className="bg-black px-3 py-2 border border-black shadow-[2px_2px_0px_black]">
-            <MachineText className="text-white text-xs">{toastMessage}</MachineText>
+          <View className="bg-foreground px-3 py-2 border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]">
+            <MachineText className="text-background text-xs">{toastMessage}</MachineText>
           </View>
         </View>
       ) : null}

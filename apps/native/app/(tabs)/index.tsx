@@ -15,21 +15,33 @@ import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 
 // We'll define a local component for the "Engineering Badge" for now to match the style
-function EngBadge({ label, value, intent }: { label: string; value: string; intent: "success" | "warning" | "danger" | "default" }) {
+function EngBadge({
+  label,
+  value,
+  intent,
+}: {
+  label: string;
+  value: string;
+  intent: "success" | "warning" | "danger" | "default";
+}) {
   const colorMap = {
-    success: "bg-[#32CD32]", // LED Green
-    warning: "bg-[#FFBF00]", // Amber
-    danger: "bg-[#FF0000]", // LED Red
-    default: "bg-[#111111]", // Off
+    success: "bg-success",
+    warning: "bg-warning",
+    danger: "bg-danger",
+    default: "bg-foreground",
   };
   const dotColor = colorMap[intent];
 
   return (
     <View className="items-start min-w-[80px]">
-      <MachineText variant="label" className="mb-1 text-[10px]">{label}</MachineText>
-      <View className="flex-row items-center gap-2 border border-black/10 items-center px-2 py-1 bg-white">
+      <MachineText variant="label" className="mb-1 text-[10px]">
+        {label}
+      </MachineText>
+      <View className="flex-row items-center gap-2 border border-divider items-center px-2 py-1 bg-surface">
         <View className={`w-2 h-2 ${dotColor}`} />
-        <MachineText className="text-[12px] font-bold">{value.toUpperCase()}</MachineText>
+        <MachineText className="text-[12px] font-bold">
+          {value.toUpperCase()}
+        </MachineText>
       </View>
     </View>
   );
@@ -84,9 +96,10 @@ const allowedJournalReasons = new Set([
 
 function normalizeJournalReason(value: unknown): JournalPromptReason {
   if (typeof value !== "string") return null;
-  return allowedJournalReasons.has(value) ? (value as JournalPromptReason) : null;
+  return allowedJournalReasons.has(value)
+    ? (value as JournalPromptReason)
+    : null;
 }
-
 
 function idem() {
   return `device:${Date.now()}:${Math.random().toString(16).slice(2)}`;
@@ -96,19 +109,33 @@ export default function Today() {
   const data = useQuery(api.kernel.commands.getToday);
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
-  const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
-  const applyPlanResetMutation = useMutation(api.kernel.planReset.applyPlanReset);
+  const completeTaskMutation = useMutation(
+    api.kernel.taskCommands.completeTask,
+  );
+  const applyPlanResetMutation = useMutation(
+    api.kernel.planReset.applyPlanReset,
+  );
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
-  const executeCommandMutation = useMutation(api.kernel.commands.executeCommand);
+  const executeCommandMutation = useMutation(
+    api.kernel.commands.executeCommand,
+  );
   const weeklyReview = useQuery(api.identity.weeklyReview.getWeeklyReview, {});
-  const generateWeeklyReviewMutation = useMutation(api.identity.weeklyReview.generateWeeklyReview);
-  const patternInsights = useQuery(api.identity.getPatternInsights, { window: "week" });
-  const driftSignals = useQuery(api.identity.getDriftSignals, { window: "month" });
+  const generateWeeklyReviewMutation = useMutation(
+    api.identity.weeklyReview.generateWeeklyReview,
+  );
+  const patternInsights = useQuery(api.identity.getPatternInsights, {
+    window: "week",
+  });
+  const driftSignals = useQuery(api.identity.getDriftSignals, {
+    window: "month",
+  });
   const journalPrompt = useQuery(
     api.identity.getJournalPrompt,
     data ? { day: data.day } : "skip",
   );
-  const createJournalEntryMutation = useMutation(api.identity.createJournalEntry);
+  const createJournalEntryMutation = useMutation(
+    api.identity.createJournalEntry,
+  );
   const journalEntries = useQuery(
     api.identity.getJournalEntriesForDay,
     data ? { day: data.day } : "skip",
@@ -119,14 +146,16 @@ export default function Today() {
   const [estimate, setEstimate] = useState("25");
   const [isCreating, setIsCreating] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
-  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
+  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] =
+    useState(false);
   const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
   const [isSkippingJournal, setIsSkippingJournal] = useState(false);
 
   const createTask = async () => {
     const trimmedTitle = title.trim();
     const estimateMin = Number.parseInt(estimate, 10);
-    if (!trimmedTitle || !Number.isFinite(estimateMin) || estimateMin <= 0) return;
+    if (!trimmedTitle || !Number.isFinite(estimateMin) || estimateMin <= 0)
+      return;
 
     setIsCreating(true);
     try {
@@ -196,7 +225,11 @@ export default function Today() {
     }
   };
 
-  const submitJournalEntry = async (input: { day: string; text?: string; mood?: JournalMood }) => {
+  const submitJournalEntry = async (input: {
+    day: string;
+    text?: string;
+    mood?: JournalMood;
+  }) => {
     setIsSubmittingJournal(true);
     try {
       await createJournalEntryMutation(input);
@@ -214,15 +247,22 @@ export default function Today() {
     }
   };
 
-  const getStatusIntent = (value: string): "success" | "warning" | "danger" | "default" => {
+  const getStatusIntent = (
+    value: string,
+  ): "success" | "warning" | "danger" | "default" => {
     const val = value?.toLowerCase();
-    if (["high", "balanced", "strong", "operational"].includes(val)) return "success";
+    if (["high", "balanced", "strong", "operational"].includes(val))
+      return "success";
     if (["medium", "steady", "stable"].includes(val)) return "warning";
-    if (["low", "over", "fragile", "stalled", "disconnected"].includes(val)) return "danger";
+    if (["low", "over", "fragile", "stalled", "disconnected"].includes(val))
+      return "danger";
     return "default";
   };
 
-  const suggestions = useMemo(() => (data?.suggestions ?? []) as SuggestionItem[], [data]);
+  const suggestions = useMemo(
+    () => (data?.suggestions ?? []) as SuggestionItem[],
+    [data],
+  );
   const tasks = useMemo(() => (tasksData ?? []) as TaskItem[], [tasksData]);
 
   if (!data) {
@@ -233,40 +273,73 @@ export default function Today() {
     );
   }
 
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "numeric",
-    day: "numeric",
-  }).toUpperCase();
+  const currentDate = new Date()
+    .toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "numeric",
+      day: "numeric",
+    })
+    .toUpperCase();
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <View className="mb-6 flex-row justify-between items-end border-b-2 border-primary/20 pb-2">
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-6 flex-row justify-between items-end border-b-2 border-divider pb-2">
           <View>
-            <MachineText variant="label" className="text-primary mb-1">SYSTEM://OVERVIEW</MachineText>
-            <MachineText variant="header" size="2xl">TODAY</MachineText>
+            <MachineText variant="label" className="text-accent mb-1">
+              SYSTEM://OVERVIEW
+            </MachineText>
+            <MachineText variant="header" size="2xl">
+              TODAY
+            </MachineText>
           </View>
-          <MachineText variant="value" className="text-sm">{currentDate}</MachineText>
+          <MachineText variant="value" className="text-sm">
+            {currentDate}
+          </MachineText>
         </View>
 
         {/* System State Row */}
         <HardCard className="mb-8" padding="sm" label="KERNEL SYSTEM STATUS">
           <View className="flex-row flex-wrap justify-between gap-y-4 p-2">
-            <EngBadge label="SYS.LOAD" value={data.state?.load ?? "BALANCED"} intent={getStatusIntent(data.state?.load ?? "Balanced")} />
-            <EngBadge label="FLUX" value={data.state?.momentum ?? "STEADY"} intent={getStatusIntent(data.state?.momentum ?? "Steady")} />
-            <EngBadge label="CPU" value={data.state?.focusCapacity ?? "MEDIUM"} intent={getStatusIntent(data.state?.focusCapacity ?? "Medium")} />
-            <EngBadge label="PWR" value={data.state?.habitHealth ?? "STABLE"} intent={getStatusIntent(data.state?.habitHealth ?? "Stable")} />
+            <EngBadge
+              label="SYS.LOAD"
+              value={data.state?.load ?? "BALANCED"}
+              intent={getStatusIntent(data.state?.load ?? "Balanced")}
+            />
+            <EngBadge
+              label="FLUX"
+              value={data.state?.momentum ?? "STEADY"}
+              intent={getStatusIntent(data.state?.momentum ?? "Steady")}
+            />
+            <EngBadge
+              label="CPU"
+              value={data.state?.focusCapacity ?? "MEDIUM"}
+              intent={getStatusIntent(data.state?.focusCapacity ?? "Medium")}
+            />
+            <EngBadge
+              label="PWR"
+              value={data.state?.habitHealth ?? "STABLE"}
+              intent={getStatusIntent(data.state?.habitHealth ?? "Stable")}
+            />
           </View>
         </HardCard>
 
         <DailyIntentCard
-          plan={(data.plan ?? null) as {
-            day: string;
-            version: number;
-            reason: string;
-            focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
-          } | null}
+          plan={
+            (data.plan ?? null) as {
+              day: string;
+              version: number;
+              reason: string;
+              focusItems: Array<{
+                id: string;
+                label: string;
+                estimatedMinutes: number;
+              }>;
+            } | null
+          }
           plannedMinutes={data.state?.plannedMinutes ?? null}
           completedMinutes={data.state?.completedMinutes ?? null}
         />
@@ -280,11 +353,17 @@ export default function Today() {
         )}
 
         {patternInsights !== undefined ? (
-          <PatternInsightsCard insights={patternInsights ?? null} windowLabel="WEEK_WINDOW" />
+          <PatternInsightsCard
+            insights={patternInsights ?? null}
+            windowLabel="WEEK_WINDOW"
+          />
         ) : null}
 
         {driftSignals !== undefined ? (
-          <DriftSignalsCard signals={driftSignals ?? null} windowLabel="MONTH_WINDOW" />
+          <DriftSignalsCard
+            signals={driftSignals ?? null}
+            windowLabel="MONTH_WINDOW"
+          />
         ) : null}
 
         {journalPrompt !== undefined ? (
@@ -295,12 +374,14 @@ export default function Today() {
             reason={normalizeJournalReason(journalPrompt?.reason)}
             onSubmit={submitJournalEntry}
             onSkip={skipJournal}
-            entries={(journalEntries ?? []) as Array<{
-              _id: string;
-              text?: string;
-              mood?: JournalMood;
-              createdAt: number;
-            }>}
+            entries={
+              (journalEntries ?? []) as Array<{
+                _id: string;
+                text?: string;
+                mood?: JournalMood;
+                createdAt: number;
+              }>
+            }
             isSkipping={isSkippingJournal}
             isSubmitting={isSubmittingJournal}
           />
@@ -309,13 +390,22 @@ export default function Today() {
         {/* Suggestions Section - Highlighted */}
         {suggestions.length > 0 && (
           <View className="mb-8">
-            <MachineText variant="label" className="mb-2 text-primary">INPUT_SIGNALS ({suggestions.length})</MachineText>
+            <MachineText variant="label" className="mb-2 text-accent">
+              INPUT_SIGNALS ({suggestions.length})
+            </MachineText>
             <View className="gap-3">
               {suggestions.slice(0, 2).map((suggestion: SuggestionItem) => (
-                <HardCard key={suggestion._id} variant="default" className="border-primary" label={`SIG-${suggestion.type}`}>
+                <HardCard
+                  key={suggestion._id}
+                  variant="default"
+                  className="border-accent"
+                  label={`SIG-${suggestion.type}`}
+                >
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1 mr-4">
-                      <MachineText className="font-bold text-lg mb-1">{suggestion.type.replace(/_/g, " ")}</MachineText>
+                      <MachineText className="font-bold text-lg mb-1">
+                        {suggestion.type.replace(/_/g, " ")}
+                      </MachineText>
                       <MachineText className="text-xs opacity-70">
                         {suggestion.reason?.detail}
                       </MachineText>
@@ -324,56 +414,73 @@ export default function Today() {
                       {suggestion.type === "PLAN_RESET" && (
                         <Button
                           size="sm"
-                          className="bg-primary border border-black shadow-[2px_2px_0px_black]"
-                          onPress={() => applyPlanResetMutation({
-                            day: data.day,
-                            keepCount: suggestion.payload?.keepCount ?? 1,
-                            idempotencyKey: idem(),
-                          })}
+                          className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                          onPress={() =>
+                            applyPlanResetMutation({
+                              day: data.day,
+                              keepCount: suggestion.payload?.keepCount ?? 1,
+                              idempotencyKey: idem(),
+                            })
+                          }
                         >
-                          <MachineText className="text-white text-xs font-bold">EXECUTE</MachineText>
+                          <MachineText className="text-accent-foreground text-xs font-bold">
+                            EXECUTE
+                          </MachineText>
                         </Button>
                       )}
                       {suggestion.type === "GENTLE_RETURN" && (
                         <Button
                           size="sm"
-                          className="bg-primary border border-black shadow-[2px_2px_0px_black]"
+                          className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
                           onPress={() => resumeTask(suggestion.payload?.taskId)}
                         >
-                          <MachineText className="text-white text-xs font-bold">RESUME</MachineText>
+                          <MachineText className="text-accent-foreground text-xs font-bold">
+                            RESUME
+                          </MachineText>
                         </Button>
                       )}
                       {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && (
                         <View className="gap-2">
                           <Button
                             size="sm"
-                            className="bg-primary shadow-[2px_2px_0px_black] rounded-none border border-black"
-                            onPress={() => doTinyWin(suggestion.payload?.tinyWin)}
-                          >
-                            <MachineText className="text-white text-xs font-bold">DO TINY WIN</MachineText>
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]"
+                            className="bg-accent shadow-[2px_2px_0px_var(--color-foreground)] rounded-none border border-foreground"
                             onPress={() =>
-                              acceptRest(suggestion.payload?.rest?.minutes ?? 15)
+                              doTinyWin(suggestion.payload?.tinyWin)
                             }
                           >
-                            <MachineText className="text-xs font-bold">REST</MachineText>
+                            <MachineText className="text-accent-foreground text-xs font-bold">
+                              DO TINY WIN
+                            </MachineText>
                           </Button>
                           <Button
                             size="sm"
-                            className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]"
+                            className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+                            onPress={() =>
+                              acceptRest(
+                                suggestion.payload?.rest?.minutes ?? 15,
+                              )
+                            }
+                          >
+                            <MachineText className="text-xs font-bold text-foreground">
+                              REST
+                            </MachineText>
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
                             onPress={() => setShowReflection(!showReflection)}
                           >
-                            <MachineText className="text-xs font-bold">REFLECT</MachineText>
+                            <MachineText className="text-xs font-bold text-foreground">
+                              REFLECT
+                            </MachineText>
                           </Button>
                         </View>
                       )}
                     </View>
                   </View>
-                  {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && showReflection ? (
-                    <View className="mt-3 p-2 bg-black/5 border-t border-black/10">
+                  {suggestion.type === "MICRO_RECOVERY_PROTOCOL" &&
+                  showReflection ? (
+                    <View className="mt-3 p-2 bg-muted border-t border-divider">
                       <MachineText className="text-xs italic">
                         {suggestion.payload?.reflection?.question}
                       </MachineText>
@@ -387,80 +494,100 @@ export default function Today() {
 
         {/* Tasks Section */}
         <View className="mb-8">
-          <View className="flex-row justify-between items-end mb-4 px-1 border-b border-black/10 pb-2">
-            <MachineText variant="header" size="lg">EXECUTION_QUEUE</MachineText>
+          <View className="flex-row justify-between items-end mb-4 px-1 border-b border-divider pb-2">
+            <MachineText variant="header" size="lg">
+              EXECUTION_QUEUE
+            </MachineText>
             <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
           </View>
 
           <View className="gap-2 mb-6">
             {tasks.length > 0 ? (
               tasks.map((task: TaskItem, index) => (
-                <HardCard key={task._id} padding="sm" className="bg-white">
+                <HardCard key={task._id} padding="sm" className="bg-surface">
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-3 flex-1">
-                      <MachineText variant="label" className="w-4 text-center text-foreground/30">{index + 1}</MachineText>
+                      <MachineText
+                        variant="label"
+                        className="w-4 text-center text-foreground/30"
+                      >
+                        {index + 1}
+                      </MachineText>
                       <View>
-                        <MachineText className="font-bold text-base">{task.title}</MachineText>
-                        <MachineText className="text-xs opacity-50">{task.estimateMin} MIN</MachineText>
+                        <MachineText className="font-bold text-base">
+                          {task.title}
+                        </MachineText>
+                        <MachineText className="text-xs opacity-50">
+                          {task.estimateMin} MIN
+                        </MachineText>
                       </View>
                     </View>
                     <Button
                       size="sm"
                       onPress={() => completeTask(task._id)}
-                      className="border border-black/20 bg-gray-100 shadow-[2px_2px_0px_black]"
+                      className="border border-divider bg-muted shadow-[2px_2px_0px_var(--color-foreground)]"
                     >
-                      <MachineText className="text-[10px] font-bold text-black">DONE</MachineText>
+                      <MachineText className="text-[10px] font-bold text-foreground">
+                        DONE
+                      </MachineText>
                     </Button>
                   </View>
                 </HardCard>
               ))
             ) : (
-              <HardCard variant="flat" className="items-center py-6 border-dashed">
+              <HardCard
+                variant="flat"
+                className="items-center py-6 border-dashed"
+              >
                 <MachineText className="opacity-50">QUEUE_EMPTY</MachineText>
               </HardCard>
             )}
           </View>
 
           {/* Quick Add Form */}
-          <HardCard label="CMD_LINE_INPUT" className="bg-[#E0E0DE]">
-            <View className="gap-3">
-              <View className="bg-white border border-black/20 p-1">
+        <HardCard label="CMD_LINE_INPUT" className="bg-surface">
+          <View className="gap-3">
+            <View className="bg-surface border border-divider p-1">
+              <TextField>
+                <TextField.Input
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="> TYPE_TASK_NAME..."
+                  className="font-mono text-sm h-8"
+                  style={{ fontFamily: "Menlo", fontSize: 14 }}
+                />
+              </TextField>
+            </View>
+
+            <View className="flex-row gap-3">
+              <View className="flex-1 bg-surface border border-divider p-1">
                 <TextField>
                   <TextField.Input
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="> TYPE_TASK_NAME..."
-                    placeholderTextColor="#999"
+                    value={estimate}
+                    onChangeText={setEstimate}
+                    placeholder="MIN"
+                    keyboardType="number-pad"
                     className="font-mono text-sm h-8"
-                    style={{ fontFamily: 'Menlo', fontSize: 14 }}
+                    style={{ fontFamily: "Menlo" }}
                   />
                 </TextField>
               </View>
-
-              <View className="flex-row gap-3">
-                <View className="flex-1 bg-white border border-black/20 p-1">
-                  <TextField>
-                    <TextField.Input
-                      value={estimate}
-                      onChangeText={setEstimate}
-                      placeholder="MIN"
-                      placeholderTextColor="#999"
-                      keyboardType="number-pad"
-                      className="font-mono text-sm h-8"
-                      style={{ fontFamily: 'Menlo' }}
-                    />
-                  </TextField>
-                </View>
-                <Button
-                  onPress={createTask}
-                  isDisabled={isCreating}
-                  className="bg-black px-6 shadow-[2px_2px_0px_#FF5800]"
-                >
-                  {isCreating ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">ENTER</MachineText>}
-                </Button>
-              </View>
+              <Button
+                onPress={createTask}
+                isDisabled={isCreating}
+                className="bg-foreground px-6 shadow-[2px_2px_0px_var(--color-accent)]"
+              >
+                {isCreating ? (
+                  <Spinner size="sm" color="white" />
+                ) : (
+                  <MachineText className="text-background font-bold">
+                    ENTER
+                  </MachineText>
+                )}
+              </Button>
             </View>
-          </HardCard>
+          </View>
+        </HardCard>
         </View>
       </ScrollView>
     </SafeAreaView>

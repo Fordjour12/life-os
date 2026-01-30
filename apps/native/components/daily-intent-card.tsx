@@ -41,17 +41,17 @@ export function DailyIntentCard({ plan, plannedMinutes, completedMinutes }: Prop
   const reasonLabel = plan?.reason ? `REASON:${plan.reason.toUpperCase()}` : null;
 
   return (
-    <HardCard label="DAILY_INTENT" className="mb-6 bg-white">
+    <HardCard label="DAILY_INTENT" className="mb-6 bg-surface">
       <View className="gap-4 p-2">
         <View className="gap-1">
-          <MachineText variant="label" className="text-primary">
+          <MachineText variant="label" className="text-accent">
             TODAY_FOCUS
           </MachineText>
           <View className="flex-row items-center gap-2">
             <MachineText className="text-[10px] text-muted">OPTIONAL, EDITABLE, DISPOSABLE</MachineText>
             {reasonLabel ? (
-              <View className="border border-black/20 bg-white px-2 py-0.5">
-                <MachineText className="text-[9px] font-bold text-black/70">
+              <View className="border border-divider bg-surface px-2 py-0.5">
+                <MachineText className="text-[9px] font-bold text-muted">
                   {reasonLabel}
                 </MachineText>
               </View>
@@ -64,7 +64,7 @@ export function DailyIntentCard({ plan, plannedMinutes, completedMinutes }: Prop
         ) : (
           <View className="gap-3">
             {items.map((item, index) => (
-              <View key={item.id} className="gap-1 border-l-2 border-black/10 pl-3">
+              <View key={item.id} className="gap-1 border-l-2 border-divider pl-3">
                 <MachineText className="text-sm">
                   {index + 1}. {item.label}
                 </MachineText>
@@ -76,7 +76,7 @@ export function DailyIntentCard({ plan, plannedMinutes, completedMinutes }: Prop
           </View>
         )}
 
-        <View className="flex-row items-center justify-between border border-black/10 bg-[#F7F7F5] px-3 py-2">
+        <View className="flex-row items-center justify-between border border-divider bg-muted px-3 py-2">
           <MachineText className="text-[10px] text-muted">REALITY_MATCH</MachineText>
           <MachineText className="text-sm font-bold">
             {planned > 0 ? `${percent}%` : "--"}

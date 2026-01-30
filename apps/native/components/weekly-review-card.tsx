@@ -46,7 +46,7 @@ export function WeeklyReviewCard({ review, onGenerate, isGenerating }: Props) {
   }, [frictionPoints]);
 
   return (
-    <HardCard label="WEEKLY_MIRROR" className="mb-6 bg-[#E0E0DE]">
+    <HardCard label="WEEKLY_MIRROR" className="mb-6 bg-surface">
       <View className="gap-4 p-2">
         <View className="gap-1">
           <MachineText variant="header" size="lg">
@@ -65,9 +65,9 @@ export function WeeklyReviewCard({ review, onGenerate, isGenerating }: Props) {
             <Button
               onPress={onGenerate}
               isDisabled={!onGenerate || isGenerating}
-              className="bg-black rounded-none shadow-[2px_2px_0px_#FF5800]"
+              className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]"
             >
-              {isGenerating ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">GENERATE_REVIEW</MachineText>}
+              {isGenerating ? <Spinner size="sm" color="white" /> : <MachineText className="text-background font-bold">GENERATE_REVIEW</MachineText>}
             </Button>
           </View>
         )}
@@ -75,7 +75,7 @@ export function WeeklyReviewCard({ review, onGenerate, isGenerating }: Props) {
         {review && (
           <View className="gap-6">
             <View className="gap-3">
-              <MachineText variant="label" className="text-primary">METRICS</MachineText>
+              <MachineText variant="label" className="text-accent">METRICS</MachineText>
               <View className="flex-row flex-wrap gap-4">
                 <Fact label="RECOVERY_DAYS" value={facts?.recoveryDays ?? 0} />
                 <Fact label="BALANCED_DAYS" value={facts?.balancedDays ?? 0} />
@@ -84,24 +84,24 @@ export function WeeklyReviewCard({ review, onGenerate, isGenerating }: Props) {
               </View>
             </View>
 
-            <View className="h-[1px] bg-black/10" />
+            <View className="h-[1px] bg-divider" />
 
             <View className="gap-2">
-              <MachineText variant="label" className="text-primary">POSITIVE_SIGNALS</MachineText>
+              <MachineText variant="label" className="text-accent">POSITIVE_SIGNALS</MachineText>
               <MachineText className="text-sm">
                 {highlightText}
               </MachineText>
             </View>
 
             <View className="gap-2">
-              <MachineText variant="label" className="text-primary">FRICTION_DETECTED</MachineText>
+              <MachineText variant="label" className="text-accent">FRICTION_DETECTED</MachineText>
               <MachineText className="text-sm">
                 {frictionText}
               </MachineText>
             </View>
 
-            <View className="gap-2 p-3 bg-white border border-black shadow-[2px_2px_0px_black]">
-              <MachineText variant="label" className="text-primary mb-1">GENTLE_PROMPT</MachineText>
+            <View className="gap-2 p-3 bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]">
+              <MachineText variant="label" className="text-accent mb-1">GENTLE_PROMPT</MachineText>
               <MachineText className="font-bold text-base">
                 {review.reflectionQuestion}
               </MachineText>
@@ -110,7 +110,7 @@ export function WeeklyReviewCard({ review, onGenerate, isGenerating }: Props) {
             <Button
               onPress={onGenerate}
               isDisabled={!onGenerate || isGenerating}
-              className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]"
+              className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
             >
               {isGenerating ? <Spinner size="sm" /> : <MachineText className="font-bold">REFRESH_LOGS</MachineText>}
             </Button>

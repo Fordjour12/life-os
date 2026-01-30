@@ -40,8 +40,8 @@ export default function WeeklyReviewScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-6 border-b-2 border-primary/20 pb-2">
-          <MachineText variant="label" className="text-primary mb-1">SYSTEM://REVIEW</MachineText>
+        <View className="mb-6 border-b-2 border-divider pb-2">
+          <MachineText variant="label" className="text-accent mb-1">SYSTEM://REVIEW</MachineText>
           <MachineText variant="header" size="2xl">WEEKLY_MIRROR</MachineText>
         </View>
 
@@ -61,9 +61,9 @@ export default function WeeklyReviewScreen() {
           windowLabel="MONTH_WINDOW"
         />
 
-        <HardCard label="DOCUMENTATION" className="bg-white">
+        <HardCard label="DOCUMENTATION" className="bg-surface">
           <View className="p-2 gap-2">
-            <MachineText variant="label" className="text-primary">CORE_LOGIC</MachineText>
+            <MachineText variant="label" className="text-accent">CORE_LOGIC</MachineText>
             <MachineText className="text-xs">
               THIS_VIEW_IS_DERIVED_FROM_KERNEL_EVENTS_AND_DAILY_STATE_SNAPSHOTS.
               IT_IS_NON_JUDGEMENTAL_INPUT_FOR_SYSTEM_CALIBRATION.

@@ -9,11 +9,11 @@ interface GlassCardProps extends ViewProps {
 }
 
 const cardStyles = tv({
-    base: "overflow-hidden rounded-3xl border border-white/20",
+    base: "overflow-hidden rounded-3xl border border-divider/40",
     variants: {
         variant: {
-            default: "bg-white/70 dark:bg-black/40",
-            highlight: "bg-primary/10 border-primary/20",
+            default: "bg-surface/80",
+            highlight: "bg-accent/10 border-accent/20",
         },
     },
     defaultVariants: {

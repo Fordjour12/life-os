@@ -37,7 +37,7 @@ export function SignIn() {
   };
 
   return (
-    <View className="p-4 bg-white border border-black shadow-[4px_4px_0px_black]">
+    <View className="p-4 bg-surface border border-foreground shadow-[4px_4px_0px_var(--color-foreground)]">
       <MachineText variant="header" className="mb-4">SESSION_START</MachineText>
 
       <ErrorView isInvalid={!!error} className="mb-3">
@@ -47,13 +47,12 @@ export function SignIn() {
       <View className="gap-4">
         <View>
           <MachineText variant="label" className="mb-1">IDENTITY_UID</MachineText>
-          <View className="bg-black/5 border border-black/10 p-1">
+          <View className="bg-muted border border-divider p-1">
             <TextField>
               <TextField.Input
                 value={email}
                 onChangeText={setEmail}
                 placeholder="USER@DOMAIN.COM"
-                placeholderTextColor="#999"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 className="font-mono text-sm h-10"
@@ -65,13 +64,12 @@ export function SignIn() {
 
         <View>
           <MachineText variant="label" className="mb-1">ACCESS_KEY</MachineText>
-          <View className="bg-black/5 border border-black/10 p-1">
+          <View className="bg-muted border border-divider p-1">
             <TextField>
               <TextField.Input
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor="#999"
                 secureTextEntry
                 className="font-mono text-sm h-10"
                 style={{ fontFamily: 'Menlo' }}
@@ -83,12 +81,12 @@ export function SignIn() {
         <Button
           onPress={handleLogin}
           isDisabled={isLoading}
-          className="mt-2 bg-black rounded-none shadow-[4px_4px_0px_#FF5800] h-12"
+          className="mt-2 bg-foreground rounded-none shadow-[4px_4px_0px_var(--color-accent)] h-12"
         >
           {isLoading ? (
             <Spinner size="sm" color="white" />
           ) : (
-            <MachineText className="text-white font-bold">INITIATE_HANDSHAKE</MachineText>
+            <MachineText className="text-background font-bold">INITIATE_HANDSHAKE</MachineText>
           )}
         </Button>
       </View>

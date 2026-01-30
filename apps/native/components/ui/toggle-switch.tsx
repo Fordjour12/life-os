@@ -35,7 +35,7 @@ export function ToggleSwitch({ value, onValueChange, label }: ToggleSwitchProps)
         const backgroundColor = interpolateColor(
             offset.value,
             [0, 1],
-            ['#E0E0DE', '#FF5800'] // Grey to Signal Orange
+            ['#E7E2DA', '#F85242']
         );
         return { backgroundColor };
     });
@@ -59,7 +59,7 @@ export function ToggleSwitch({ value, onValueChange, label }: ToggleSwitchProps)
                         width: TRACK_WIDTH,
                         height: TRACK_HEIGHT,
                         borderWidth: 1,
-                        borderColor: '#111111',
+                        borderColor: '#1B1916',
                         justifyContent: 'center',
                         padding: PADDING,
                     },
@@ -71,9 +71,9 @@ export function ToggleSwitch({ value, onValueChange, label }: ToggleSwitchProps)
                         {
                             width: THUMB_SIZE,
                             height: THUMB_SIZE,
-                            backgroundColor: value ? '#FFFFFF' : '#111111',
+                            backgroundColor: value ? '#F8F6F4' : '#1B1916',
                             borderWidth: 1,
-                            borderColor: value ? '#111111' : 'transparent',
+                            borderColor: value ? '#1B1916' : 'transparent',
                         },
                         animatedThumbStyle
                     ]}

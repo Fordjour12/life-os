@@ -210,8 +210,8 @@ export default function JournalScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-6 border-b-2 border-primary/20 pb-2">
-          <MachineText variant="label" className="text-primary mb-1">SYSTEM://JOURNAL</MachineText>
+        <View className="mb-6 border-b-2 border-divider pb-2">
+          <MachineText variant="label" className="text-accent mb-1">SYSTEM://JOURNAL</MachineText>
           <MachineText variant="header" size="2xl">LOGS</MachineText>
         </View>
 
@@ -219,16 +219,16 @@ export default function JournalScreen() {
           <Button
             size="sm"
             onPress={() => setShowFilters((value) => !value)}
-            className="border-2 rounded-none bg-white border-black/10 shadow-[2px_2px_0px_black]"
+            className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
           >
-            <MachineText className="text-black font-bold text-[10px]">
+            <MachineText className="text-foreground font-bold text-[10px]">
               {showFilters ? "HIDE_FILTERS" : "SHOW_FILTERS"}
             </MachineText>
           </Button>
         </View>
 
         {showFilters ? (
-          <HardCard label="FILTER_MODULE" className="mb-6 bg-[#E0E0DE]">
+          <HardCard label="FILTER_MODULE" className="mb-6 bg-surface">
             <View className="gap-4 p-2">
               <View className="gap-2">
                 <MachineText variant="label">PRESETS</MachineText>
@@ -238,17 +238,17 @@ export default function JournalScreen() {
                       key={preset.id}
                       size="sm"
                       onPress={() => applyFilters(preset)}
-                      className="border-2 rounded-none bg-white border-black/10 shadow-[2px_2px_0px_black]"
+                      className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
                     >
-                      <MachineText className="text-black font-bold text-[10px]">{preset.name}</MachineText>
+                      <MachineText className="text-foreground font-bold text-[10px]">{preset.name}</MachineText>
                     </Button>
                   ))}
                   <Button
                     size="sm"
                     onPress={() => applyFilters({ moodFilter: "all", windowFilter: "30", query: "" })}
-                    className="border-2 rounded-none bg-white border-black/10 shadow-[2px_2px_0px_black]"
+                    className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
                   >
-                    <MachineText className="text-black font-bold text-[10px]">RESET</MachineText>
+                    <MachineText className="text-foreground font-bold text-[10px]">RESET</MachineText>
                   </Button>
                 </View>
               </View>
@@ -261,9 +261,9 @@ export default function JournalScreen() {
                       key={value}
                       size="sm"
                       onPress={() => setWindowFilter(value)}
-                      className={`border-2 rounded-none ${windowFilter === value ? "bg-black border-black" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
+                      className={`border-2 rounded-none ${windowFilter === value ? "bg-foreground border-foreground" : "bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"}`}
                     >
-                      <MachineText className={`${windowFilter === value ? "text-white" : "text-black"} font-bold text-[10px]`}>
+                      <MachineText className={`${windowFilter === value ? "text-background" : "text-foreground"} font-bold text-[10px]`}>
                         {value === "all" ? "ALL_TIME" : `${value}D`}
                       </MachineText>
                     </Button>
@@ -279,9 +279,9 @@ export default function JournalScreen() {
                       key={value}
                       size="sm"
                       onPress={() => setMoodFilter(value)}
-                      className={`border-2 rounded-none ${moodFilter === value ? "bg-black border-black" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
+                      className={`border-2 rounded-none ${moodFilter === value ? "bg-foreground border-foreground" : "bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"}`}
                     >
-                      <MachineText className={`${moodFilter === value ? "text-white" : "text-black"} font-bold text-[10px]`}>
+                      <MachineText className={`${moodFilter === value ? "text-background" : "text-foreground"} font-bold text-[10px]`}>
                         {value.toUpperCase()}
                       </MachineText>
                     </Button>
@@ -291,13 +291,12 @@ export default function JournalScreen() {
 
               <View className="gap-2">
                 <MachineText variant="label">SEARCH</MachineText>
-                <View className="bg-white border border-black/20 p-1">
+                <View className="bg-surface border border-divider p-1">
                   <TextField>
                     <TextField.Input
                       value={searchQuery}
                       onChangeText={setSearchQuery}
                       placeholder="SEARCH_TEXT_OR_DAY"
-                      placeholderTextColor="#999"
                       className="font-mono text-sm h-8"
                       style={{ fontFamily: "Menlo", fontSize: 12 }}
                     />
@@ -316,29 +315,28 @@ export default function JournalScreen() {
                         <Button
                           size="sm"
                           onPress={() => applyFilters(view)}
-                          className="border-2 rounded-none bg-white border-black/10 shadow-[2px_2px_0px_black]"
+                          className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
                         >
-                          <MachineText className="text-black font-bold text-[10px]">{view.name}</MachineText>
+                          <MachineText className="text-foreground font-bold text-[10px]">{view.name}</MachineText>
                         </Button>
                         <Button
                           size="sm"
                           onPress={() => deleteView(view.id)}
-                          className="border-2 rounded-none bg-white border-black/10 shadow-[2px_2px_0px_black]"
+                          className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
                         >
-                          <MachineText className="text-black font-bold text-[10px]">DEL</MachineText>
+                          <MachineText className="text-foreground font-bold text-[10px]">DEL</MachineText>
                         </Button>
                       </View>
                     ))
                   )}
                 </View>
                 <View className="flex-row gap-2">
-                  <View className="flex-1 bg-white border border-black/20 p-1">
+                  <View className="flex-1 bg-surface border border-divider p-1">
                     <TextField>
                       <TextField.Input
                         value={viewName}
                         onChangeText={setViewName}
                         placeholder="NAME_VIEW"
-                        placeholderTextColor="#999"
                         className="font-mono text-sm h-8"
                         style={{ fontFamily: "Menlo", fontSize: 12 }}
                       />
@@ -347,9 +345,9 @@ export default function JournalScreen() {
                   <Button
                     size="sm"
                     onPress={saveView}
-                    className="bg-black px-4 shadow-[2px_2px_0px_#FF5800]"
+                    className="bg-foreground px-4 shadow-[2px_2px_0px_var(--color-accent)]"
                   >
-                    <MachineText className="text-white font-bold text-[10px]">SAVE</MachineText>
+                    <MachineText className="text-background font-bold text-[10px]">SAVE</MachineText>
                   </Button>
                 </View>
               </View>
@@ -370,7 +368,7 @@ export default function JournalScreen() {
         ) : (
           <View className="gap-6">
             {groupedDays.map((day) => (
-              <HardCard key={day} label={`DAY_${day}`} className="bg-white">
+              <HardCard key={day} label={`DAY_${day}`} className="bg-surface">
                 <View className="gap-3 p-2">
                   <View className="flex-row justify-between items-center opacity-50">
                     <MachineText className="text-[10px] font-bold">{day}</MachineText>
@@ -379,7 +377,7 @@ export default function JournalScreen() {
 
                   <View className="gap-3">
                     {groupedEntries[day]?.map((entry) => (
-                      <View key={entry._id} className="gap-3 bg-black/5 p-3 border-l-4 border-black">
+                      <View key={entry._id} className="gap-3 bg-muted p-3 border-l-4 border-foreground">
                         <View className="flex-row justify-between items-center">
                           <MachineText className="text-[10px] font-bold">
                             {new Date(entry.createdAt).toLocaleTimeString("en-US", {
@@ -401,9 +399,9 @@ export default function JournalScreen() {
                             size="sm"
                             onPress={() => confirmDelete(entry._id)}
                             isDisabled={deletingId === entry._id}
-                            className="rounded-none bg-white border border-black shadow-[2px_2px_0px_black]"
+                            className="rounded-none bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
                           >
-                            <MachineText className="text-black text-[10px] font-bold">
+                            <MachineText className="text-foreground text-[10px] font-bold">
                               {deletingId === entry._id ? "DELETING..." : "DELETE"}
                             </MachineText>
                           </Button>

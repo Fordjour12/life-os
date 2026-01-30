@@ -44,7 +44,7 @@ export default function Inbox() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-        <View className="mb-6 border-b-2 border-primary/20 pb-2">
+        <View className="mb-6 border-b-2 border-divider pb-2">
           <MachineText variant="header" size="2xl">SIGNAL_BUFFER</MachineText>
           <MachineText className="text-muted text-xs mt-1 uppercase">Incoming Telemetry Review</MachineText>
         </View>
@@ -52,33 +52,33 @@ export default function Inbox() {
         {suggestions.length ? (
           <View className="gap-4">
             {suggestions.map((suggestion) => (
-              <HardCard key={suggestion._id} label="SIGNAL_DETECTED" className="gap-3 p-4 bg-white">
+              <HardCard key={suggestion._id} label="SIGNAL_DETECTED" className="gap-3 p-4 bg-surface">
                 <View className="gap-1">
                   <MachineText className="font-bold text-lg">{suggestion.type}</MachineText>
                   <MachineText className="text-muted text-xs">{suggestion.reason?.detail}</MachineText>
                 </View>
 
-                <View className="flex-row gap-2 flex-wrap pt-2 border-t border-black/5">
+                <View className="flex-row gap-2 flex-wrap pt-2 border-t border-divider">
                   <Button
                     size="sm"
-                    className="bg-primary rounded-none shadow-[2px_2px_0px_black]"
+                    className="bg-accent rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
                     onPress={() => vote(suggestion._id, "up")}
                   >
-                    <MachineText className="text-white font-bold text-[10px]">USEFUL</MachineText>
+                    <MachineText className="text-accent-foreground font-bold text-[10px]">USEFUL</MachineText>
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-white border border-black rounded-none"
+                    className="bg-surface border border-foreground rounded-none"
                     onPress={() => vote(suggestion._id, "down")}
                   >
-                    <MachineText className="text-black font-bold text-[10px]">NOT_USEFUL</MachineText>
+                    <MachineText className="text-foreground font-bold text-[10px]">NOT_USEFUL</MachineText>
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-white border border-black rounded-none opacity-50"
+                    className="bg-surface border border-foreground rounded-none opacity-50"
                     onPress={() => vote(suggestion._id, "ignore")}
                   >
-                    <MachineText className="text-black font-bold text-[10px]">IGNORE</MachineText>
+                    <MachineText className="text-foreground font-bold text-[10px]">IGNORE</MachineText>
                   </Button>
                 </View>
               </HardCard>

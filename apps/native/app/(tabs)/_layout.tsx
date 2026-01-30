@@ -39,16 +39,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="weekly-review"
-        options={{
-          title: "REVIEW",
-          headerShown: false,
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="sparkles" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="tasks"
         options={{
           title: "EXEC",

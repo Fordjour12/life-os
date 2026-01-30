@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export function HardTabBar({ state, descriptors, navigation }: any) {
     return (
-        <View className="flex-row border-t border-black bg-[#EBEBE8] pb-4 pt-2 px-2 gap-2 h-20 items-center justify-center">
+        <View className="flex-row border-t border-divider bg-surface pb-4 pt-2 px-2 gap-2 h-20 items-center justify-center">
             {state.routes.map(
                 (
                     route: { key: string; name: string; params?: Record<string, unknown> },
@@ -53,18 +53,18 @@ export function HardTabBar({ state, descriptors, navigation }: any) {
                         key={route.key}
                         onPress={onPress}
                         onLongPress={onLongPress}
-                        className={`flex-1 items-center justify-center py-2 h-14 border border-black ${isFocused ? 'bg-primary shadow-none translate-y-[2px]' : 'bg-white shadow-[2px_2px_0px_black]'}`}
+                        className={`flex-1 items-center justify-center py-2 h-14 border border-divider ${isFocused ? 'bg-accent shadow-none translate-y-[2px]' : 'bg-surface shadow-[2px_2px_0px_var(--color-foreground)]'}`}
                         style={({ pressed }) => pressed ? { transform: [{ translateY: 2 }], boxShadow: 'none' } : {}}
                     >
                         <Ionicons
                             name={iconName}
                             size={20}
-                            color={isFocused ? "#FFFFFF" : "#111111"}
+                            color={isFocused ? "#F8F6F4" : "#1B1916"}
                             style={{ marginBottom: 2 }}
                         />
                         <MachineText
                             variant="label"
-                            className={`text-[9px] ${isFocused ? 'text-white' : 'text-black'}`}
+                            className={`text-[9px] ${isFocused ? 'text-accent-foreground' : 'text-foreground'}`}
                         >
                             {label as string}
                         </MachineText>
