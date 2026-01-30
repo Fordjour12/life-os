@@ -21,6 +21,7 @@ export type KernelCommand =
       idempotencyKey: string;
     }
   | { cmd: "complete_task"; input: { taskId: string }; idempotencyKey: string }
+  | { cmd: "accept_rest"; input: { minutes: number; day: string }; idempotencyKey: string }
   | {
       cmd: "apply_plan_reset";
       input: { day: string; keepCount?: 1 | 2 };
@@ -47,7 +48,7 @@ export type KernelEvent =
   | {
       type: "TASK_PAUSED";
       ts: number;
-      meta: { taskId: string; reason: "plan_reset" };
+      meta: { taskId: string; reason: "plan_reset" | "micro_recovery" };
     }
   | {
       type: "TASK_RESUMED";
@@ -74,6 +75,12 @@ export type KernelEvent =
       type: "SUGGESTION_FEEDBACK";
       ts: number;
       meta: { suggestionId: string; vote: "up" | "down" | "ignore" };
+    }
+  | { type: "REST_ACCEPTED"; ts: number; meta: { minutes: number } }
+  | {
+      type: "RECOVERY_PROTOCOL_USED";
+      ts: number;
+      meta: { day: string; didTinyWin: boolean; didRest: boolean };
     };
 
 export type LoadState = "underloaded" | "balanced" | "overloaded";
@@ -107,7 +114,13 @@ export type SuggestionStatus =
 
 export type KernelSuggestion = {
   day: string;
-  type: "PLAN_RESET" | "TINY_WIN" | "DAILY_REVIEW_QUESTION" | "GENTLE_RETURN" | "NEXT_STEP";
+  type:
+    | "PLAN_RESET"
+    | "TINY_WIN"
+    | "DAILY_REVIEW_QUESTION"
+    | "GENTLE_RETURN"
+    | "MICRO_RECOVERY_PROTOCOL"
+    | "NEXT_STEP";
   priority: 1 | 2 | 3 | 4 | 5;
   reason: { code: string; detail: string };
   payload: Record<string, unknown>;

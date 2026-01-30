@@ -21,7 +21,9 @@ export function Container({ children, className, ...props }: PropsWithChildren<P
       }}
       {...props}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>{children}</ScrollView>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ flexGrow: 1 }}>
+        {children}
+      </ScrollView>
     </AnimatedView>
   );
 }

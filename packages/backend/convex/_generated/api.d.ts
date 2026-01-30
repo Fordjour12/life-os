@@ -11,6 +11,9 @@
 import type * as auth from "../auth.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
+import type * as identity from "../identity.js";
+import type * as identity_journal from "../identity/journal.js";
+import type * as identity_weeklyReview from "../identity/weeklyReview.js";
 import type * as kernel_commands from "../kernel/commands.js";
 import type * as kernel_planReset from "../kernel/planReset.js";
 import type * as kernel_policies from "../kernel/policies.js";
@@ -31,6 +34,9 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   healthCheck: typeof healthCheck;
   http: typeof http;
+  identity: typeof identity;
+  "identity/journal": typeof identity_journal;
+  "identity/weeklyReview": typeof identity_weeklyReview;
   "kernel/commands": typeof kernel_commands;
   "kernel/planReset": typeof kernel_planReset;
   "kernel/policies": typeof kernel_policies;

@@ -103,6 +103,35 @@ export const applyPlanReset = mutation({
 
     const state = computeDailyState(day, kernelEvents);
 
+    const activeTasksAfterReset = kept;
+
+    const under10 = activeTasksAfterReset
+      .filter((task) => (task.estimateMin ?? 0) <= 10)
+      .sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0];
+    const smallestActive =
+      activeTasksAfterReset.sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0] ??
+      null;
+    const tinyWinTask = under10 ?? smallestActive ?? null;
+
+    if (state.mode === "recovery") {
+      for (const task of activeTasksAfterReset) {
+        if (tinyWinTask && task._id === tinyWinTask._id) continue;
+        await ctx.db.patch(task._id, {
+          status: "paused",
+          pausedAt: now,
+          pauseReason: "micro_recovery",
+        });
+
+        await ctx.db.insert("events", {
+          userId,
+          ts: now,
+          type: "TASK_PAUSED",
+          meta: { taskId: task._id, reason: "micro_recovery" },
+          idempotencyKey: `${idempotencyKey}:micro_pause:${task._id}`,
+        });
+      }
+    }
+
     const existingState = await ctx.db
       .query("stateDaily")
       .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
@@ -243,6 +272,13 @@ export const applyPlanReset = mutation({
       stableDaysCount,
       exitedRecoveryRecently,
       remainingRoomMin,
+      tinyWinTask: tinyWinTask
+        ? {
+            taskId: tinyWinTask._id,
+            title: tinyWinTask.title,
+            estimateMin: tinyWinTask.estimateMin,
+          }
+        : null,
       smallestPausedTask: chosen
         ? {
             taskId: chosen._id,

@@ -142,27 +142,27 @@ These 7 policies will make it feel like a Life OS immediately:
 
 - If planned time > free time by X% → suggest reduce scope OR reschedule
 
-2. **Momentum Builder**
+1. **Momentum Builder**
 
 - If momentum is stalled → suggest 1 tiny win task (≤10 min)
 
-3. **Habit Recovery**
+1. **Habit Recovery**
 
 - If habit health becomes fragile → suggest downshift target (e.g., daily → 3x/week)
 
-4. **Focus Protection**
+1. **Focus Protection**
 
 - If capacity low → prevent scheduling deep work; suggest light tasks
 
-5. **Backlog Pressure Valve**
+1. **Backlog Pressure Valve**
 
 - If backlogPressure high → suggest a “backlog cleanup block” or “delete/park tasks”
 
-6. **Financial Drift Watch**
+1. **Financial Drift Watch**
 
 - If spending exceeds intent → suggest no-spend day OR swap category intent
 
-7. **End-of-day Review**
+1. **End-of-day Review**
 
 - At night, ask 1 reflection question based on state (not generic)
 

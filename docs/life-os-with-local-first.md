@@ -188,13 +188,13 @@ So AI remains a “planner”, not a “hacker”.
 
 ### Phase 2 — Sync with Convex
 
-6. Convex mutations:
+1. Convex mutations:
    - `executeCommand(command, idempotencyKey)`
 
-7. Convex query:
+2. Convex query:
    - `getEventsSince(cursor)`
 
-8. Client sync worker:
+3. Client sync worker:
    - flush outbox
    - pull server events
    - update cursor
@@ -205,11 +205,11 @@ So AI remains a “planner”, not a “hacker”.
 
 ### Phase 3 — Server insights + weekly review
 
-9. Convex scheduled jobs:
+1. Convex scheduled jobs:
    - nightly summary
    - weekly review generation
 
-10. Sync those insights to client
+2. Sync those insights to client
 
 **Result:** “coach intelligence” gets deeper over time.
 

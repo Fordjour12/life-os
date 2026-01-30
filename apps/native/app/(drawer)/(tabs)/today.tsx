@@ -4,8 +4,9 @@ import { useMutation, useQuery } from "convex/react";
 import { Button, Spinner, TextField } from "heroui-native";
 import { useState, useMemo } from "react";
 import { View, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
+import { JournalPromptCard } from "@/components/journal-prompt-card";
+import { WeeklyReviewCard } from "@/components/weekly-review-card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { H1, H2, H3, Body, Caption, Label } from "@/components/ui/typography";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -19,8 +20,18 @@ type SuggestionItem = {
     taskId?: Id<"tasks">;
     title?: string;
     estimateMin?: number;
+    tinyWin?: {
+      kind: "task" | "action";
+      taskId?: Id<"tasks">;
+      title: string;
+      estimateMin: number;
+    };
+    rest?: { title: string; minutes: number };
+    reflection?: { question: string };
   };
 };
+
+type TinyWinPayload = NonNullable<SuggestionItem["payload"]>["tinyWin"];
 
 type TaskItem = {
   _id: Id<"tasks">;
@@ -28,6 +39,9 @@ type TaskItem = {
   estimateMin: number;
   status: string;
 };
+
+type JournalMood = "low" | "neutral" | "ok" | "good";
+
 
 function idem() {
   return `device:${Date.now()}:${Math.random().toString(16).slice(2)}`;
@@ -40,10 +54,27 @@ export default function Today() {
   const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
   const applyPlanResetMutation = useMutation(api.kernel.planReset.applyPlanReset);
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
+  const executeCommandMutation = useMutation(api.kernel.commands.executeCommand);
+  const weeklyReview = useQuery(api.identity.weeklyReview.getWeeklyReview, {});
+  const generateWeeklyReviewMutation = useMutation(api.identity.weeklyReview.generateWeeklyReview);
+  const journalPrompt = useQuery(
+    api.identity.getJournalPrompt,
+    data ? { day: data.day } : "skip",
+  );
+  const createJournalEntryMutation = useMutation(api.identity.createJournalEntry);
+  const journalEntries = useQuery(
+    api.identity.getJournalEntriesForDay,
+    data ? { day: data.day } : "skip",
+  );
+  const createJournalSkipMutation = useMutation(api.identity.createJournalSkip);
 
   const [title, setTitle] = useState("");
   const [estimate, setEstimate] = useState("25");
   const [isCreating, setIsCreating] = useState(false);
+  const [showReflection, setShowReflection] = useState(false);
+  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
+  const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
+  const [isSkippingJournal, setIsSkippingJournal] = useState(false);
 
   const createTask = async () => {
     const trimmedTitle = title.trim();
@@ -78,6 +109,64 @@ export default function Today() {
     });
   };
 
+  const acceptRest = async (minutes: number) => {
+    await executeCommandMutation({
+      command: {
+        cmd: "accept_rest",
+        input: { minutes, day: data?.day ?? "" },
+        idempotencyKey: idem(),
+      },
+    });
+  };
+
+  const doTinyWin = async (tinyWin?: TinyWinPayload) => {
+    if (!tinyWin) return;
+    if (tinyWin.kind === "task" && tinyWin.taskId) {
+      await completeTask(tinyWin.taskId);
+      return;
+    }
+
+    if (tinyWin.kind === "action") {
+      const result = await createTaskMutation({
+        title: tinyWin.title,
+        estimateMin: tinyWin.estimateMin,
+        priority: 2,
+        idempotencyKey: idem(),
+      });
+      const createdId = (result as { taskId?: Id<"tasks"> })?.taskId;
+      if (createdId) {
+        await completeTask(createdId);
+      }
+    }
+  };
+
+  const generateWeeklyReview = async () => {
+    setIsGeneratingWeeklyReview(true);
+    try {
+      await generateWeeklyReviewMutation({});
+    } finally {
+      setIsGeneratingWeeklyReview(false);
+    }
+  };
+
+  const submitJournalEntry = async (input: { day: string; text?: string; mood?: JournalMood }) => {
+    setIsSubmittingJournal(true);
+    try {
+      await createJournalEntryMutation(input);
+    } finally {
+      setIsSubmittingJournal(false);
+    }
+  };
+
+  const skipJournal = async (day: string) => {
+    setIsSkippingJournal(true);
+    try {
+      await createJournalSkipMutation({ day });
+    } finally {
+      setIsSkippingJournal(false);
+    }
+  };
+
   const getStatusIntent = (value: string): "success" | "warning" | "danger" | "default" => {
     const val = value?.toLowerCase();
     if (["high", "balanced", "strong", "operational"].includes(val)) return "success";
@@ -104,8 +193,12 @@ export default function Today() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+        className="flex-1 bg-background"
+      >
         <View className="mb-6">
           <H1 className="mb-0">Daily View</H1>
           <Caption>{currentDate}</Caption>
@@ -120,6 +213,28 @@ export default function Today() {
             <StatusBadge label="Health" value={data.state?.habitHealth ?? "Stable"} intent={getStatusIntent(data.state?.habitHealth ?? "Stable")} />
           </View>
         </GlassCard>
+
+        <WeeklyReviewCard
+          review={weeklyReview ?? null}
+          onGenerate={generateWeeklyReview}
+          isGenerating={isGeneratingWeeklyReview}
+        />
+
+        <JournalPromptCard
+          day={data.day}
+          prompt={journalPrompt?.prompt ?? null}
+          quiet={journalPrompt?.quiet}
+          onSubmit={submitJournalEntry}
+          onSkip={skipJournal}
+          entries={(journalEntries ?? []) as Array<{
+            _id: string;
+            text?: string;
+            mood?: JournalMood;
+            createdAt: number;
+          }>}
+          isSkipping={isSkippingJournal}
+          isSubmitting={isSubmittingJournal}
+        />
 
         {/* Suggestions Section - Highlighted */}
         {suggestions.length > 0 && (
@@ -158,8 +273,40 @@ export default function Today() {
                           <Body className="text-white text-xs font-bold">Resume</Body>
                         </Button>
                       )}
+                      {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && (
+                        <View className="gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-primary"
+                            onPress={() => doTinyWin(suggestion.payload?.tinyWin)}
+                          >
+                            <Body className="text-white text-xs font-bold">Do tiny win</Body>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onPress={() =>
+                              acceptRest(suggestion.payload?.rest?.minutes ?? 15)
+                            }
+                          >
+                            <Body className="text-xs font-bold">Take short rest</Body>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onPress={() => setShowReflection(!showReflection)}
+                          >
+                            <Body className="text-xs font-bold">Answer reflection</Body>
+                          </Button>
+                        </View>
+                      )}
                     </View>
                   </View>
+                  {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && showReflection ? (
+                    <Body variant="caption" className="mt-3 opacity-80">
+                      {suggestion.payload?.reflection?.question}
+                    </Body>
+                  ) : null}
                 </GlassCard>
               ))}
             </View>
@@ -184,7 +331,7 @@ export default function Today() {
                     </View>
                     <Button
                       size="sm"
-                      variant="flat"
+                      variant="secondary"
                       onPress={() => completeTask(task._id)}
                       className="rounded-full px-4"
                     >
@@ -236,6 +383,5 @@ export default function Today() {
           </GlassCard>
         </View>
       </ScrollView>
-    </SafeAreaView>
   );
 }

@@ -54,4 +54,39 @@ export default defineSchema({
     lastGentleReturnTaskId: v.optional(v.id("tasks")),
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  weeklyReviews: defineTable({
+    userId: v.string(),
+    week: v.string(),
+    facts: v.object({
+      recoveryDays: v.number(),
+      balancedDays: v.number(),
+      tinyWins: v.number(),
+      planResets: v.number(),
+    }),
+    highlights: v.array(v.string()),
+    frictionPoints: v.array(v.string()),
+    reflectionQuestion: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_user_week", ["userId", "week"])
+    .index("by_user_created", ["userId", "createdAt"]),
+
+  journalEntries: defineTable({
+    userId: v.string(),
+    day: v.string(),
+    text: v.optional(v.string()),
+    mood: v.optional(v.union(v.literal("low"), v.literal("neutral"), v.literal("ok"), v.literal("good"))),
+    createdAt: v.number(),
+  })
+    .index("by_user_day", ["userId", "day"])
+    .index("by_user_created", ["userId", "createdAt"]),
+
+  journalSkips: defineTable({
+    userId: v.string(),
+    day: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_user_day", ["userId", "day"])
+    .index("by_user_created", ["userId", "createdAt"]),
 });

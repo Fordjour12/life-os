@@ -7,6 +7,7 @@ type PolicyContext = {
   stableDaysCount: number;
   exitedRecoveryRecently: boolean;
   remainingRoomMin: number;
+  tinyWinTask?: { taskId: string; title: string; estimateMin: number } | null;
 };
 
 const PLAN_RESET_COOLDOWN_MS = 6 * 60 * 60 * 1000;
@@ -20,7 +21,45 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
   const stableDaysCount = context?.stableDaysCount ?? 0;
   const exitedRecoveryRecently = context?.exitedRecoveryRecently ?? false;
   const remainingRoomMin = context?.remainingRoomMin ?? 0;
+  const tinyWinTask = context?.tinyWinTask ?? null;
   const resetCooldownActive = Date.now() - lastPlanResetAt < PLAN_RESET_COOLDOWN_MS;
+
+  if (state.mode === "recovery") {
+    const tinyWinPayload = tinyWinTask
+      ? {
+          kind: "task" as const,
+          taskId: tinyWinTask.taskId,
+          title: tinyWinTask.title,
+          estimateMin: tinyWinTask.estimateMin,
+        }
+      : {
+          kind: "action" as const,
+          title: "Do one tiny reset",
+          estimateMin: 5,
+        };
+
+    out.push({
+      day,
+      type: "MICRO_RECOVERY_PROTOCOL",
+      priority: 5,
+      reason: {
+        code: "SAFE_MODE",
+        detail: "You’re in recovery mode. Let’s keep it gentle and protect momentum.",
+      },
+      payload: {
+        tinyWin: tinyWinPayload,
+        rest: { title: "Take a short rest", minutes: 15 },
+        reflection: {
+          question:
+            "What’s one thing you need right now—less pressure, more clarity, or more rest?",
+        },
+      },
+      status: "new",
+      cooldownKey: "micro_recovery",
+    });
+
+    return out.slice(0, 1);
+  }
 
   if (state.load === "overloaded" && !resetCooldownActive) {
     const suggestRest = planResetCountToday >= 3;
@@ -63,10 +102,7 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
     ? remainingRoomMin >= smallestPausedTask.estimateMin
     : false;
   const canGentleReturn =
-    state.load !== "overloaded" &&
-    state.mode !== "recovery" &&
-    hasRoom &&
-    (hasStability || exitedRecoveryRecently || hasWins);
+    state.load !== "overloaded" && hasRoom && (hasStability || exitedRecoveryRecently || hasWins);
   if (canGentleReturn && smallestPausedTask) {
     const detail = hasStability
       ? "You've been steady for 2 days. Want to gently bring back one small task?"

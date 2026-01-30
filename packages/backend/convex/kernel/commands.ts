@@ -121,6 +121,21 @@ export const executeCommand = mutation({
 
       eventType = "TASK_COMPLETED";
       meta = { taskId, estimateMin: task.estimateMin };
+    } else if (command.cmd === "accept_rest") {
+      const minutes = Number(command.input.minutes ?? 0);
+      const dayInput = String(command.input.day ?? "").trim();
+
+      if (!Number.isFinite(minutes) || minutes <= 0) {
+        throw new Error("Rest minutes must be a positive number");
+      }
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dayInput)) {
+        throw new Error("Rest day must be YYYY-MM-DD");
+      }
+
+      eventType = "REST_ACCEPTED";
+      meta = { minutes };
+      day = dayInput;
     } else if (command.cmd === "set_daily_plan") {
       const allowedEstimates = [10, 25, 45, 60];
       const dayInput = String(command.input.day ?? "").trim();
@@ -247,6 +262,16 @@ export const executeCommand = mutation({
       idempotencyKey: command.idempotencyKey,
     });
 
+    if (command.cmd === "accept_rest") {
+      await ctx.db.insert("events", {
+        userId,
+        ts: now,
+        type: "RECOVERY_PROTOCOL_USED",
+        meta: { day, didTinyWin: false, didRest: true },
+        idempotencyKey: `${command.idempotencyKey}:protocol`,
+      });
+    }
+
     const dayEvents = await ctx.db
       .query("events")
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
@@ -259,6 +284,37 @@ export const executeCommand = mutation({
     })) as KernelEvent[];
 
     const state = computeDailyState(day, kernelEvents);
+
+    const activeTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
+      .collect();
+
+    const under10 = activeTasks
+      .filter((task) => (task.estimateMin ?? 0) <= 10)
+      .sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0];
+    const smallestActive =
+      activeTasks.sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0] ?? null;
+    const tinyWinTask = under10 ?? smallestActive ?? null;
+
+    if (state.mode === "recovery") {
+      for (const task of activeTasks) {
+        if (tinyWinTask && task._id === tinyWinTask._id) continue;
+        await ctx.db.patch(task._id, {
+          status: "paused",
+          pausedAt: now,
+          pauseReason: "micro_recovery",
+        });
+
+        await ctx.db.insert("events", {
+          userId,
+          ts: now,
+          type: "TASK_PAUSED",
+          meta: { taskId: task._id, reason: "micro_recovery" },
+          idempotencyKey: `${command.idempotencyKey}:micro_pause:${task._id}`,
+        });
+      }
+    }
 
     const existingState = await ctx.db
       .query("stateDaily")
@@ -419,6 +475,13 @@ export const executeCommand = mutation({
       stableDaysCount,
       exitedRecoveryRecently,
       remainingRoomMin,
+      tinyWinTask: tinyWinTask
+        ? {
+            taskId: tinyWinTask._id,
+            title: tinyWinTask.title,
+            estimateMin: tinyWinTask.estimateMin,
+          }
+        : null,
       smallestPausedTask: chosen
         ? {
             taskId: chosen._id,
