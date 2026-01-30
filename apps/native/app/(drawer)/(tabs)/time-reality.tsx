@@ -242,6 +242,9 @@ export default function TimeReality() {
                 TOTAL_LOGGED: {totalLoggedLabel}
               </MachineText>
             </View>
+            <MachineText className="text-[10px] text-foreground/60">
+              BUSY blocks reduce free time. Other kinds are shown only.
+            </MachineText>
           </View>
         </HardCard>
 
