@@ -31,7 +31,6 @@
    "dependencies": {
       "@life-os/env": "workspace:*",
       "dotenv": "catalog:",
-      "expo-blur": "^15.0.8",
       "zod": "catalog:"
    },
    "devDependencies": {

@@ -43,7 +43,7 @@ function DrawerLayout() {
         }}
       />
       <Drawer.Screen
-        name="(tabs)"
+        name="(tabs)/today"
         options={{
           headerTitle: "Tabs",
           drawerLabel: ({ color, focused }) => (
