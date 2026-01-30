@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { Button, Spinner } from "heroui-native";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { Alert, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { HardCard } from "@/components/ui/hard-card";
@@ -85,6 +85,7 @@ export default function TimeReality() {
 
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [expandedBlockId, setExpandedBlockId] = useState<string | null>(null);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sortedBlocks = useMemo(() => {
@@ -133,6 +134,10 @@ export default function TimeReality() {
     totals.focus + totals.rest + totals.personal,
   );
   const totalLoggedLabel = formatMinutes(totals.total);
+
+  const toggleNotes = (blockId: string) => {
+    setExpandedBlockId((current) => (current === blockId ? null : blockId));
+  };
 
   const removeBlock = async (blockId: string) => {
     setRemovingId(blockId);
@@ -217,10 +222,10 @@ export default function TimeReality() {
                 </MachineText>
               </View>
               <View className="items-end">
-                <MachineText variant="label">BUSY (COUNTS)</MachineText>
+                <MachineText variant="label">BUSY_COUNTS</MachineText>
                 <MachineText className="text-sm">{busyMinutesLabel}</MachineText>
                 <MachineText variant="label" className="mt-2">
-                  OTHER_BLOCKS
+                  OTHER_BLOCKS_NO_COUNT
                 </MachineText>
                 <MachineText className="text-sm">{otherMinutesLabel}</MachineText>
                 <MachineText variant="label" className="mt-2">
@@ -234,7 +239,7 @@ export default function TimeReality() {
                 This is what the day allowed.
               </MachineText>
               <MachineText className="text-xs text-foreground/70">
-                LOGGED: {totalLoggedLabel}
+                TOTAL_LOGGED: {totalLoggedLabel}
               </MachineText>
             </View>
           </View>
@@ -250,35 +255,44 @@ export default function TimeReality() {
               sortedBlocks.map((block) => (
                 <View
                   key={block._id}
-                  className="flex-row items-center justify-between border border-black/10 bg-white px-3 py-2"
+                  className="flex-row items-start justify-between border border-black/10 bg-white px-3 py-2"
                 >
-                  <View>
+                  <View className={`w-1 self-stretch ${kindStyles[block.kind].badge}`} />
+                  <Pressable
+                    className="flex-1 ml-3 mr-2"
+                    onPress={() => toggleNotes(block._id)}
+                  >
                     <MachineText className="font-bold text-sm">
                       {formatTime(block.startMin)} - {formatTime(block.endMin)}
                     </MachineText>
                     <MachineText className="text-xs text-foreground/60">
                       {block.title ? block.title : "Untitled block"}
                     </MachineText>
-                    {block.notes ? (
-                      <MachineText className="text-[10px] text-foreground/50">
-                        {block.notes}
+                    {block.notes && expandedBlockId === block._id ? (
+                      <MachineText className="text-[10px] text-foreground/50 mt-1">
+                        NOTES: {block.notes}
                       </MachineText>
                     ) : null}
-                  </View>
+                    {block.notes && expandedBlockId !== block._id ? (
+                      <MachineText className="text-[9px] text-foreground/40 mt-1">
+                        TAP_TO_VIEW_NOTES
+                      </MachineText>
+                    ) : null}
+                  </Pressable>
                   <View className="items-end gap-2">
                     <View className="flex-row items-center gap-2">
                       <View className={`w-2 h-2 ${kindStyles[block.kind].badge}`} />
                       <MachineText variant="label">{kindStyles[block.kind].label}</MachineText>
                       {block.kind === "busy" ? (
                         <MachineText className="text-[9px] text-foreground/60">
-                          COUNTS
+                          COUNTS_FREE
                         </MachineText>
                       ) : null}
                     </View>
-                    <View className="flex-row gap-2">
+                    <View className="flex-row flex-wrap justify-end gap-2">
                       <Button
                         size="sm"
-                        className="bg-white border border-black shadow-[2px_2px_0px_black]"
+                        className="bg-white border border-black shadow-[2px_2px_0px_black] px-2"
                         onPress={() => editBlock(block._id)}
                       >
                         <MachineText className="text-[10px] font-bold text-black">
@@ -287,21 +301,21 @@ export default function TimeReality() {
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-white border border-black shadow-[2px_2px_0px_black]"
+                        className="bg-white border border-black shadow-[2px_2px_0px_black] px-2"
                         onPress={() => duplicateBlock(block)}
                         isDisabled={removingId === block._id}
                       >
                         {removingId === block._id ? (
                           <Spinner size="sm" color="black" />
                         ) : (
-                          <MachineText className="text-[10px] font-bold text-black">
+                          <MachineText className="text-[9px] font-bold text-black">
                             DUPLICATE
                           </MachineText>
                         )}
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-white border border-black shadow-[2px_2px_0px_black]"
+                        className="bg-white border border-black shadow-[2px_2px_0px_black] px-2"
                         onPress={() =>
                           duplicateBlock(block, shiftDay(today.day, 1))
                         }
@@ -310,21 +324,21 @@ export default function TimeReality() {
                         {removingId === block._id ? (
                           <Spinner size="sm" color="black" />
                         ) : (
-                          <MachineText className="text-[10px] font-bold text-black">
+                          <MachineText className="text-[9px] font-bold text-black">
                             TOMORROW
                           </MachineText>
                         )}
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-white border border-black shadow-[2px_2px_0px_black]"
+                        className="bg-white border border-black shadow-[2px_2px_0px_black] px-2"
                         onPress={() => confirmRemove(block)}
                         isDisabled={removingId === block._id}
                       >
                         {removingId === block._id ? (
                           <Spinner size="sm" color="black" />
                         ) : (
-                          <MachineText className="text-[10px] font-bold text-black">
+                          <MachineText className="text-[9px] font-bold text-black">
                             REMOVE
                           </MachineText>
                         )}
