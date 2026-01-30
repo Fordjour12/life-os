@@ -87,6 +87,10 @@ function DrawerLayout() {
                   <Ionicons name="information-variant" size={20} color="black" />
                 </Pressable>
               </Link>
+<<<<<<< HEAD
+=======
+              {/* Theme toggle could also be here if needed, but it's in headerRight globally */}
+>>>>>>> 49734fe (more changes)
             </View>
           ),
         }}
