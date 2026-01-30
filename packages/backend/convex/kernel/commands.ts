@@ -8,6 +8,7 @@ import type {
 } from "../../../../src/kernel/types";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
 
 import { computeDailyState } from "./reducer";
 import { sanitizeSuggestionCopy } from "../identity/guardrails";
@@ -45,6 +46,33 @@ const planReasons: PlanSetReason[] = ["initial", "adjust", "reset", "recovery", 
 
 function getUserId(): string {
   return "user_me";
+}
+
+const DAILY_CAPACITY_MIN = 480;
+const NON_FOCUS_WEIGHT = 0.6;
+
+async function getTimeMetricsForDay(ctx: MutationCtx, userId: string, day: string) {
+  const blocks = await ctx.db
+    .query("calendarBlocks")
+    .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
+    .collect();
+
+  const busyMinutes = blocks
+    .filter((block) => block.kind === "busy")
+    .reduce((total, block) => total + (block.endMin - block.startMin), 0);
+
+  const focusMinutes = blocks
+    .filter((block) => block.kind === "focus")
+    .reduce((total, block) => total + (block.endMin - block.startMin), 0);
+
+  const freeMinutes = Math.max(0, DAILY_CAPACITY_MIN - busyMinutes);
+  const focusWithinFree = Math.min(freeMinutes, focusMinutes);
+  const nonFocusFree = Math.max(0, freeMinutes - focusWithinFree);
+  const effectiveFreeMinutes = Math.round(
+    focusWithinFree + nonFocusFree * NON_FOCUS_WEIGHT,
+  );
+
+  return { freeMinutes, effectiveFreeMinutes, focusMinutes, busyMinutes };
 }
 
 export const executeCommand = mutation({
@@ -284,7 +312,8 @@ export const executeCommand = mutation({
       meta: event.meta,
     })) as KernelEvent[];
 
-    const state = computeDailyState(day, kernelEvents);
+    const timeMetrics = await getTimeMetricsForDay(ctx, userId, day);
+    const state = computeDailyState(day, kernelEvents, timeMetrics);
 
     const activeTasks = await ctx.db
       .query("tasks")

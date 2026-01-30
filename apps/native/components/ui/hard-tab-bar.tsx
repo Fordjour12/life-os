@@ -6,8 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 export function HardTabBar({ state, descriptors, navigation }: any) {
     return (
         <View className="flex-row border-t border-black bg-[#EBEBE8] pb-4 pt-2 px-2 gap-2 h-20 items-center justify-center">
-            {state.routes.map((route, index) => {
-                const { options } = descriptors[route.key];
+            {state.routes.map(
+                (
+                    route: { key: string; name: string; params?: Record<string, unknown> },
+                    index: number,
+                ) => {
+                    const { options } = descriptors[route.key];
                 const label =
                     options.tabBarLabel !== undefined
                         ? options.tabBarLabel
@@ -42,6 +46,7 @@ export function HardTabBar({ state, descriptors, navigation }: any) {
                 if (route.name === "planner") iconName = "compass";
                 if (route.name === "tasks") iconName = "checkmark-circle";
                 if (route.name === "inbox") iconName = "mail";
+                if (route.name === "time-reality") iconName = "time";
 
                 return (
                     <Pressable
@@ -65,7 +70,8 @@ export function HardTabBar({ state, descriptors, navigation }: any) {
                         </MachineText>
                     </Pressable>
                 );
-            })}
+                },
+            )}
         </View>
     );
 }
