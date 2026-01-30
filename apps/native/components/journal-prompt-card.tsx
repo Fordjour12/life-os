@@ -1,8 +1,9 @@
 import { Button, Spinner, TextField } from "heroui-native";
 import { useState } from "react";
-import { PlatformColor, Text, View } from "react-native";
+import { View } from "react-native";
 
-import { GlassCard } from "@/components/ui/glass-card";
+import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
 
 type Mood = "low" | "neutral" | "ok" | "good";
 
@@ -25,10 +26,10 @@ type Props = {
 };
 
 const moods: Array<{ value: Mood; label: string }> = [
-  { value: "low", label: "Low" },
-  { value: "neutral", label: "Neutral" },
+  { value: "low", label: "LOW" },
+  { value: "neutral", label: "NEUTRAL" },
   { value: "ok", label: "OK" },
-  { value: "good", label: "Good" },
+  { value: "good", label: "GOOD" },
 ];
 
 export function JournalPromptCard({
@@ -64,86 +65,93 @@ export function JournalPromptCard({
   const promptOpacity = quiet ? 0.55 : 1;
 
   return (
-    <GlassCard intensity={45} style={{ marginBottom: 24 }}>
-      <View style={{ gap: 12 }}>
-        <View style={{ gap: 6 }}>
-          <Text selectable style={{ fontSize: 14, letterSpacing: 1, color: PlatformColor("secondaryLabel") }}>
-            REFLECTION
-          </Text>
-          <Text
-            selectable
-            style={{ fontSize: 16, fontWeight: "600", color: PlatformColor("label"), opacity: promptOpacity }}
+    <HardCard label="REFLECTION_MODULE" className="mb-6 bg-white">
+      <View className="gap-6 p-2">
+        <View className="gap-2">
+          <MachineText variant="label" className="text-primary">CORE_PROMPT</MachineText>
+          <MachineText
+            className="text-lg font-bold"
+            style={{ opacity: promptOpacity }}
           >
             {prompt}
-          </Text>
+          </MachineText>
           {quiet ? (
-            <Text selectable style={{ fontSize: 12, color: PlatformColor("secondaryLabel") }}>
-              Quiet today selected. You can still write if you want.
-            </Text>
+            <MachineText className="text-[10px] text-muted">
+              QUIET_MODE_ACTIVE.
+            </MachineText>
           ) : null}
         </View>
 
-        <View style={{ gap: 8 }}>
-          <Text selectable style={{ fontSize: 12, color: PlatformColor("secondaryLabel") }}>
-            Mood (optional)
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <View className="gap-3">
+          <MachineText variant="label" className="text-primary">STATE_SELECTOR</MachineText>
+          <View className="flex-row flex-wrap gap-2">
             {moods.map((item) => {
               const selected = mood === item.value;
               return (
                 <Button
                   key={item.value}
                   size="sm"
-                  variant={selected ? "primary" : "secondary"}
+                  radius="none"
                   onPress={() => setMood(selected ? undefined : item.value)}
+                  className={`border-2 ${selected ? "bg-black border-black shadow-none" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
                 >
-                  <Text selectable>{item.label}</Text>
+                  <MachineText className={`${selected ? "text-white" : "text-black"} font-bold text-[10px]`}>{item.label}</MachineText>
                 </Button>
               );
             })}
           </View>
         </View>
 
-        <TextField>
-          <TextField.Input
-            value={text}
-            onChangeText={setText}
-            placeholder="Write anything, or leave it blank."
-            multiline
-            style={{ minHeight: 90, textAlignVertical: "top" }}
-          />
-        </TextField>
+        <View className="bg-black/5 border border-black/10 p-2">
+          <TextField>
+            <TextField.Input
+              value={text}
+              onChangeText={setText}
+              placeholder="TYPE_INPUT_HERE..."
+              multiline
+              className="font-mono text-sm"
+              style={{ minHeight: 100, textAlignVertical: "top", fontFamily: 'Menlo' }}
+            />
+          </TextField>
+        </View>
 
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          <Button onPress={submit} isDisabled={!canSubmit || isSubmitting}>
-            {isSubmitting ? <Spinner size="sm" /> : <Text selectable>Save reflection</Text>}
+        <View className="flex-row gap-3">
+          <Button
+            onPress={submit}
+            isDisabled={!canSubmit || isSubmitting}
+            className="flex-1 bg-black rounded-none shadow-[4px_4px_0px_#FF5800]"
+          >
+            {isSubmitting ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">SAVE_ENTRY</MachineText>}
           </Button>
-          <Button variant="secondary" onPress={skip} isDisabled={isSkipping}>
-            {isSkipping ? <Spinner size="sm" /> : <Text selectable>Quiet today</Text>}
+          <Button
+            variant="light"
+            onPress={skip}
+            isDisabled={isSkipping}
+            className="border border-black rounded-none shadow-[2px_2px_0px_black] bg-white"
+          >
+            {isSkipping ? <Spinner size="sm" /> : <MachineText className="font-bold">SKIP</MachineText>}
           </Button>
         </View>
 
-        <View style={{ gap: 8 }}>
-          <Text selectable style={{ fontSize: 12, letterSpacing: 1, color: PlatformColor("secondaryLabel") }}>
-            RECENT NOTES
-          </Text>
+        <View className="gap-4">
+          <MachineText variant="label" className="text-primary">HISTORY_LOG</MachineText>
           {entries.length === 0 ? (
-            <Text selectable style={{ fontSize: 13, color: PlatformColor("secondaryLabel") }}>
-              No reflections yet.
-            </Text>
+            <MachineText className="text-xs text-muted">
+              NO_LOGS_FOUND.
+            </MachineText>
           ) : (
-            <View style={{ gap: 10 }}>
+            <View className="gap-4">
               {entries.slice(0, 3).map((entry) => (
-                <View key={entry._id} style={{ gap: 4 }}>
+                <View key={entry._id} className="gap-1 border-l-2 border-black/5 pl-3">
                   {entry.text ? (
-                    <Text selectable style={{ fontSize: 14, color: PlatformColor("label") }}>
+                    <MachineText className="text-sm">
                       {entry.text}
-                    </Text>
+                    </MachineText>
                   ) : null}
                   {entry.mood ? (
-                    <Text selectable style={{ fontSize: 12, color: PlatformColor("secondaryLabel") }}>
-                      Mood: {entry.mood}
-                    </Text>
+                    <MachineText className="text-[10px] text-muted font-bold">
+                      STATE: {entry.mood.toUpperCase()}
+                    </MachineText>
                   ) : null}
                 </View>
               ))}
@@ -151,6 +159,6 @@ export function JournalPromptCard({
           )}
         </View>
       </View>
-    </GlassCard>
+    </HardCard>
   );
 }

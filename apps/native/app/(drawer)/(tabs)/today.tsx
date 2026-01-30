@@ -4,12 +4,33 @@ import { useMutation, useQuery } from "convex/react";
 import { Button, Spinner, TextField } from "heroui-native";
 import { useState, useMemo } from "react";
 import { View, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { JournalPromptCard } from "@/components/journal-prompt-card";
 import { WeeklyReviewCard } from "@/components/weekly-review-card";
-import { GlassCard } from "@/components/ui/glass-card";
-import { H1, H2, H3, Body, Caption, Label } from "@/components/ui/typography";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
+
+// We'll define a local component for the "Engineering Badge" for now to match the style
+function EngBadge({ label, value, intent }: { label: string; value: string; intent: "success" | "warning" | "danger" | "default" }) {
+  const colorMap = {
+    success: "bg-[#32CD32]", // LED Green
+    warning: "bg-[#FFBF00]", // Amber
+    danger: "bg-[#FF0000]", // LED Red
+    default: "bg-[#111111]", // Off
+  };
+  const dotColor = colorMap[intent];
+
+  return (
+    <View className="items-start min-w-[80px]">
+      <MachineText variant="label" className="mb-1 text-[10px]">{label}</MachineText>
+      <View className="flex-row items-center gap-2 border border-black/10 items-center px-2 py-1 bg-white">
+        <View className={`w-2 h-2 ${dotColor}`} />
+        <MachineText className="text-[12px] font-bold">{value.toUpperCase()}</MachineText>
+      </View>
+    </View>
+  );
+}
 
 type SuggestionItem = {
   _id: string;
@@ -181,207 +202,225 @@ export default function Today() {
   if (!data) {
     return (
       <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" />
+        <Spinner size="lg" color="warning" />
       </View>
     );
   }
 
   const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
+    weekday: "short",
+    month: "numeric",
     day: "numeric",
-  });
+  }).toUpperCase();
 
   return (
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-        className="flex-1 bg-background"
-      >
-        <View className="mb-6">
-          <H1 className="mb-0">Daily View</H1>
-          <Caption>{currentDate}</Caption>
+    <SafeAreaView className="flex-1 bg-background">
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <View className="mb-6 flex-row justify-between items-end border-b-2 border-primary/20 pb-2">
+          <View>
+            <MachineText variant="label" className="text-primary mb-1">SYSTEM://OVERVIEW</MachineText>
+            <MachineText variant="header" size="2xl">TODAY</MachineText>
+          </View>
+          <MachineText variant="value" className="text-sm">{currentDate}</MachineText>
         </View>
 
         {/* System State Row */}
-        <GlassCard intensity={30} className="mb-6">
-          <View className="flex-row flex-wrap justify-between gap-y-4">
-            <StatusBadge label="Load" value={data.state?.load ?? "Balanced"} intent={getStatusIntent(data.state?.load ?? "Balanced")} />
-            <StatusBadge label="Momentum" value={data.state?.momentum ?? "Steady"} intent={getStatusIntent(data.state?.momentum ?? "Steady")} />
-            <StatusBadge label="Focus" value={data.state?.focusCapacity ?? "Medium"} intent={getStatusIntent(data.state?.focusCapacity ?? "Medium")} />
-            <StatusBadge label="Health" value={data.state?.habitHealth ?? "Stable"} intent={getStatusIntent(data.state?.habitHealth ?? "Stable")} />
+        <HardCard className="mb-8" padding="sm" label="KERNEL SYSTEM STATUS">
+          <View className="flex-row flex-wrap justify-between gap-y-4 p-2">
+            <EngBadge label="SYS.LOAD" value={data.state?.load ?? "BALANCED"} intent={getStatusIntent(data.state?.load ?? "Balanced")} />
+            <EngBadge label="FLUX" value={data.state?.momentum ?? "STEADY"} intent={getStatusIntent(data.state?.momentum ?? "Steady")} />
+            <EngBadge label="CPU" value={data.state?.focusCapacity ?? "MEDIUM"} intent={getStatusIntent(data.state?.focusCapacity ?? "Medium")} />
+            <EngBadge label="PWR" value={data.state?.habitHealth ?? "STABLE"} intent={getStatusIntent(data.state?.habitHealth ?? "Stable")} />
           </View>
-        </GlassCard>
+        </HardCard>
 
-        <WeeklyReviewCard
-          review={weeklyReview ?? null}
-          onGenerate={generateWeeklyReview}
-          isGenerating={isGeneratingWeeklyReview}
-        />
+        {weeklyReview && (
+          <WeeklyReviewCard
+            review={weeklyReview ?? null}
+            onGenerate={generateWeeklyReview}
+            isGenerating={isGeneratingWeeklyReview}
+          />
+        )}
 
-        <JournalPromptCard
-          day={data.day}
-          prompt={journalPrompt?.prompt ?? null}
-          quiet={journalPrompt?.quiet}
-          onSubmit={submitJournalEntry}
-          onSkip={skipJournal}
-          entries={(journalEntries ?? []) as Array<{
-            _id: string;
-            text?: string;
-            mood?: JournalMood;
-            createdAt: number;
-          }>}
-          isSkipping={isSkippingJournal}
-          isSubmitting={isSubmittingJournal}
-        />
+        {journalPrompt && (
+          <JournalPromptCard
+            day={data.day}
+            prompt={journalPrompt?.prompt ?? null}
+            quiet={journalPrompt?.quiet}
+            onSubmit={submitJournalEntry}
+            onSkip={skipJournal}
+            entries={(journalEntries ?? []) as Array<{
+              _id: string;
+              text?: string;
+              mood?: JournalMood;
+              createdAt: number;
+            }>}
+            isSkipping={isSkippingJournal}
+            isSubmitting={isSubmittingJournal}
+          />
+        )}
 
         {/* Suggestions Section - Highlighted */}
         {suggestions.length > 0 && (
-          <View className="mb-6">
-            <Label className="mb-3 ml-1">Top Suggestions</Label>
+          <View className="mb-8">
+            <MachineText variant="label" className="mb-2 text-primary">INPUT_SIGNALS ({suggestions.length})</MachineText>
             <View className="gap-3">
               {suggestions.slice(0, 2).map((suggestion: SuggestionItem) => (
-                <GlassCard key={suggestion._id} variant="highlight" intensity={80}>
+                <HardCard key={suggestion._id} variant="default" className="border-primary" label={`SIG-${suggestion.type}`}>
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1 mr-4">
-                      <H3 className="text-lg mb-1">{suggestion.type.replace(/_/g, " ")}</H3>
-                      <Body variant="caption" className="opacity-80">
+                      <MachineText className="font-bold text-lg mb-1">{suggestion.type.replace(/_/g, " ")}</MachineText>
+                      <MachineText className="text-xs opacity-70">
                         {suggestion.reason?.detail}
-                      </Body>
+                      </MachineText>
                     </View>
                     <View className="gap-2">
                       {suggestion.type === "PLAN_RESET" && (
                         <Button
                           size="sm"
-                          className="bg-primary"
+                          radius="none"
+                          className="bg-primary border border-black shadow-[2px_2px_0px_black]"
                           onPress={() => applyPlanResetMutation({
                             day: data.day,
                             keepCount: suggestion.payload?.keepCount ?? 1,
                             idempotencyKey: idem(),
                           })}
                         >
-                          <Body className="text-white text-xs font-bold">Apply</Body>
+                          <MachineText className="text-white text-xs font-bold">EXECUTE</MachineText>
                         </Button>
                       )}
                       {suggestion.type === "GENTLE_RETURN" && (
                         <Button
                           size="sm"
-                          className="bg-primary"
+                          radius="none"
+                          className="bg-primary border border-black shadow-[2px_2px_0px_black]"
                           onPress={() => resumeTask(suggestion.payload?.taskId)}
                         >
-                          <Body className="text-white text-xs font-bold">Resume</Body>
+                          <MachineText className="text-white text-xs font-bold">RESUME</MachineText>
                         </Button>
                       )}
                       {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && (
                         <View className="gap-2">
                           <Button
                             size="sm"
-                            className="bg-primary"
+                            className="bg-primary shadow-[2px_2px_0px_black] rounded-none border border-black"
                             onPress={() => doTinyWin(suggestion.payload?.tinyWin)}
                           >
-                            <Body className="text-white text-xs font-bold">Do tiny win</Body>
+                            <MachineText className="text-white text-xs font-bold">DO TINY WIN</MachineText>
                           </Button>
                           <Button
                             size="sm"
-                            variant="secondary"
+                            className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]"
                             onPress={() =>
                               acceptRest(suggestion.payload?.rest?.minutes ?? 15)
                             }
                           >
-                            <Body className="text-xs font-bold">Take short rest</Body>
+                            <MachineText className="text-xs font-bold">REST</MachineText>
                           </Button>
                           <Button
                             size="sm"
-                            variant="secondary"
+                            className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]"
                             onPress={() => setShowReflection(!showReflection)}
                           >
-                            <Body className="text-xs font-bold">Answer reflection</Body>
+                            <MachineText className="text-xs font-bold">REFLECT</MachineText>
                           </Button>
                         </View>
                       )}
                     </View>
                   </View>
                   {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && showReflection ? (
-                    <Body variant="caption" className="mt-3 opacity-80">
-                      {suggestion.payload?.reflection?.question}
-                    </Body>
+                    <View className="mt-3 p-2 bg-black/5 border-t border-black/10">
+                      <MachineText className="text-xs italic">
+                        {suggestion.payload?.reflection?.question}
+                      </MachineText>
+                    </View>
                   ) : null}
-                </GlassCard>
+                </HardCard>
               ))}
             </View>
           </View>
         )}
 
         {/* Tasks Section */}
-        <View className="mb-6">
-          <View className="flex-row justify-between items-end mb-4 px-1">
-            <H2 className="mb-0 text-2xl">Tasks</H2>
-            <Caption>{tasks.length} active</Caption>
+        <View className="mb-8">
+          <View className="flex-row justify-between items-end mb-4 px-1 border-b border-black/10 pb-2">
+            <MachineText variant="header" size="lg">EXECUTION_QUEUE</MachineText>
+            <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
           </View>
 
-          <View className="gap-3 mb-6">
+          <View className="gap-2 mb-6">
             {tasks.length > 0 ? (
-              tasks.map((task: TaskItem) => (
-                <GlassCard key={task._id} intensity={40} className="border-white/10">
+              tasks.map((task: TaskItem, index) => (
+                <HardCard key={task._id} padding="sm" className="bg-white">
                   <View className="flex-row items-center justify-between">
-                    <View className="flex-1 mr-4">
-                      <Body className="font-semibold text-lg">{task.title}</Body>
-                      <Caption>{task.estimateMin} minutes</Caption>
+                    <View className="flex-row items-center gap-3 flex-1">
+                      <MachineText variant="label" className="w-4 text-center text-foreground/30">{index + 1}</MachineText>
+                      <View>
+                        <MachineText className="font-bold text-base">{task.title}</MachineText>
+                        <MachineText className="text-xs opacity-50">{task.estimateMin} MIN</MachineText>
+                      </View>
                     </View>
                     <Button
                       size="sm"
-                      variant="secondary"
+                      radius="none"
                       onPress={() => completeTask(task._id)}
-                      className="rounded-full px-4"
+                      className="border border-black/20 bg-gray-100 shadow-[2px_2px_0px_black]"
                     >
-                      <Body className="text-xs font-bold text-primary">Done</Body>
+                      <MachineText className="text-[10px] font-bold text-black">DONE</MachineText>
                     </Button>
                   </View>
-                </GlassCard>
+                </HardCard>
               ))
             ) : (
-              <GlassCard intensity={20} className="items-center py-6">
-                <Caption>No open tasks. Start a tiny win below.</Caption>
-              </GlassCard>
+              <HardCard variant="flat" className="items-center py-6 border-dashed">
+                <MachineText className="opacity-50">QUEUE_EMPTY</MachineText>
+              </HardCard>
             )}
           </View>
 
           {/* Quick Add Form */}
-          <GlassCard intensity={60} className="border-primary/20">
-            <Label className="mb-3">Quick Add Task</Label>
+          <HardCard label="CMD_LINE_INPUT" className="bg-[#E0E0DE]">
             <View className="gap-3">
-              <TextField>
-                <TextField.Input
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="What's next?"
-                  className="bg-background/50 rounded-xl"
-                />
-              </TextField>
+              <View className="bg-white border border-black/20 p-1">
+                <TextField>
+                  <TextField.Input
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="> TYPE_TASK_NAME..."
+                    placeholderTextColor="#999"
+                    className="font-mono text-sm h-8"
+                    style={{ fontFamily: 'Menlo', fontSize: 14 }}
+                  />
+                </TextField>
+              </View>
+
               <View className="flex-row gap-3">
-                <View className="flex-1">
+                <View className="flex-1 bg-white border border-black/20 p-1">
                   <TextField>
                     <TextField.Input
                       value={estimate}
                       onChangeText={setEstimate}
-                      placeholder="25"
+                      placeholder="MIN"
+                      placeholderTextColor="#999"
                       keyboardType="number-pad"
-                      className="bg-background/50 rounded-xl"
+                      className="font-mono text-sm h-8"
+                      style={{ fontFamily: 'Menlo' }}
                     />
                   </TextField>
                 </View>
                 <Button
                   onPress={createTask}
                   isDisabled={isCreating}
-                  className="bg-primary rounded-xl px-10"
+                  radius="none"
+                  className="bg-black px-6 shadow-[2px_2px_0px_#FF5800]"
                 >
-                  {isCreating ? <Spinner size="sm" color="white" /> : <Body className="text-white font-bold">Add</Body>}
+                  {isCreating ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">ENTER</MachineText>}
                 </Button>
               </View>
             </View>
-          </GlassCard>
+          </HardCard>
         </View>
       </ScrollView>
+    </SafeAreaView>
   );
 }

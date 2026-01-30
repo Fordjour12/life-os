@@ -1,11 +1,13 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Button, Spinner, Surface, TextField } from "heroui-native";
+import { Button, Spinner, TextField } from "heroui-native";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { View, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Container } from "@/components/container";
+import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
 
 type TaskItem = {
   _id: Id<"tasks">;
@@ -24,6 +26,7 @@ export default function Tasks() {
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
   const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
+
   const [title, setTitle] = useState("");
   const [estimate, setEstimate] = useState("25");
   const [isCreating, setIsCreating] = useState(false);
@@ -72,99 +75,120 @@ export default function Tasks() {
 
   if (!tasksData || !pausedTasksData) {
     return (
-      <Container className="p-6">
-        <View className="flex-1 justify-center items-center">
-          <Spinner size="lg" />
-        </View>
-      </Container>
+      <View className="flex-1 justify-center items-center bg-background">
+        <Spinner size="lg" color="warning" />
+      </View>
     );
   }
 
   return (
-    <Container className="p-6 gap-4">
-      <View>
-        <Text className="text-3xl font-semibold text-foreground tracking-tight">Tasks</Text>
-        <Text className="text-muted text-sm mt-1">
-          Small, doable steps that feed momentum
-        </Text>
-      </View>
-
-      <Surface variant="secondary" className="p-4 rounded-2xl gap-3">
-        <Text className="text-foreground font-semibold">Create</Text>
-        <View className="gap-3">
-          <TextField>
-            <TextField.Label>Task name</TextField.Label>
-            <TextField.Input
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Small, doable task"
-            />
-          </TextField>
-          <TextField>
-            <TextField.Label>Estimate (minutes)</TextField.Label>
-            <TextField.Input
-              value={estimate}
-              onChangeText={setEstimate}
-              placeholder="25"
-              keyboardType="number-pad"
-            />
-          </TextField>
-          <Button onPress={createTask} isDisabled={isCreating} variant="secondary">
-            {isCreating ? <Spinner size="sm" color="default" /> : "Add task"}
-          </Button>
+    <SafeAreaView className="flex-1 bg-background">
+      <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+        <View className="mb-6 border-b-2 border-primary/20 pb-2">
+          <MachineText variant="header" size="2xl">ALL_TASKS</MachineText>
+          <MachineText className="text-muted text-xs mt-1">
+            EXECUTION QUEUE MONITOR
+          </MachineText>
         </View>
-      </Surface>
 
-      <Surface variant="secondary" className="p-4 rounded-2xl gap-3">
-        <Text className="text-foreground font-semibold">Active</Text>
-        {tasks.length ? (
-          tasks.map((task) => (
-            <Surface key={task._id} variant="default" className="p-3 rounded-xl">
+        <View className="gap-6">
+          <HardCard label="CREATE_TASK" className="bg-[#E0E0DE] gap-4 p-4">
+            <View className="gap-3">
+              <View>
+                <MachineText variant="label" className="mb-1">TASK NAME</MachineText>
+                <TextField>
+                  <TextField.Input
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="Small, doable task..."
+                    className="bg-white border text-sm font-mono h-10 border-black/20"
+                    style={{ fontFamily: 'Menlo' }}
+                  />
+                </TextField>
+              </View>
+              <View>
+                <MachineText variant="label" className="mb-1">ESTIMATE (MIN)</MachineText>
+                <TextField>
+                  <TextField.Input
+                    value={estimate}
+                    onChangeText={setEstimate}
+                    placeholder="25"
+                    keyboardType="number-pad"
+                    className="bg-white border text-sm font-mono h-10 border-black/20"
+                    style={{ fontFamily: 'Menlo' }}
+                  />
+                </TextField>
+              </View>
+              <Button onPress={createTask} isDisabled={isCreating} className="bg-primary rounded-none shadow-[2px_2px_0px_black]">
+                {isCreating ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">ADD_TASK</MachineText>}
+              </Button>
+            </View>
+          </HardCard>
+
+          <View>
+            <View className="flex-row justify-between items-end mb-2 border-b border-black/10 pb-1">
+              <MachineText variant="header" size="md">ACTIVE_QUEUE</MachineText>
+              <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
+            </View>
+
+            <View className="gap-3">
+              {tasks.length ? (
+                tasks.map((task) => (
+                  <HardCard key={task._id} padding="sm" className="bg-white">
+                    <View className="flex-row items-center justify-between">
+                      <View className="gap-1 flex-1">
+                        <MachineText className="font-bold text-base">{task.title}</MachineText>
+                        <MachineText className="text-muted text-xs">{task.estimateMin} MIN</MachineText>
+                      </View>
+                      <Button size="sm" className="bg-white border border-black rounded-none" onPress={() => completeTask(task._id)}>
+                        <MachineText className="text-black text-xs font-bold">DONE</MachineText>
+                      </Button>
+                    </View>
+                  </HardCard>
+                ))
+              ) : (
+                <HardCard variant="flat" className="p-4 border-dashed items-center">
+                  <MachineText className="text-muted">QUEUE_EMPTY</MachineText>
+                </HardCard>
+              )}
+            </View>
+          </View>
+
+          {pausedTasks.length ? (
+            <HardCard label="PARKED_TASKS" variant="flat" className="gap-3 p-4 bg-black/5">
               <View className="flex-row items-center justify-between">
-                <View className="gap-1">
-                  <Text className="text-foreground font-semibold">{task.title}</Text>
-                  <Text className="text-muted text-xs">{task.estimateMin} min</Text>
-                </View>
-                <Button size="sm" variant="secondary" onPress={() => completeTask(task._id)}>
-                  Done
+                <MachineText className="font-bold">
+                  PAUSED_ITEMS ({pausedTasks.length})
+                </MachineText>
+                <Button size="sm" className="bg-white border border-black rounded-none" onPress={() => setShowPaused(!showPaused)}>
+                  <MachineText className="text-black text-xs">
+                    {showPaused ? "HIDE" : "SHOW"}
+                  </MachineText>
                 </Button>
               </View>
-            </Surface>
-          ))
-        ) : (
-          <Text className="text-muted">No active tasks yet</Text>
-        )}
-      </Surface>
-
-      {pausedTasks.length ? (
-        <Surface variant="secondary" className="p-4 rounded-2xl gap-3">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-foreground font-semibold">
-              Paused for now (Plan Reset)
-            </Text>
-            <Button size="sm" variant="secondary" onPress={() => setShowPaused(!showPaused)}>
-              {showPaused ? "Hide" : `Show ${pausedTasks.length}`}
-            </Button>
-          </View>
-          {showPaused ? (
-            pausedTasks.map((task) => (
-              <Surface key={task._id} variant="default" className="p-3 rounded-xl">
-                <View className="flex-row items-center justify-between">
-                  <View className="gap-1">
-                    <Text className="text-foreground font-semibold">{task.title}</Text>
-                    <Text className="text-muted text-xs">{task.estimateMin} min</Text>
-                  </View>
-                  <Button size="sm" variant="secondary" onPress={() => resumeTask(task._id)}>
-                    Resume
-                  </Button>
+              {showPaused ? (
+                <View className="gap-2 mt-2">
+                  {pausedTasks.map((task) => (
+                    <HardCard key={task._id} padding="sm" className="bg-white/50">
+                      <View className="flex-row items-center justify-between">
+                        <View className="gap-1 flex-1">
+                          <MachineText className="font-bold text-sm">{task.title}</MachineText>
+                          <MachineText className="text-muted text-[10px]">{task.estimateMin} MIN</MachineText>
+                        </View>
+                        <Button size="sm" className="bg-black rounded-none" onPress={() => resumeTask(task._id)}>
+                          <MachineText className="text-white text-[10px]">RESUME</MachineText>
+                        </Button>
+                      </View>
+                    </HardCard>
+                  ))}
                 </View>
-              </Surface>
-            ))
-          ) : (
-            <Text className="text-muted text-sm">Kept safe until you are ready.</Text>
-          )}
-        </Surface>
-      ) : null}
-    </Container>
+              ) : (
+                <MachineText className="text-muted text-xs">Stored safely until plan reset.</MachineText>
+              )}
+            </HardCard>
+          ) : null}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

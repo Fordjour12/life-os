@@ -1,12 +1,12 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Spinner } from "heroui-native";
-import { Button } from "heroui-native";
+import { Spinner, Button } from "heroui-native";
 import { useMemo, useState } from "react";
-import { Alert, PlatformColor, ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, View, SafeAreaView } from "react-native";
 
-import { GlassCard } from "@/components/ui/glass-card";
+import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
 
 type Mood = "low" | "neutral" | "ok" | "good";
 
@@ -27,8 +27,8 @@ export default function JournalScreen() {
 
   if (entries === undefined) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Spinner size="lg" />
+      <View className="flex-1 items-center justify-center bg-background">
+        <Spinner size="lg" color="warning" />
       </View>
     );
   }
@@ -54,12 +54,12 @@ export default function JournalScreen() {
 
   const confirmDelete = (entryId: Id<"journalEntries">) => {
     Alert.alert(
-      "Delete reflection?",
-      "This will remove it from your journal.",
+      "CONFIRM_DELETION",
+      "THIS_WILL_REMOVE_DATA_FROM_KERNEL.",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "CANCEL", style: "cancel" },
         {
-          text: "Delete",
+          text: "DELETE",
           style: "destructive",
           onPress: async () => {
             setDeletingId(entryId);
@@ -75,105 +75,99 @@ export default function JournalScreen() {
   };
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 16 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={{ gap: 6 }}>
-        <Text selectable style={{ fontSize: 26, fontWeight: "600", color: PlatformColor("label") }}>
-          Journal
-        </Text>
-        <Text selectable style={{ fontSize: 14, color: PlatformColor("secondaryLabel") }}>
-          Optional reflections. No streaks, no pressure.
-        </Text>
-      </View>
-
-      <GlassCard intensity={30}>
-        <View style={{ gap: 12 }}>
-          <View style={{ gap: 8 }}>
-            <Text selectable style={{ fontSize: 12, letterSpacing: 1, color: PlatformColor("secondaryLabel") }}>
-              WINDOW
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {(["7", "30", "all"] as const).map((value) => (
-                <Button
-                  key={value}
-                  size="sm"
-                  variant={windowFilter === value ? "primary" : "secondary"}
-                  onPress={() => setWindowFilter(value)}
-                >
-                  <Text selectable>{value === "all" ? "All time" : `Last ${value}d`}</Text>
-                </Button>
-              ))}
-            </View>
-          </View>
-
-          <View style={{ gap: 8 }}>
-            <Text selectable style={{ fontSize: 12, letterSpacing: 1, color: PlatformColor("secondaryLabel") }}>
-              MOOD
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {(["all", "low", "neutral", "ok", "good"] as const).map((value) => (
-                <Button
-                  key={value}
-                  size="sm"
-                  variant={moodFilter === value ? "primary" : "secondary"}
-                  onPress={() => setMoodFilter(value)}
-                >
-                  <Text selectable>{value === "all" ? "All moods" : value}</Text>
-                </Button>
-              ))}
-            </View>
-          </View>
+    <SafeAreaView className="flex-1 bg-background">
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-6 border-b-2 border-primary/20 pb-2">
+          <MachineText variant="label" className="text-primary mb-1">SYSTEM://JOURNAL</MachineText>
+          <MachineText variant="header" size="2xl">LOGS</MachineText>
         </View>
-      </GlassCard>
 
-      {filteredEntries.length === 0 ? (
-        <GlassCard intensity={35}>
-          <Text selectable style={{ fontSize: 14, color: PlatformColor("secondaryLabel") }}>
-            No reflections yet. You can write when it feels helpful.
-          </Text>
-        </GlassCard>
-      ) : (
-        <View style={{ gap: 12 }}>
-          {filteredEntries.map((entry) => (
-            <GlassCard key={entry._id} intensity={40}>
-              <View style={{ gap: 8 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-                  <Text selectable style={{ fontSize: 12, color: PlatformColor("secondaryLabel") }}>
-                    {entry.day}
-                  </Text>
-                  {entry.mood ? (
-                    <Text selectable style={{ fontSize: 12, color: PlatformColor("secondaryLabel") }}>
-                      Mood: {entry.mood}
-                    </Text>
-                  ) : null}
-                </View>
-                {entry.text ? (
-                  <Text selectable style={{ fontSize: 15, color: PlatformColor("label") }}>
-                    {entry.text}
-                  </Text>
-                ) : (
-                  <Text selectable style={{ fontSize: 14, color: PlatformColor("secondaryLabel") }}>
-                    Reflection saved without text.
-                  </Text>
-                )}
-                <View style={{ alignItems: "flex-start" }}>
+        <HardCard label="FILTER_MODULE" className="mb-6 bg-[#E0E0DE]">
+          <View className="gap-4 p-2">
+            <View className="gap-2">
+              <MachineText variant="label">WINDOW_SELECTOR</MachineText>
+              <View className="flex-row flex-wrap gap-2">
+                {(["7", "30", "all"] as const).map((value) => (
                   <Button
+                    key={value}
                     size="sm"
-                    variant="secondary"
-                    onPress={() => confirmDelete(entry._id)}
-                    isDisabled={deletingId === entry._id}
+                    radius="none"
+                    onPress={() => setWindowFilter(value)}
+                    className={`border-2 ${windowFilter === value ? "bg-black border-black" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
                   >
-                    <Text selectable>{deletingId === entry._id ? "Deleting..." : "Delete"}</Text>
+                    <MachineText className={`${windowFilter === value ? "text-white" : "text-black"} font-bold text-[10px]`}>
+                      {value === "all" ? "ALL_TIME" : `${value}D`}
+                    </MachineText>
                   </Button>
-                </View>
+                ))}
               </View>
-            </GlassCard>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+            </View>
+
+            <View className="gap-2">
+              <MachineText variant="label">MOOD_FILTER</MachineText>
+              <View className="flex-row flex-wrap gap-2">
+                {(["all", "low", "neutral", "ok", "good"] as const).map((value) => (
+                  <Button
+                    key={value}
+                    size="sm"
+                    radius="none"
+                    onPress={() => setMoodFilter(value)}
+                    className={`border-2 ${moodFilter === value ? "bg-black border-black" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
+                  >
+                    <MachineText className={`${moodFilter === value ? "text-white" : "text-black"} font-bold text-[10px]`}>
+                      {value.toUpperCase()}
+                    </MachineText>
+                  </Button>
+                ))}
+              </View>
+            </View>
+          </View>
+        </HardCard>
+
+        {filteredEntries.length === 0 ? (
+          <HardCard variant="flat" className="p-8 items-center border-dashed">
+            <MachineText className="text-muted">NO_REFLECTIONS_SAVED.</MachineText>
+          </HardCard>
+        ) : (
+          <View className="gap-4">
+            {filteredEntries.map((entry) => (
+              <HardCard key={entry._id} label={`LOG_${entry.day}`} className="bg-white">
+                <View className="gap-3 p-2">
+                  <View className="flex-row justify-between items-center opacity-50">
+                    <MachineText className="text-[10px] font-bold">{entry.day}</MachineText>
+                    {entry.mood && (
+                      <MachineText className="text-[10px] font-bold">STATE: {entry.mood.toUpperCase()}</MachineText>
+                    )}
+                  </View>
+
+                  <View className="bg-black/5 p-3 border-l-4 border-black">
+                    <MachineText className="text-sm">
+                      {entry.text || "NO_DESCRIPTION_PROVIDED."}
+                    </MachineText>
+                  </View>
+
+                  <View className="items-start">
+                    <Button
+                      size="sm"
+                      radius="none"
+                      onPress={() => confirmDelete(entry._id)}
+                      isDisabled={deletingId === entry._id}
+                      className="bg-white border border-black shadow-[2px_2px_0px_black]"
+                    >
+                      <MachineText className="text-black text-[10px] font-bold">
+                        {deletingId === entry._id ? "DELETING..." : "DELETE"}
+                      </MachineText>
+                    </Button>
+                  </View>
+                </View>
+              </HardCard>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }

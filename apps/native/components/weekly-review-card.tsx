@@ -1,8 +1,9 @@
 import { Button, Spinner } from "heroui-native";
 import { useMemo } from "react";
-import { PlatformColor, Text, View } from "react-native";
+import { View } from "react-native";
 
-import { GlassCard } from "@/components/ui/glass-card";
+import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
 
 type WeeklyReviewFacts = {
   recoveryDays: number;
@@ -26,115 +27,109 @@ type Props = {
   isGenerating?: boolean;
 };
 
-const dividerColor = PlatformColor("separator");
-const secondaryText = PlatformColor("secondaryLabel");
-
 export function WeeklyReviewCard({ review, onGenerate, isGenerating }: Props) {
   const facts = review?.facts;
   const highlights = review?.highlights ?? [];
   const frictionPoints = review?.frictionPoints ?? [];
 
-  const title = review ? `Week ${review.week}` : "Weekly Review";
-  const summaryNote = "Based on your events and daily state.";
+  const title = review ? `WEEK_${review.week}` : "WEEKLY_REVIEW";
+  const summaryNote = "KERNEL_SNAPSHOT_v1.0";
 
   const highlightText = useMemo(() => {
-    if (highlights.length === 0) return "No highlights yet.";
+    if (highlights.length === 0) return "NO_SIGNAL";
     return highlights.join(" ");
   }, [highlights]);
 
   const frictionText = useMemo(() => {
-    if (frictionPoints.length === 0) return "No friction signals detected.";
+    if (frictionPoints.length === 0) return "CLEAR_PATH";
     return frictionPoints.join(" ");
   }, [frictionPoints]);
 
   return (
-    <GlassCard intensity={45} style={{ marginBottom: 24 }}>
-      <View style={{ gap: 12 }}>
-        <View style={{ gap: 4 }}>
-          <Text selectable style={{ fontSize: 18, fontWeight: "600", color: PlatformColor("label") }}>
+    <HardCard label="WEEKLY_MIRROR" className="mb-6 bg-[#E0E0DE]">
+      <View className="gap-4 p-2">
+        <View className="gap-1">
+          <MachineText variant="header" size="lg">
             {title}
-          </Text>
-          <Text selectable style={{ fontSize: 13, color: secondaryText }}>
+          </MachineText>
+          <MachineText className="text-[10px] text-muted">
             {summaryNote}
-          </Text>
+          </MachineText>
         </View>
 
         {!review && (
-          <View style={{ gap: 10 }}>
-            <Text selectable style={{ fontSize: 14, color: PlatformColor("label") }}>
-              Generate a calm weekly mirror when you are ready.
-            </Text>
-            <Button onPress={onGenerate} isDisabled={!onGenerate || isGenerating}>
-              {isGenerating ? <Spinner size="sm" /> : <Text selectable>Generate weekly review</Text>}
+          <View className="gap-4">
+            <MachineText className="text-sm">
+              READY_TO_GENERATE_CALM_MIRROR.
+            </MachineText>
+            <Button
+              onPress={onGenerate}
+              isDisabled={!onGenerate || isGenerating}
+              className="bg-black rounded-none shadow-[2px_2px_0px_#FF5800]"
+            >
+              {isGenerating ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">GENERATE_REVIEW</MachineText>}
             </Button>
           </View>
         )}
 
         {review && (
-          <View style={{ gap: 14 }}>
-            <View style={{ gap: 8 }}>
-              <Text selectable style={{ fontSize: 12, letterSpacing: 1, color: secondaryText }}>
-                WHAT SHOWED UP
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-                <Fact label="Recovery days" value={facts?.recoveryDays ?? 0} />
-                <Fact label="Balanced days" value={facts?.balancedDays ?? 0} />
-                <Fact label="Tiny wins" value={facts?.tinyWins ?? 0} />
-                <Fact label="Plan resets" value={facts?.planResets ?? 0} />
+          <View className="gap-6">
+            <View className="gap-3">
+              <MachineText variant="label" className="text-primary">METRICS</MachineText>
+              <View className="flex-row flex-wrap gap-4">
+                <Fact label="RECOVERY_DAYS" value={facts?.recoveryDays ?? 0} />
+                <Fact label="BALANCED_DAYS" value={facts?.balancedDays ?? 0} />
+                <Fact label="TINY_WINS" value={facts?.tinyWins ?? 0} />
+                <Fact label="PLAN_RESETS" value={facts?.planResets ?? 0} />
               </View>
             </View>
 
-            <View style={{ height: 1, backgroundColor: dividerColor }} />
+            <View className="h-[1px] bg-black/10" />
 
-            <View style={{ gap: 8 }}>
-              <Text selectable style={{ fontSize: 12, letterSpacing: 1, color: secondaryText }}>
-                WHAT HELPED
-              </Text>
-              <Text selectable style={{ fontSize: 14, color: PlatformColor("label") }}>
+            <View className="gap-2">
+              <MachineText variant="label" className="text-primary">POSITIVE_SIGNALS</MachineText>
+              <MachineText className="text-sm">
                 {highlightText}
-              </Text>
+              </MachineText>
             </View>
 
-            <View style={{ gap: 8 }}>
-              <Text selectable style={{ fontSize: 12, letterSpacing: 1, color: secondaryText }}>
-                WHAT MADE THINGS HARDER
-              </Text>
-              <Text selectable style={{ fontSize: 14, color: PlatformColor("label") }}>
+            <View className="gap-2">
+              <MachineText variant="label" className="text-primary">FRICTION_DETECTED</MachineText>
+              <MachineText className="text-sm">
                 {frictionText}
-              </Text>
+              </MachineText>
             </View>
 
-            <View style={{ gap: 8 }}>
-              <Text selectable style={{ fontSize: 12, letterSpacing: 1, color: secondaryText }}>
-                ONE GENTLE QUESTION
-              </Text>
-              <Text selectable style={{ fontSize: 15, fontWeight: "600", color: PlatformColor("label") }}>
+            <View className="gap-2 p-3 bg-white border border-black shadow-[2px_2px_0px_black]">
+              <MachineText variant="label" className="text-primary mb-1">GENTLE_PROMPT</MachineText>
+              <MachineText className="font-bold text-base">
                 {review.reflectionQuestion}
-              </Text>
+              </MachineText>
             </View>
 
-            <Button onPress={onGenerate} isDisabled={!onGenerate || isGenerating}>
-              {isGenerating ? <Spinner size="sm" /> : <Text selectable>Refresh review</Text>}
+            <Button
+              onPress={onGenerate}
+              isDisabled={!onGenerate || isGenerating}
+              className="bg-white border border-black rounded-none shadow-[2px_2px_0px_black]"
+            >
+              {isGenerating ? <Spinner size="sm" /> : <MachineText className="font-bold">REFRESH_LOGS</MachineText>}
             </Button>
           </View>
         )}
       </View>
-    </GlassCard>
+    </HardCard>
   );
 }
 
 function Fact({ label, value }: { label: string; value: number }) {
   return (
-    <View style={{ minWidth: 130, gap: 2 }}>
-      <Text
-        selectable
-        style={{ fontSize: 20, fontWeight: "600", fontVariant: ["tabular-nums"], color: PlatformColor("label") }}
-      >
+    <View className="min-w-[120px] gap-1">
+      <MachineText className="text-2xl font-bold">
         {value}
-      </Text>
-      <Text selectable style={{ fontSize: 12, color: secondaryText }}>
+      </MachineText>
+      <MachineText variant="label" className="text-[10px]">
         {label}
-      </Text>
+      </MachineText>
     </View>
   );
 }

@@ -1,8 +1,9 @@
-import { Button, ErrorView, Spinner, Surface, TextField } from "heroui-native";
+import { Button, ErrorView, Spinner, TextField } from "heroui-native";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { authClient } from "@/lib/auth-client";
+import { MachineText } from "@/components/ui/machine-text";
 
 export function SignIn() {
   const [email, setEmail] = useState("");
@@ -36,39 +37,61 @@ export function SignIn() {
   };
 
   return (
-    <Surface variant="secondary" className="p-4 rounded-lg">
-      <Text className="text-foreground font-medium mb-4">Sign In</Text>
+    <View className="p-4 bg-white border border-black shadow-[4px_4px_0px_black]">
+      <MachineText variant="header" className="mb-4">SESSION_START</MachineText>
 
       <ErrorView isInvalid={!!error} className="mb-3">
         {error}
       </ErrorView>
 
-      <View className="gap-3">
-        <TextField>
-          <TextField.Label>Email</TextField.Label>
-          <TextField.Input
-            value={email}
-            onChangeText={setEmail}
-            placeholder="email@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </TextField>
+      <View className="gap-4">
+        <View>
+          <MachineText variant="label" className="mb-1">IDENTITY_UID</MachineText>
+          <View className="bg-black/5 border border-black/10 p-1">
+            <TextField>
+              <TextField.Input
+                value={email}
+                onChangeText={setEmail}
+                placeholder="USER@DOMAIN.COM"
+                placeholderTextColor="#999"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                className="font-mono text-sm h-10"
+                style={{ fontFamily: 'Menlo' }}
+              />
+            </TextField>
+          </View>
+        </View>
 
-        <TextField>
-          <TextField.Label>Password</TextField.Label>
-          <TextField.Input
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            secureTextEntry
-          />
-        </TextField>
+        <View>
+          <MachineText variant="label" className="mb-1">ACCESS_KEY</MachineText>
+          <View className="bg-black/5 border border-black/10 p-1">
+            <TextField>
+              <TextField.Input
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#999"
+                secureTextEntry
+                className="font-mono text-sm h-10"
+                style={{ fontFamily: 'Menlo' }}
+              />
+            </TextField>
+          </View>
+        </View>
 
-        <Button onPress={handleLogin} isDisabled={isLoading} className="mt-1">
-          {isLoading ? <Spinner size="sm" color="default" /> : <Button.Label>Sign In</Button.Label>}
+        <Button
+          onPress={handleLogin}
+          isDisabled={isLoading}
+          className="mt-2 bg-black rounded-none shadow-[4px_4px_0px_#FF5800] h-12"
+        >
+          {isLoading ? (
+            <Spinner size="sm" color="white" />
+          ) : (
+            <MachineText className="text-white font-bold">INITIATE_HANDSHAKE</MachineText>
+          )}
         </Button>
       </View>
-    </Surface>
+    </View>
   );
 }

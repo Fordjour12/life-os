@@ -3,12 +3,12 @@ import { Link } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useThemeColor } from "heroui-native";
 import React, { useCallback } from "react";
-import { Pressable, Text } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { MachineText } from "@/components/ui/machine-text";
 
 function DrawerLayout() {
-  const themeColorForeground = useThemeColor("foreground");
   const themeColorBackground = useThemeColor("background");
 
   const renderThemeToggle = useCallback(() => <ThemeToggle />, []);
@@ -16,52 +16,78 @@ function DrawerLayout() {
   return (
     <Drawer
       screenOptions={{
-        headerTintColor: themeColorForeground,
-        headerStyle: { backgroundColor: themeColorBackground },
-        headerTitleStyle: {
-          fontWeight: "600",
-          color: themeColorForeground,
+        headerTintColor: "#111111", // Technical Black
+        headerStyle: {
+          backgroundColor: "#EBEBE8", // Engineering Off-White
+          borderBottomWidth: 1,
+          borderBottomColor: "#111111", // Hard border
+          shadowOpacity: 0, // No soft shadow
+          elevation: 0,
         },
+        headerTitleStyle: {
+          fontFamily: "Menlo",
+          fontWeight: "bold",
+          color: "#111111",
+        },
+        headerTitle: (props) => (
+          <MachineText variant="header" size="lg">{props.children}</MachineText>
+        ),
         headerRight: renderThemeToggle,
-        drawerStyle: { backgroundColor: themeColorBackground },
+        drawerStyle: {
+          backgroundColor: "#E0E0DE", // Slightly darker specific
+          borderRightWidth: 1,
+          borderRightColor: "#111111",
+          width: 250,
+        },
+        drawerActiveBackgroundColor: "#FF5800", // Signal Orange
+        drawerActiveTintColor: "#FFFFFF",
+        drawerInactiveTintColor: "#111111",
+        drawerItemStyle: {
+          borderRadius: 0, // Sharp corners
+          borderWidth: 1,
+          borderColor: "transparent",
+          marginVertical: 4,
+        }
       }}
     >
       <Drawer.Screen
         name="index"
         options={{
-          headerTitle: "Home",
+          headerTitle: "ROOT_ACCESS",
           drawerLabel: ({ color, focused }) => (
-            <Text style={{ color: focused ? color : themeColorForeground }}>Home</Text>
+            <MachineText style={{ color, fontFamily: 'Menlo', fontWeight: 'bold' }}>ROOT_ACCESS</MachineText>
           ),
           drawerIcon: ({ size, color, focused }) => (
             <Ionicons
-              name="home-outline"
+              name="terminal-outline"
               size={size}
-              color={focused ? color : themeColorForeground}
+              color={color}
             />
           ),
         }}
       />
       <Drawer.Screen
-        name="(tabs)/today"
+        name="(tabs)"
         options={{
-          headerTitle: "Tabs",
+          headerTitle: "SYSTEM_MONITOR",
           drawerLabel: ({ color, focused }) => (
-            <Text style={{ color: focused ? color : themeColorForeground }}>Tabs</Text>
+            <MachineText style={{ color, fontFamily: 'Menlo', fontWeight: 'bold' }}>SYSTEM_MONITOR</MachineText>
           ),
           drawerIcon: ({ size, color, focused }) => (
             <MaterialIcons
-              name="border-bottom"
+              name="grid-view"
               size={size}
-              color={focused ? color : themeColorForeground}
+              color={color}
             />
           ),
           headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable className="mr-4">
-                <Ionicons name="add-outline" size={24} color={themeColorForeground} />
-              </Pressable>
-            </Link>
+            <View className="flex-row items-center gap-4 mr-4">
+              <Link href="/modal" asChild>
+                <Pressable className="bg-white border border-black w-8 h-8 items-center justify-center shadow-[2px_2px_0px_black]">
+                  <Ionicons name="information-variant" size={20} color="black" />
+                </Pressable>
+              </Link>
+            </View>
           ),
         }}
       />

@@ -2,9 +2,11 @@ import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { Spinner } from "heroui-native";
 import { useState } from "react";
-import { PlatformColor, ScrollView, Text, View } from "react-native";
+import { ScrollView, View, SafeAreaView } from "react-native";
 
 import { WeeklyReviewCard } from "@/components/weekly-review-card";
+import { MachineText } from "@/components/ui/machine-text";
+import { HardCard } from "@/components/ui/hard-card";
 
 export default function WeeklyReviewScreen() {
   const weeklyReview = useQuery(api.identity.weeklyReview.getWeeklyReview, {});
@@ -22,41 +24,39 @@ export default function WeeklyReviewScreen() {
 
   if (weeklyReview === undefined) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Spinner size="lg" />
+      <View className="flex-1 items-center justify-center bg-background">
+        <Spinner size="lg" color="warning" />
       </View>
     );
   }
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 16 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={{ gap: 6 }}>
-        <Text selectable style={{ fontSize: 26, fontWeight: "600", color: PlatformColor("label") }}>
-          Weekly Review
-        </Text>
-        <Text selectable style={{ fontSize: 14, color: PlatformColor("secondaryLabel") }}>
-          A calm mirror of your week. Nothing to fix, only notice.
-        </Text>
-      </View>
+    <SafeAreaView className="flex-1 bg-background">
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-6 border-b-2 border-primary/20 pb-2">
+          <MachineText variant="label" className="text-primary mb-1">SYSTEM://REVIEW</MachineText>
+          <MachineText variant="header" size="2xl">WEEKLY_MIRROR</MachineText>
+        </View>
 
-      <WeeklyReviewCard
-        review={weeklyReview ?? null}
-        onGenerate={generateWeeklyReview}
-        isGenerating={isGeneratingWeeklyReview}
-      />
+        <WeeklyReviewCard
+          review={weeklyReview ?? null}
+          onGenerate={generateWeeklyReview}
+          isGenerating={isGeneratingWeeklyReview}
+        />
 
-      <View style={{ gap: 8 }}>
-        <Text selectable style={{ fontSize: 12, letterSpacing: 1, color: PlatformColor("secondaryLabel") }}>
-          ABOUT THIS VIEW
-        </Text>
-        <Text selectable style={{ fontSize: 14, color: PlatformColor("label") }}>
-          This review is derived from events and daily state. It never labels or judges.
-        </Text>
-      </View>
-    </ScrollView>
+        <HardCard label="DOCUMENTATION" className="bg-white">
+          <View className="p-2 gap-2">
+            <MachineText variant="label" className="text-primary">CORE_LOGIC</MachineText>
+            <MachineText className="text-xs">
+              THIS_VIEW_IS_DERIVED_FROM_KERNEL_EVENTS_AND_DAILY_STATE_SNAPSHOTS.
+              IT_IS_NON_JUDGEMENTAL_INPUT_FOR_SYSTEM_CALIBRATION.
+            </MachineText>
+          </View>
+        </HardCard>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

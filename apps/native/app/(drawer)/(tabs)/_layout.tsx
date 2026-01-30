@@ -1,52 +1,32 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { useThemeColor } from "heroui-native";
+import { HardTabBar } from "@/components/ui/hard-tab-bar";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TabLayout() {
-  const themeColorForeground = useThemeColor("foreground");
-  const themeColorBackground = useThemeColor("background");
-
   return (
     <Tabs
+      tabBar={(props) => <HardTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        headerStyle: {
-          backgroundColor: themeColorBackground,
-        },
-        headerTintColor: themeColorForeground,
-        headerTitleStyle: {
-          color: themeColorForeground,
-          fontWeight: "600",
-        },
-        tabBarStyle: {
-          backgroundColor: themeColorBackground,
-        },
       }}
     >
       <Tabs.Screen
         name="today"
         options={{
-          title: "Today",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="calendar" size={size} color={color} />
-          ),
+          title: "SYSTEM",
         }}
       />
       <Tabs.Screen
         name="planner"
         options={{
-          title: "Planner",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="compass" size={size} color={color} />
-          ),
+          title: "PLANNER",
         }}
       />
       <Tabs.Screen
         name="journal"
         options={{
-          title: "Journal",
-          headerShown: true,
-          headerTitle: "Journal",
+          title: "JOURNAL",
+          headerShown: false,
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="book" size={size} color={color} />
           ),
@@ -55,9 +35,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="weekly-review"
         options={{
-          title: "Review",
-          headerShown: true,
-          headerTitle: "Weekly Review",
+          title: "REVIEW",
+          headerShown: false,
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="sparkles" size={size} color={color} />
           ),
@@ -66,19 +45,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tasks"
         options={{
-          title: "Tasks",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="checkmark-circle" size={size} color={color} />
-          ),
+          title: "EXEC",
         }}
       />
       <Tabs.Screen
         name="inbox"
         options={{
-          title: "Inbox",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="mail" size={size} color={color} />
-          ),
+          title: "INPUT",
         }}
       />
     </Tabs>

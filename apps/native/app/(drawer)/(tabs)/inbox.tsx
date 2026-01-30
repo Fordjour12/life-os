@@ -1,9 +1,11 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { Button, Spinner, Surface } from "heroui-native";
-import { Text, View } from "react-native";
+import { Button, Spinner } from "heroui-native";
+import { View, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Container } from "@/components/container";
+import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
 
 type SuggestionItem = {
   _id: string;
@@ -31,61 +33,63 @@ export default function Inbox() {
 
   if (!data) {
     return (
-      <Container className="p-6">
-        <View className="flex-1 justify-center items-center">
-          <Spinner size="lg" />
-        </View>
-      </Container>
+      <View className="flex-1 justify-center items-center bg-background">
+        <Spinner size="lg" color="warning" />
+      </View>
     );
   }
 
   const suggestions = (data.suggestions ?? []) as SuggestionItem[];
 
   return (
-    <Container className="p-6 gap-4">
-      <View>
-        <Text className="text-3xl font-semibold text-foreground tracking-tight">Inbox</Text>
-        <Text className="text-muted text-sm mt-1">Gentle suggestions to review</Text>
-      </View>
+    <SafeAreaView className="flex-1 bg-background">
+      <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+        <View className="mb-6 border-b-2 border-primary/20 pb-2">
+          <MachineText variant="header" size="2xl">SIGNAL_BUFFER</MachineText>
+          <MachineText className="text-muted text-xs mt-1 uppercase">Incoming Telemetry Review</MachineText>
+        </View>
 
-      {suggestions.length ? (
-        suggestions.map((suggestion) => (
-          <Surface key={suggestion._id} variant="secondary" className="p-4 rounded-2xl gap-3">
-            <View className="gap-1">
-              <Text className="text-foreground font-semibold">{suggestion.type}</Text>
-              <Text className="text-muted">{suggestion.reason?.detail}</Text>
-            </View>
+        {suggestions.length ? (
+          <View className="gap-4">
+            {suggestions.map((suggestion) => (
+              <HardCard key={suggestion._id} label="SIGNAL_DETECTED" className="gap-3 p-4 bg-white">
+                <View className="gap-1">
+                  <MachineText className="font-bold text-lg">{suggestion.type}</MachineText>
+                  <MachineText className="text-muted text-xs">{suggestion.reason?.detail}</MachineText>
+                </View>
 
-            <View className="flex-row gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onPress={() => vote(suggestion._id, "up")}
-              >
-                Helpful
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onPress={() => vote(suggestion._id, "down")}
-              >
-                Not helpful
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onPress={() => vote(suggestion._id, "ignore")}
-              >
-                Ignore
-              </Button>
-            </View>
-          </Surface>
-        ))
-      ) : (
-        <Surface variant="secondary" className="p-4 rounded-2xl">
-          <Text className="text-muted">No suggestions</Text>
-        </Surface>
-      )}
-    </Container>
+                <View className="flex-row gap-2 flex-wrap pt-2 border-t border-black/5">
+                  <Button
+                    size="sm"
+                    className="bg-primary rounded-none shadow-[2px_2px_0px_black]"
+                    onPress={() => vote(suggestion._id, "up")}
+                  >
+                    <MachineText className="text-white font-bold text-[10px]">USEFUL</MachineText>
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-white border border-black rounded-none"
+                    onPress={() => vote(suggestion._id, "down")}
+                  >
+                    <MachineText className="text-black font-bold text-[10px]">NOT_USEFUL</MachineText>
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-white border border-black rounded-none opacity-50"
+                    onPress={() => vote(suggestion._id, "ignore")}
+                  >
+                    <MachineText className="text-black font-bold text-[10px]">IGNORE</MachineText>
+                  </Button>
+                </View>
+              </HardCard>
+            ))}
+          </View>
+        ) : (
+          <HardCard variant="flat" className="p-6 border-dashed items-center justify-center">
+            <MachineText className="text-muted">NO_SIGNALS_DETECTED</MachineText>
+          </HardCard>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
