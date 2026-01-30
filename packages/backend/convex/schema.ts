@@ -86,8 +86,11 @@ export default defineSchema({
     source: v.union(v.literal("manual"), v.literal("imported")),
     title: v.optional(v.string()),
     notes: v.optional(v.string()),
+    externalId: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_user_day", ["userId", "day"]),
+  })
+    .index("by_user_day", ["userId", "day"])
+    .index("by_user_external", ["userId", "externalId"]),
 
   journalEntries: defineTable({
     userId: v.string(),

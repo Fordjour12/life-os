@@ -120,6 +120,9 @@ export type LifeState = {
   completedTasksCount: number;
   stabilityScore: number;
   freeMinutes: number;
+  effectiveFreeMinutes: number;
+  focusMinutes: number;
+  busyMinutes: number;
 
   load: LoadState;
   momentum: Momentum;

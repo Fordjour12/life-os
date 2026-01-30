@@ -14,8 +14,9 @@ function getUserId(): string {
 }
 
 const DAILY_CAPACITY_MIN = 480;
+const NON_FOCUS_WEIGHT = 0.6;
 
-async function getFreeMinutesForDay(ctx: MutationCtx, userId: string, day: string) {
+async function getTimeMetricsForDay(ctx: MutationCtx, userId: string, day: string) {
   const blocks = await ctx.db
     .query("calendarBlocks")
     .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
@@ -25,7 +26,18 @@ async function getFreeMinutesForDay(ctx: MutationCtx, userId: string, day: strin
     .filter((block) => block.kind === "busy")
     .reduce((total, block) => total + (block.endMin - block.startMin), 0);
 
-  return Math.max(0, DAILY_CAPACITY_MIN - busyMinutes);
+  const focusMinutes = blocks
+    .filter((block) => block.kind === "focus")
+    .reduce((total, block) => total + (block.endMin - block.startMin), 0);
+
+  const freeMinutes = Math.max(0, DAILY_CAPACITY_MIN - busyMinutes);
+  const focusWithinFree = Math.min(freeMinutes, focusMinutes);
+  const nonFocusFree = Math.max(0, freeMinutes - focusWithinFree);
+  const effectiveFreeMinutes = Math.round(
+    focusWithinFree + nonFocusFree * NON_FOCUS_WEIGHT,
+  );
+
+  return { freeMinutes, effectiveFreeMinutes, focusMinutes, busyMinutes };
 }
 
 function daysBetween(fromDay: string, toDay: string) {
@@ -118,8 +130,8 @@ export const applyPlanReset = mutation({
       meta: event.meta,
     })) as KernelEvent[];
 
-    const freeMinutes = await getFreeMinutesForDay(ctx, userId, day);
-    const state = computeDailyState(day, kernelEvents, { freeMinutes });
+    const timeMetrics = await getTimeMetricsForDay(ctx, userId, day);
+    const state = computeDailyState(day, kernelEvents, timeMetrics);
 
     const activeTasksAfterReset = kept;
 

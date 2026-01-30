@@ -14,6 +14,9 @@ export function computeDailyState(
   events: KernelEvent[],
   options?: {
     freeMinutes?: number;
+    effectiveFreeMinutes?: number;
+    focusMinutes?: number;
+    busyMinutes?: number;
   },
 ): LifeState {
   let completed = 0;
@@ -55,7 +58,16 @@ export function computeDailyState(
   const freeMinutes = Number.isFinite(options?.freeMinutes)
     ? Math.max(0, Number(options?.freeMinutes))
     : DEFAULT_FREE_MINUTES;
-  const ratio = planned / Math.max(1, freeMinutes);
+  const effectiveFreeMinutes = Number.isFinite(options?.effectiveFreeMinutes)
+    ? Math.max(0, Number(options?.effectiveFreeMinutes))
+    : freeMinutes;
+  const focusMinutes = Number.isFinite(options?.focusMinutes)
+    ? Math.max(0, Number(options?.focusMinutes))
+    : 0;
+  const busyMinutes = Number.isFinite(options?.busyMinutes)
+    ? Math.max(0, Number(options?.busyMinutes))
+    : 0;
+  const ratio = planned / Math.max(1, effectiveFreeMinutes);
 
   let load: LoadState = "balanced";
   if (ratio < 0.7) load = "underloaded";
@@ -111,6 +123,9 @@ export function computeDailyState(
     completedTasksCount,
     stabilityScore,
     freeMinutes,
+    effectiveFreeMinutes,
+    focusMinutes,
+    busyMinutes,
     load,
     momentum,
     focusCapacity,

@@ -128,6 +128,8 @@ export default function TimeReality() {
 
   const dayLabel = formatDayLabel(today.day).toUpperCase();
   const freeMinutesLabel = formatMinutes(freeData.freeMinutes);
+  const effectiveFreeLabel = formatMinutes(freeData.effectiveFreeMinutes ?? 0);
+  const focusMinutesLabel = formatMinutes(freeData.focusMinutes ?? 0);
   const busyMinutesLabel = formatMinutes(freeData.busyMinutes ?? 0);
   const capacityLabel = formatMinutes(freeData.capacityMinutes ?? 0);
   const otherMinutesLabel = formatMinutes(
@@ -220,6 +222,10 @@ export default function TimeReality() {
                 <MachineText variant="header" size="xl">
                   {freeMinutesLabel}
                 </MachineText>
+                <MachineText variant="label" className="mt-2">
+                  EFFECTIVE_FREE
+                </MachineText>
+                <MachineText className="text-sm">{effectiveFreeLabel}</MachineText>
               </View>
               <View className="items-end">
                 <MachineText variant="label">BUSY_COUNTS</MachineText>
@@ -228,6 +234,10 @@ export default function TimeReality() {
                   OTHER_BLOCKS_NO_COUNT
                 </MachineText>
                 <MachineText className="text-sm">{otherMinutesLabel}</MachineText>
+                <MachineText variant="label" className="mt-2">
+                  FOCUS_BLOCKS
+                </MachineText>
+                <MachineText className="text-sm">{focusMinutesLabel}</MachineText>
                 <MachineText variant="label" className="mt-2">
                   CAPACITY
                 </MachineText>
@@ -243,7 +253,7 @@ export default function TimeReality() {
               </MachineText>
             </View>
             <MachineText className="text-[10px] text-foreground/60">
-              BUSY blocks reduce free time. Other kinds are shown only.
+              BUSY reduces free time. FOCUS boosts effective free. Other kinds are shown only.
             </MachineText>
           </View>
         </HardCard>
@@ -361,6 +371,12 @@ export default function TimeReality() {
               onPress={() => router.push("/add-busy-time" as any)}
             >
               <MachineText className="text-white font-bold">ADD BUSY TIME</MachineText>
+            </Button>
+            <Button
+              className="bg-white border border-black shadow-[2px_2px_0px_black]"
+              onPress={() => router.push("/import-calendar" as any)}
+            >
+              <MachineText className="text-black font-bold">IMPORT CALENDAR</MachineText>
             </Button>
             <MachineText className="text-xs text-foreground/70">
               Reason: protect what the day allows.
