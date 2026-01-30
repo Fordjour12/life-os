@@ -1,10 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-<<<<<<< HEAD
 import { Button } from "heroui-native";
-=======
-import { Button } from "heroui-native"; // Keeping Button from heroui for now if convenient, or swapping to custom
->>>>>>> 49734fe (more changes)
 import { View } from "react-native";
 
 import { Container } from "@/components/container";

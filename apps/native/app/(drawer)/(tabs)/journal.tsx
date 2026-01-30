@@ -1,12 +1,13 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Spinner, Button } from "heroui-native";
-import { useMemo, useState } from "react";
-import { Alert, ScrollView, View, SafeAreaView } from "react-native";
+import { Button, Spinner } from "heroui-native";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, SafeAreaView, ScrollView, View } from "react-native";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
+import { storage } from "@/lib/storage";
 
 type Mood = "low" | "neutral" | "ok" | "good";
 
@@ -18,12 +19,50 @@ type JournalEntry = {
   createdAt: number;
 };
 
+type JournalFilters = {
+  moodFilter: Mood | "all";
+  windowFilter: "7" | "30" | "all";
+};
+
+const FILTERS_KEY = "journal.filters.v1";
+
+function loadFilters(): JournalFilters {
+  const raw = storage.getString(FILTERS_KEY);
+  if (!raw) {
+    return { moodFilter: "all", windowFilter: "30" };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<JournalFilters>;
+    const moodFilter =
+      parsed.moodFilter === "low" ||
+      parsed.moodFilter === "neutral" ||
+      parsed.moodFilter === "ok" ||
+      parsed.moodFilter === "good"
+        ? parsed.moodFilter
+        : "all";
+    const windowFilter =
+      parsed.windowFilter === "7" || parsed.windowFilter === "30" ? parsed.windowFilter : "all";
+    return { moodFilter, windowFilter };
+  } catch {
+    return { moodFilter: "all", windowFilter: "30" };
+  }
+}
+
 export default function JournalScreen() {
   const entries = useQuery(api.identity.getRecentJournalEntries, { limit: 30 });
   const deleteEntryMutation = useMutation(api.identity.deleteJournalEntry);
-  const [moodFilter, setMoodFilter] = useState<Mood | "all">("all");
-  const [windowFilter, setWindowFilter] = useState<"7" | "30" | "all">("30");
+  const [moodFilter, setMoodFilter] = useState<JournalFilters["moodFilter"]>(
+    () => loadFilters().moodFilter,
+  );
+  const [windowFilter, setWindowFilter] = useState<JournalFilters["windowFilter"]>(
+    () => loadFilters().windowFilter,
+  );
   const [deletingId, setDeletingId] = useState<Id<"journalEntries"> | null>(null);
+
+  useEffect(() => {
+    storage.set(FILTERS_KEY, JSON.stringify({ moodFilter, windowFilter }));
+  }, [moodFilter, windowFilter]);
 
   if (entries === undefined) {
     return (
@@ -94,9 +133,8 @@ export default function JournalScreen() {
                   <Button
                     key={value}
                     size="sm"
-                    radius="none"
                     onPress={() => setWindowFilter(value)}
-                    className={`border-2 ${windowFilter === value ? "bg-black border-black" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
+                    className={`border-2 rounded-none ${windowFilter === value ? "bg-black border-black" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
                   >
                     <MachineText className={`${windowFilter === value ? "text-white" : "text-black"} font-bold text-[10px]`}>
                       {value === "all" ? "ALL_TIME" : `${value}D`}
@@ -113,9 +151,8 @@ export default function JournalScreen() {
                   <Button
                     key={value}
                     size="sm"
-                    radius="none"
                     onPress={() => setMoodFilter(value)}
-                    className={`border-2 ${moodFilter === value ? "bg-black border-black" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
+                    className={`border-2 rounded-none ${moodFilter === value ? "bg-black border-black" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
                   >
                     <MachineText className={`${moodFilter === value ? "text-white" : "text-black"} font-bold text-[10px]`}>
                       {value.toUpperCase()}
@@ -152,10 +189,9 @@ export default function JournalScreen() {
                   <View className="items-start">
                     <Button
                       size="sm"
-                      radius="none"
                       onPress={() => confirmDelete(entry._id)}
                       isDisabled={deletingId === entry._id}
-                      className="bg-white border border-black shadow-[2px_2px_0px_black]"
+                      className="rounded-none bg-white border border-black shadow-[2px_2px_0px_black]"
                     >
                       <MachineText className="text-black text-[10px] font-bold">
                         {deletingId === entry._id ? "DELETING..." : "DELETE"}

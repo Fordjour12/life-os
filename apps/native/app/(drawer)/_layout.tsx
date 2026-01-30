@@ -84,13 +84,9 @@ function DrawerLayout() {
             <View className="flex-row items-center gap-4 mr-4">
               <Link href="/modal" asChild>
                 <Pressable className="bg-white border border-black w-8 h-8 items-center justify-center shadow-[2px_2px_0px_black]">
-                  <Ionicons name="information-variant" size={20} color="black" />
+                  <Ionicons name="information-circle-outline" size={20} color="black" />
                 </Pressable>
               </Link>
-<<<<<<< HEAD
-=======
-              {/* Theme toggle could also be here if needed, but it's in headerRight globally */}
->>>>>>> 49734fe (more changes)
             </View>
           ),
         }}

@@ -25,12 +25,8 @@ function StackLayout() {
       <Stack.Screen
         name="modal"
         options={{
-<<<<<<< HEAD
           presentation: "transparentModal",
-=======
-          presentation: "transparentModal", // Allows custom overlay styling
->>>>>>> 49734fe (more changes)
-          headerShown: false
+          headerShown: false,
         }}
       />
     </Stack>
