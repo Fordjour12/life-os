@@ -2,38 +2,19 @@ import { Button, ErrorView, Spinner, TextField } from "heroui-native";
 import { useState } from "react";
 import { View } from "react-native";
 
-import { authClient } from "@/lib/auth-client";
+import { useAuth } from "@/contexts/auth-context";
 import { MachineText } from "@/components/ui/machine-text";
 
 export function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { signIn, isLoading, error, clearError } = useAuth();
 
   const handleLogin = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    await authClient.signIn.email(
-      {
-        email,
-        password,
-      },
-      {
-        onError: (error) => {
-          setError(error.error?.message || "Failed to sign in");
-          setIsLoading(false);
-        },
-        onSuccess: () => {
-          setEmail("");
-          setPassword("");
-        },
-        onFinished: () => {
-          setIsLoading(false);
-        },
-      },
-    );
+    clearError();
+    await signIn({ email, password });
+    setEmail("");
+    setPassword("");
   };
 
   return (

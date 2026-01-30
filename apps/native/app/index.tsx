@@ -177,11 +177,6 @@ export default function Home() {
                       </Button>
                     </Link>
 
-                    <Link href="/boot" asChild>
-                      <Button className="bg-surface border border-foreground rounded-none shadow-[4px_4px_0px_var(--color-foreground)] h-12">
-                        <MachineText className="font-bold">BOOT</MachineText>
-                      </Button>
-                    </Link>
                   </View>
                 </View>
               </HardCard>
