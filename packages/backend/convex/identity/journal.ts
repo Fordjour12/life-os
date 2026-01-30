@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
+import { isSafeCopy } from "./guardrails";
 
 function getUserId(): string {
   return "user_me";
@@ -21,8 +22,10 @@ const prompts = [
 ];
 
 function pickPrompt(day: string) {
+  const safePrompts = prompts.filter(isSafeCopy);
+  const source = safePrompts.length > 0 ? safePrompts : prompts;
   const seed = day.split("-").reduce((sum, part) => sum + Number(part || 0), 0);
-  return prompts[seed % prompts.length] ?? prompts[0];
+  return source[seed % source.length] ?? source[0];
 }
 
 export const getJournalPrompt = query({

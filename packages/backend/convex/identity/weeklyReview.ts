@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import type { LifeState } from "../../../../src/kernel/types";
 import { mutation, query } from "../_generated/server";
+import { filterSafeStrings, isSafeCopy } from "./guardrails";
 
 const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
 
@@ -162,6 +163,12 @@ export const generateWeeklyReview = mutation({
 
     const reflectionQuestion = "What would you like to protect next week?";
 
+    const safeHighlights = filterSafeStrings(highlights).slice(0, 2);
+    const safeFriction = filterSafeStrings(frictionPoints);
+    const safeQuestion = isSafeCopy(reflectionQuestion)
+      ? reflectionQuestion
+      : "What would you like to protect next week?";
+
     const facts = {
       recoveryDays,
       balancedDays,
@@ -178,9 +185,9 @@ export const generateWeeklyReview = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, {
         facts,
-        highlights: highlights.slice(0, 2),
-        frictionPoints,
-        reflectionQuestion,
+        highlights: safeHighlights,
+        frictionPoints: safeFriction,
+        reflectionQuestion: safeQuestion,
         createdAt: now,
       });
       return { ok: true, week: weekId, updated: true };
@@ -190,9 +197,9 @@ export const generateWeeklyReview = mutation({
       userId,
       week: weekId,
       facts,
-      highlights: highlights.slice(0, 2),
-      frictionPoints,
-      reflectionQuestion,
+      highlights: safeHighlights,
+      frictionPoints: safeFriction,
+      reflectionQuestion: safeQuestion,
       createdAt: now,
     });
 

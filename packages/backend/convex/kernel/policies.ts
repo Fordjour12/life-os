@@ -1,5 +1,7 @@
 import type { KernelSuggestion, LifeState } from "../../../../src/kernel/types";
 
+import { safeCopy } from "../identity/guardrails";
+
 type PolicyContext = {
   lastPlanResetAt?: number;
   planResetCountToday: number;
@@ -44,7 +46,10 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
       priority: 5,
       reason: {
         code: "SAFE_MODE",
-        detail: "You’re in recovery mode. Let’s keep it gentle and protect momentum.",
+        detail: safeCopy(
+          "You’re in recovery mode. Let’s keep it gentle and protect momentum.",
+          "Recovery mode is active. Keep it gentle and protect momentum.",
+        ),
       },
       payload: {
         tinyWin: tinyWinPayload,
@@ -70,8 +75,14 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
       reason: {
         code: "OVERLOAD_GUARD",
         detail: suggestRest
-          ? "You've reset a few times. A rest plan might be kinder today."
-          : "Your plan is heavier than your available time/energy.",
+          ? safeCopy(
+              "You've reset a few times. A rest plan might be kinder today.",
+              "Multiple resets detected. A rest plan might be kinder today.",
+            )
+          : safeCopy(
+              "Your plan is heavier than your available time/energy.",
+              "Plan load is heavier than available time and energy.",
+            ),
       },
       payload: suggestRest
         ? { mode: "rest", suggestedMinutes: 10 }
@@ -111,13 +122,23 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
         : hasWins
           ? "Nice—momentum is back. Want to gently bring back one small task?"
           : "You have room today. Want to gently bring back one small task?";
+    const safeDetail = safeCopy(
+      detail,
+      hasStability
+        ? "Steady for 2 days. Consider a gentle return for one small task."
+        : exitedRecoveryRecently
+          ? "Recovery just ended. Consider a gentle return for one small task."
+          : hasWins
+            ? "Momentum is back. Consider a gentle return for one small task."
+            : "Room exists today. Consider a gentle return for one small task.",
+    );
     out.push({
       day,
       type: "GENTLE_RETURN",
       priority: 4,
       reason: {
         code: "GENTLE_RETURN",
-        detail,
+        detail: safeDetail,
       },
       payload: {
         taskId: smallestPausedTask.taskId,
@@ -135,9 +156,17 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
     priority: 2,
     reason: {
       code: "DAILY_REVIEW",
-      detail: "Gentle reflection helps you reset without shame.",
+      detail: safeCopy(
+        "Gentle reflection helps you reset without shame.",
+        "Gentle reflection helps reset without shame.",
+      ),
     },
-    payload: { question: "What's one small thing you did today that counts?" },
+    payload: {
+      question: safeCopy(
+        "What's one small thing you did today that counts?",
+        "What's one small thing that counted today?",
+      ),
+    },
     status: "new",
     cooldownKey: "daily_review",
   });

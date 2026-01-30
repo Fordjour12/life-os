@@ -4,12 +4,16 @@ import { Spinner } from "heroui-native";
 import { useState } from "react";
 import { ScrollView, View, SafeAreaView } from "react-native";
 
+import { DriftSignalsCard } from "@/components/drift-signals-card";
+import { PatternInsightsCard } from "@/components/pattern-insights-card";
 import { WeeklyReviewCard } from "@/components/weekly-review-card";
-import { MachineText } from "@/components/ui/machine-text";
 import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
 
 export default function WeeklyReviewScreen() {
   const weeklyReview = useQuery(api.identity.weeklyReview.getWeeklyReview, {});
+  const patternInsights = useQuery(api.identity.getPatternInsights, { window: "week" });
+  const driftSignals = useQuery(api.identity.getDriftSignals, { window: "month" });
   const generateWeeklyReviewMutation = useMutation(api.identity.weeklyReview.generateWeeklyReview);
   const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
 
@@ -45,6 +49,16 @@ export default function WeeklyReviewScreen() {
           review={weeklyReview ?? null}
           onGenerate={generateWeeklyReview}
           isGenerating={isGeneratingWeeklyReview}
+        />
+
+        <PatternInsightsCard
+          insights={patternInsights ?? null}
+          windowLabel="WEEK_WINDOW"
+        />
+
+        <DriftSignalsCard
+          signals={driftSignals ?? null}
+          windowLabel="MONTH_WINDOW"
         />
 
         <HardCard label="DOCUMENTATION" className="bg-white">

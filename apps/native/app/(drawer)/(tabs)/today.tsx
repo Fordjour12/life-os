@@ -6,7 +6,9 @@ import { useState, useMemo } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { DriftSignalsCard } from "@/components/drift-signals-card";
 import { JournalPromptCard } from "@/components/journal-prompt-card";
+import { PatternInsightsCard } from "@/components/pattern-insights-card";
 import { WeeklyReviewCard } from "@/components/weekly-review-card";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -99,6 +101,8 @@ export default function Today() {
   const executeCommandMutation = useMutation(api.kernel.commands.executeCommand);
   const weeklyReview = useQuery(api.identity.weeklyReview.getWeeklyReview, {});
   const generateWeeklyReviewMutation = useMutation(api.identity.weeklyReview.generateWeeklyReview);
+  const patternInsights = useQuery(api.identity.getPatternInsights, { window: "week" });
+  const driftSignals = useQuery(api.identity.getDriftSignals, { window: "month" });
   const journalPrompt = useQuery(
     api.identity.getJournalPrompt,
     data ? { day: data.day } : "skip",
@@ -262,6 +266,14 @@ export default function Today() {
             isGenerating={isGeneratingWeeklyReview}
           />
         )}
+
+        {patternInsights !== undefined ? (
+          <PatternInsightsCard insights={patternInsights ?? null} windowLabel="WEEK_WINDOW" />
+        ) : null}
+
+        {driftSignals !== undefined ? (
+          <DriftSignalsCard signals={driftSignals ?? null} windowLabel="MONTH_WINDOW" />
+        ) : null}
 
         {journalPrompt !== undefined ? (
           <JournalPromptCard

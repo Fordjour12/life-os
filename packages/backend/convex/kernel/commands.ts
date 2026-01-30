@@ -10,6 +10,7 @@ import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 
 import { computeDailyState } from "./reducer";
+import { sanitizeSuggestionCopy } from "../identity/guardrails";
 import { runPolicies } from "./policies";
 
 function getTodayYYYYMMDD() {
@@ -517,21 +518,23 @@ export const executeCommand = mutation({
         continue;
       }
 
+      const safeSuggestion = sanitizeSuggestionCopy(suggestion);
+
       await ctx.db.insert("suggestions", {
         userId,
-        day: suggestion.day,
-        type: suggestion.type,
-        priority: suggestion.priority,
-        reason: suggestion.reason,
-        payload: suggestion.payload,
-        status: suggestion.status,
-        cooldownKey: suggestion.cooldownKey,
+        day: safeSuggestion.day,
+        type: safeSuggestion.type,
+        priority: safeSuggestion.priority,
+        reason: safeSuggestion.reason,
+        payload: safeSuggestion.payload,
+        status: safeSuggestion.status,
+        cooldownKey: safeSuggestion.cooldownKey,
         createdAt: now,
         updatedAt: now,
       });
 
-      if (suggestion.type === "GENTLE_RETURN") {
-        const taskId = (suggestion.payload as { taskId?: Id<"tasks"> })?.taskId;
+      if (safeSuggestion.type === "GENTLE_RETURN") {
+        const taskId = (safeSuggestion.payload as { taskId?: Id<"tasks"> })?.taskId;
         if (taskId) {
           if (prefs) {
             await ctx.db.patch(prefs._id, {
