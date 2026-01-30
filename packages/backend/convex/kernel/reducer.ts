@@ -9,7 +9,13 @@ import type {
 
 const DEFAULT_FREE_MINUTES = 240;
 
-export function computeDailyState(day: string, events: KernelEvent[]): LifeState {
+export function computeDailyState(
+  day: string,
+  events: KernelEvent[],
+  options?: {
+    freeMinutes?: number;
+  },
+): LifeState {
   let completed = 0;
   let completedTasksCount = 0;
   let planned = 0;
@@ -46,7 +52,9 @@ export function computeDailyState(day: string, events: KernelEvent[]): LifeState
     }
   }
 
-  const freeMinutes = DEFAULT_FREE_MINUTES;
+  const freeMinutes = Number.isFinite(options?.freeMinutes)
+    ? Math.max(0, Number(options?.freeMinutes))
+    : DEFAULT_FREE_MINUTES;
   const ratio = planned / Math.max(1, freeMinutes);
 
   let load: LoadState = "balanced";

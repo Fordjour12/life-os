@@ -23,6 +23,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="time-reality"
+        options={{
+          title: "TIME",
+        }}
+      />
+      <Tabs.Screen
         name="journal"
         options={{
           title: "JOURNAL",

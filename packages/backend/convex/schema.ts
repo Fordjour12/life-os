@@ -72,6 +72,23 @@ export default defineSchema({
     .index("by_user_week", ["userId", "week"])
     .index("by_user_created", ["userId", "createdAt"]),
 
+  calendarBlocks: defineTable({
+    userId: v.string(),
+    day: v.string(),
+    startMin: v.number(),
+    endMin: v.number(),
+    kind: v.union(
+      v.literal("busy"),
+      v.literal("focus"),
+      v.literal("rest"),
+      v.literal("personal"),
+    ),
+    source: v.union(v.literal("manual"), v.literal("imported")),
+    title: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_user_day", ["userId", "day"]),
+
   journalEntries: defineTable({
     userId: v.string(),
     day: v.string(),

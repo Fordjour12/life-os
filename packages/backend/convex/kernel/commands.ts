@@ -8,6 +8,7 @@ import type {
 } from "../../../../src/kernel/types";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
 
 import { computeDailyState } from "./reducer";
 import { sanitizeSuggestionCopy } from "../identity/guardrails";
@@ -45,6 +46,24 @@ const planReasons: PlanSetReason[] = ["initial", "adjust", "reset", "recovery", 
 
 function getUserId(): string {
   return "user_me";
+}
+
+const DAILY_CAPACITY_MIN = 480;
+
+async function getFreeMinutesForDay(ctx: MutationCtx, userId: string, day: string) {
+  const blocks = await ctx.db
+    .query("calendarBlocks")
+    .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
+    .collect();
+
+  const busyMinutes = blocks
+    .filter((block) => block.kind === "busy")
+    .reduce(
+      (total, block) => total + (block.endMin - block.startMin),
+      0,
+    );
+
+  return Math.max(0, DAILY_CAPACITY_MIN - busyMinutes);
 }
 
 export const executeCommand = mutation({
@@ -284,7 +303,8 @@ export const executeCommand = mutation({
       meta: event.meta,
     })) as KernelEvent[];
 
-    const state = computeDailyState(day, kernelEvents);
+    const freeMinutes = await getFreeMinutesForDay(ctx, userId, day);
+    const state = computeDailyState(day, kernelEvents, { freeMinutes });
 
     const activeTasks = await ctx.db
       .query("tasks")

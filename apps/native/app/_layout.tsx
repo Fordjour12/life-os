@@ -29,6 +29,20 @@ function StackLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="add-busy-time"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="edit-busy-time"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

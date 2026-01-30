@@ -76,6 +76,29 @@ export type KernelEvent =
       ts: number;
       meta: { suggestionId: string; vote: "up" | "down" | "ignore" };
     }
+  | {
+      type: "CAL_BLOCK_ADDED";
+      ts: number;
+      meta: {
+        blockId: string;
+        day: string;
+        startMin: number;
+        endMin: number;
+        kind: "busy" | "focus" | "rest" | "personal";
+      };
+    }
+  | {
+      type: "CAL_BLOCK_UPDATED";
+      ts: number;
+      meta: {
+        blockId: string;
+        day: string;
+        startMin: number;
+        endMin: number;
+        kind: "busy" | "focus" | "rest" | "personal";
+      };
+    }
+  | { type: "CAL_BLOCK_REMOVED"; ts: number; meta: { blockId: string } }
   | { type: "REST_ACCEPTED"; ts: number; meta: { minutes: number } }
   | {
       type: "RECOVERY_PROTOCOL_USED";
