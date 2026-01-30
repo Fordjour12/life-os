@@ -60,6 +60,9 @@ export default function Tasks() {
   };
 
   const resumeTask = async (taskId: Id<"tasks">) => {
+    if (!taskId) {
+      return;
+    }
     await resumeTaskMutation({
       taskId,
       reason: "manual",

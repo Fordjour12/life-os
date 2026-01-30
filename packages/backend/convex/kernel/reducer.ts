@@ -11,13 +11,17 @@ const DEFAULT_FREE_MINUTES = 240;
 
 export function computeDailyState(day: string, events: KernelEvent[]): LifeState {
   let completed = 0;
+  let completedTasksCount = 0;
   let planned = 0;
   let latestPlanVersion = -1;
   let latestPlanTs = 0;
   let hadPlanReset = false;
 
   for (const event of events) {
-    if (event.type === "TASK_COMPLETED") completed += event.meta.estimateMin;
+    if (event.type === "TASK_COMPLETED") {
+      completed += event.meta.estimateMin;
+      completedTasksCount += 1;
+    }
     if (event.type === "PLAN_SET" && event.meta.day === day) {
       const version = Number(event.meta.version ?? 0);
       const shouldReplace =
@@ -57,6 +61,13 @@ export function computeDailyState(day: string, events: KernelEvent[]): LifeState
   if (load === "overloaded" && completed < 25) focusCapacity = "low";
   if (completed >= 75) focusCapacity = "high";
 
+  let stabilityScore = 50;
+  if (load === "balanced") stabilityScore += 20;
+  if (completedTasksCount >= 1) stabilityScore += 15;
+  if (focusCapacity === "medium" || focusCapacity === "high") stabilityScore += 15;
+  if (load === "overloaded") stabilityScore -= 20;
+  stabilityScore = Math.max(0, Math.min(100, stabilityScore));
+
   let mode: LifeMode = "maintain";
   const reasons: LifeState["reasons"] = [];
 
@@ -89,6 +100,8 @@ export function computeDailyState(day: string, events: KernelEvent[]): LifeState
     mode,
     plannedMinutes: planned,
     completedMinutes: completed,
+    completedTasksCount,
+    stabilityScore,
     freeMinutes,
     load,
     momentum,

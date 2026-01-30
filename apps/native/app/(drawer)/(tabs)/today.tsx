@@ -11,7 +11,12 @@ type SuggestionItem = {
   _id: string;
   type: string;
   reason?: { detail?: string };
-  payload?: { keepCount?: 1 | 2 };
+  payload?: {
+    keepCount?: 1 | 2;
+    taskId?: Id<"tasks">;
+    title?: string;
+    estimateMin?: number;
+  };
 };
 
 type TaskItem = {
@@ -31,6 +36,7 @@ export default function Today() {
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
   const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
   const applyPlanResetMutation = useMutation(api.kernel.planReset.applyPlanReset);
+  const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
   const [title, setTitle] = useState("");
   const [estimate, setEstimate] = useState("25");
   const [isCreating, setIsCreating] = useState(false);
@@ -61,6 +67,15 @@ export default function Today() {
   const completeTask = async (taskId: Id<"tasks">) => {
     await completeTaskMutation({
       taskId,
+      idempotencyKey: idem(),
+    });
+  };
+
+  const resumeTask = async (taskId?: Id<"tasks">) => {
+    if (!taskId) return;
+    await resumeTaskMutation({
+      taskId,
+      reason: "gentle_return",
       idempotencyKey: idem(),
     });
   };
@@ -161,6 +176,15 @@ export default function Today() {
                   }
                 >
                   Apply Plan Reset
+                </Button>
+              ) : null}
+              {suggestion.type === "GENTLE_RETURN" ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onPress={() => resumeTask(suggestion.payload?.taskId)}
+                >
+                  Resume: {suggestion.payload?.title} ({suggestion.payload?.estimateMin}m)
                 </Button>
               ) : null}
             </Surface>

@@ -3,6 +3,10 @@ import type { KernelSuggestion, LifeState } from "../../../../src/kernel/types";
 type PolicyContext = {
   lastPlanResetAt?: number;
   planResetCountToday: number;
+  smallestPausedTask?: { taskId: string; title: string; estimateMin: number };
+  stableDaysCount: number;
+  exitedRecoveryRecently: boolean;
+  remainingRoomMin: number;
 };
 
 const PLAN_RESET_COOLDOWN_MS = 6 * 60 * 60 * 1000;
@@ -12,6 +16,10 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
   const day = state.day;
   const lastPlanResetAt = context?.lastPlanResetAt ?? 0;
   const planResetCountToday = context?.planResetCountToday ?? 0;
+  const smallestPausedTask = context?.smallestPausedTask;
+  const stableDaysCount = context?.stableDaysCount ?? 0;
+  const exitedRecoveryRecently = context?.exitedRecoveryRecently ?? false;
+  const remainingRoomMin = context?.remainingRoomMin ?? 0;
   const resetCooldownActive = Date.now() - lastPlanResetAt < PLAN_RESET_COOLDOWN_MS;
 
   if (state.load === "overloaded" && !resetCooldownActive) {
@@ -38,7 +46,7 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
     out.push({
       day,
       type: "TINY_WIN",
-      priority: 4,
+      priority: 3,
       reason: {
         code: "MOMENTUM_BUILDER",
         detail: "A small win can restart momentum.",
@@ -46,6 +54,42 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
       payload: { maxMinutes: 10 },
       status: "new",
       cooldownKey: "tiny_win",
+    });
+  }
+
+  const hasWins = (state.completedTasksCount ?? 0) >= 2;
+  const hasStability = stableDaysCount >= 2;
+  const hasRoom = smallestPausedTask
+    ? remainingRoomMin >= smallestPausedTask.estimateMin
+    : false;
+  const canGentleReturn =
+    state.load !== "overloaded" &&
+    state.mode !== "recovery" &&
+    hasRoom &&
+    (hasStability || exitedRecoveryRecently || hasWins);
+  if (canGentleReturn && smallestPausedTask) {
+    const detail = hasStability
+      ? "You've been steady for 2 days. Want to gently bring back one small task?"
+      : exitedRecoveryRecently
+        ? "You're out of recovery. Want to gently bring back one small task?"
+        : hasWins
+          ? "Nice—momentum is back. Want to gently bring back one small task?"
+          : "You have room today. Want to gently bring back one small task?";
+    out.push({
+      day,
+      type: "GENTLE_RETURN",
+      priority: 4,
+      reason: {
+        code: "GENTLE_RETURN",
+        detail,
+      },
+      payload: {
+        taskId: smallestPausedTask.taskId,
+        title: smallestPausedTask.title,
+        estimateMin: smallestPausedTask.estimateMin,
+      },
+      status: "new",
+      cooldownKey: "gentle_return",
     });
   }
 

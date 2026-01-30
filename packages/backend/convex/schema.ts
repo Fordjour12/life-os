@@ -48,4 +48,10 @@ export default defineSchema({
   })
     .index("by_user_status", ["userId", "status"])
     .index("by_user_created", ["userId", "createdAt"]),
+
+  userKernelPrefs: defineTable({
+    userId: v.string(),
+    lastGentleReturnTaskId: v.optional(v.id("tasks")),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 });

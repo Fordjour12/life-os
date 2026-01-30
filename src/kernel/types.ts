@@ -87,6 +87,8 @@ export type LifeState = {
 
   plannedMinutes: number;
   completedMinutes: number;
+  completedTasksCount: number;
+  stabilityScore: number;
   freeMinutes: number;
 
   load: LoadState;
@@ -105,7 +107,7 @@ export type SuggestionStatus =
 
 export type KernelSuggestion = {
   day: string;
-  type: "PLAN_RESET" | "TINY_WIN" | "DAILY_REVIEW_QUESTION" | "NEXT_STEP";
+  type: "PLAN_RESET" | "TINY_WIN" | "DAILY_REVIEW_QUESTION" | "GENTLE_RETURN" | "NEXT_STEP";
   priority: 1 | 2 | 3 | 4 | 5;
   reason: { code: string; detail: string };
   payload: Record<string, unknown>;
