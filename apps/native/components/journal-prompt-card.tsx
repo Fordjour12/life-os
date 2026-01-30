@@ -18,6 +18,7 @@ type Props = {
   day: string;
   prompt: string | null;
   quiet?: boolean;
+  reason?: "reflection" | "recovery" | "plan_reset" | "micro_recovery" | "quiet" | null;
   onSubmit: (input: { day: string; text?: string; mood?: Mood }) => Promise<void>;
   onSkip: (day: string) => Promise<void>;
   entries?: JournalEntry[];
@@ -36,6 +37,7 @@ export function JournalPromptCard({
   day,
   prompt,
   quiet,
+  reason,
   onSubmit,
   onSkip,
   entries = [],
@@ -44,9 +46,31 @@ export function JournalPromptCard({
 }: Props) {
   const [text, setText] = useState("");
   const [mood, setMood] = useState<Mood | undefined>(undefined);
+  const [showHints, setShowHints] = useState(false);
 
   if (!prompt) {
-    return null;
+    return (
+      <HardCard label="REFLECTION_MODULE" className="mb-6 bg-white">
+        <View className="gap-3 p-2">
+          <MachineText variant="label" className="text-primary">NO_PROMPT</MachineText>
+          <MachineText className="text-sm">NO_PROMPT_TODAY.</MachineText>
+          <Button
+            size="sm"
+            onPress={() => setShowHints((value) => !value)}
+            className="border-2 rounded-none bg-white border-black/10 shadow-[2px_2px_0px_black]"
+          >
+            <MachineText className="text-black font-bold text-[10px]">
+              {showHints ? "HIDE_HINTS" : "SHOW_HINTS"}
+            </MachineText>
+          </Button>
+          {showHints ? (
+            <MachineText className="text-[10px] text-muted">
+              YOU_CAN_STILL_ADD_A_NOTE_IN_JOURNAL.
+            </MachineText>
+          ) : null}
+        </View>
+      </HardCard>
+    );
   }
 
   const canSubmit = Boolean(text.trim() || mood);
@@ -63,6 +87,16 @@ export function JournalPromptCard({
   };
 
   const promptOpacity = quiet ? 0.55 : 1;
+  const hint =
+    reason === "recovery"
+      ? "RECOVERY_MODE_ACTIVE."
+      : reason === "plan_reset"
+        ? "PLAN_RESET_DETECTED."
+        : reason === "micro_recovery"
+          ? "MICRO_RECOVERY_USED."
+          : reason === "reflection"
+            ? "DAILY_REFLECTION_SUGGESTED."
+            : null;
 
   return (
     <HardCard label="REFLECTION_MODULE" className="mb-6 bg-white">
@@ -75,10 +109,26 @@ export function JournalPromptCard({
           >
             {prompt}
           </MachineText>
-          {quiet ? (
-            <MachineText className="text-[10px] text-muted">
-              QUIET_MODE_ACTIVE.
+          <Button
+            size="sm"
+            onPress={() => setShowHints((value) => !value)}
+            className="border-2 rounded-none bg-white border-black/10 shadow-[2px_2px_0px_black]"
+          >
+            <MachineText className="text-black font-bold text-[10px]">
+              {showHints ? "HIDE_HINTS" : "SHOW_HINTS"}
             </MachineText>
+          </Button>
+          {showHints ? (
+            <View className="gap-1">
+              {hint ? (
+                <MachineText className="text-[10px] text-muted">{hint}</MachineText>
+              ) : null}
+              {quiet ? (
+                <MachineText className="text-[10px] text-muted">
+                  QUIET_MODE_ACTIVE. OPTIONAL_ENTRY_ALLOWED.
+                </MachineText>
+              ) : null}
+            </View>
           ) : null}
         </View>
 
@@ -91,7 +141,6 @@ export function JournalPromptCard({
                 <Button
                   key={item.value}
                   size="sm"
-                  radius="none"
                   onPress={() => setMood(selected ? undefined : item.value)}
                   className={`border-2 ${selected ? "bg-black border-black shadow-none" : "bg-white border-black/10 shadow-[2px_2px_0px_black]"}`}
                 >
@@ -124,7 +173,7 @@ export function JournalPromptCard({
             {isSubmitting ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">SAVE_ENTRY</MachineText>}
           </Button>
           <Button
-            variant="light"
+            variant="secondary"
             onPress={skip}
             isDisabled={isSkipping}
             className="border border-black rounded-none shadow-[2px_2px_0px_black] bg-white"
@@ -132,6 +181,12 @@ export function JournalPromptCard({
             {isSkipping ? <Spinner size="sm" /> : <MachineText className="font-bold">SKIP</MachineText>}
           </Button>
         </View>
+
+        {showHints ? (
+          <MachineText className="text-[10px] text-muted">
+            SHORT_LINES_COUNT. BULLETS_OK.
+          </MachineText>
+        ) : null}
 
         <View className="gap-4">
           <MachineText variant="label" className="text-primary">HISTORY_LOG</MachineText>

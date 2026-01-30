@@ -63,6 +63,27 @@ type TaskItem = {
 
 type JournalMood = "low" | "neutral" | "ok" | "good";
 
+type JournalPromptReason =
+  | "quiet"
+  | "reflection"
+  | "recovery"
+  | "plan_reset"
+  | "micro_recovery"
+  | null;
+
+const allowedJournalReasons = new Set([
+  "quiet",
+  "reflection",
+  "recovery",
+  "plan_reset",
+  "micro_recovery",
+]);
+
+function normalizeJournalReason(value: unknown): JournalPromptReason {
+  if (typeof value !== "string") return null;
+  return allowedJournalReasons.has(value) ? (value as JournalPromptReason) : null;
+}
+
 
 function idem() {
   return `device:${Date.now()}:${Math.random().toString(16).slice(2)}`;
@@ -242,11 +263,12 @@ export default function Today() {
           />
         )}
 
-        {journalPrompt && (
+        {journalPrompt !== undefined ? (
           <JournalPromptCard
             day={data.day}
             prompt={journalPrompt?.prompt ?? null}
             quiet={journalPrompt?.quiet}
+            reason={normalizeJournalReason(journalPrompt?.reason)}
             onSubmit={submitJournalEntry}
             onSkip={skipJournal}
             entries={(journalEntries ?? []) as Array<{
@@ -258,7 +280,7 @@ export default function Today() {
             isSkipping={isSkippingJournal}
             isSubmitting={isSubmittingJournal}
           />
-        )}
+        ) : null}
 
         {/* Suggestions Section - Highlighted */}
         {suggestions.length > 0 && (
@@ -278,7 +300,6 @@ export default function Today() {
                       {suggestion.type === "PLAN_RESET" && (
                         <Button
                           size="sm"
-                          radius="none"
                           className="bg-primary border border-black shadow-[2px_2px_0px_black]"
                           onPress={() => applyPlanResetMutation({
                             day: data.day,
@@ -292,7 +313,6 @@ export default function Today() {
                       {suggestion.type === "GENTLE_RETURN" && (
                         <Button
                           size="sm"
-                          radius="none"
                           className="bg-primary border border-black shadow-[2px_2px_0px_black]"
                           onPress={() => resumeTask(suggestion.payload?.taskId)}
                         >
@@ -362,7 +382,6 @@ export default function Today() {
                     </View>
                     <Button
                       size="sm"
-                      radius="none"
                       onPress={() => completeTask(task._id)}
                       className="border border-black/20 bg-gray-100 shadow-[2px_2px_0px_black]"
                     >
@@ -411,7 +430,6 @@ export default function Today() {
                 <Button
                   onPress={createTask}
                   isDisabled={isCreating}
-                  radius="none"
                   className="bg-black px-6 shadow-[2px_2px_0px_#FF5800]"
                 >
                   {isCreating ? <Spinner size="sm" color="white" /> : <MachineText className="text-white font-bold">ENTER</MachineText>}
