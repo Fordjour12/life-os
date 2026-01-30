@@ -6,6 +6,7 @@ import { useState, useMemo } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { DailyIntentCard } from "@/components/daily-intent-card";
 import { DriftSignalsCard } from "@/components/drift-signals-card";
 import { JournalPromptCard } from "@/components/journal-prompt-card";
 import { PatternInsightsCard } from "@/components/pattern-insights-card";
@@ -258,6 +259,17 @@ export default function Today() {
             <EngBadge label="PWR" value={data.state?.habitHealth ?? "STABLE"} intent={getStatusIntent(data.state?.habitHealth ?? "Stable")} />
           </View>
         </HardCard>
+
+        <DailyIntentCard
+          plan={(data.plan ?? null) as {
+            day: string;
+            version: number;
+            reason: string;
+            focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
+          } | null}
+          plannedMinutes={data.state?.plannedMinutes ?? null}
+          completedMinutes={data.state?.completedMinutes ?? null}
+        />
 
         {weeklyReview && (
           <WeeklyReviewCard

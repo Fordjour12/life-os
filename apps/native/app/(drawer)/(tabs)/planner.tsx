@@ -235,8 +235,9 @@ export default function Planner() {
                         value={item.label}
                         onChangeText={(value) => updateDraft(index, { label: value })}
                         placeholder="Small, meaningful thing"
-                        className="font-mono text-sm border-b border-black/10 py-1"
-                        style={{ fontFamily: 'Menlo' }}
+                        placeholderTextColor="#999"
+                        className="font-mono text-sm text-white bg-black border-b border-white/10 py-2 h-10"
+                        style={{ fontFamily: "Menlo" }}
                       />
                     </TextField>
                   </View>
@@ -247,9 +248,10 @@ export default function Planner() {
                         value={item.estimatedMinutes}
                         onChangeText={(value) => updateDraft(index, { estimatedMinutes: value })}
                         placeholder="25"
+                        placeholderTextColor="#999"
                         keyboardType="number-pad"
-                        className="font-mono text-sm border-b border-black/10 py-1"
-                        style={{ fontFamily: 'Menlo' }}
+                        className="font-mono text-sm text-white bg-black border-b border-white/10 py-2 h-10"
+                        style={{ fontFamily: "Menlo" }}
                       />
                     </TextField>
                   </View>

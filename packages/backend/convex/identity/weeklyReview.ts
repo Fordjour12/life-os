@@ -117,6 +117,16 @@ export const generateWeeklyReview = mutation({
       return reason === "reset" || reason === "recovery";
     }).length;
 
+    const plannedDays = weekStates.filter((entry) => (entry.state?.plannedMinutes ?? 0) > 0);
+    const onTrackDays = plannedDays.filter((entry) => {
+      const planned = entry.state?.plannedMinutes ?? 0;
+      const completed = entry.state?.completedMinutes ?? 0;
+      if (planned <= 0) return false;
+      return completed >= planned * 0.8;
+    }).length;
+    const plannedDaysCount = plannedDays.length;
+    const onTrackRatio = plannedDaysCount > 0 ? onTrackDays / plannedDaysCount : 0;
+
     const highlights: string[] = [];
 
     const sortedStates = [...weekStates].sort((a, b) => a.day.localeCompare(b.day));
@@ -149,6 +159,9 @@ export const generateWeeklyReview = mutation({
     if (gentleReturns > 0) {
       highlights.push("Gentle returns helped re-enter paused tasks.");
     }
+    if (plannedDaysCount >= 2 && onTrackRatio >= 0.7) {
+      highlights.push("Planned focus mostly matched completed effort.");
+    }
 
     const frictionPoints: string[] = [];
     const overloadedDays = weekStates.filter((entry) => getLoad(entry.state) === "overloaded").length;
@@ -159,6 +172,9 @@ export const generateWeeklyReview = mutation({
     }
     if (planResets > 0) {
       frictionPoints.push("Plan resets were used to protect capacity.");
+    }
+    if (plannedDaysCount >= 2 && onTrackRatio <= 0.3) {
+      frictionPoints.push("Planned focus often exceeded what was completed.");
     }
 
     const reflectionQuestion = "What would you like to protect next week?";
