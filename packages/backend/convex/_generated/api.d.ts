@@ -9,6 +9,8 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as calendar from "../calendar.js";
+import type * as calendarImport from "../calendarImport.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as identity from "../identity.js";
@@ -34,6 +36,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  calendar: typeof calendar;
+  calendarImport: typeof calendarImport;
   healthCheck: typeof healthCheck;
   http: typeof http;
   identity: typeof identity;
