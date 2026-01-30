@@ -20,6 +20,11 @@ const config: ExpoConfig = {
    },
    name: isProd ? "Life OS" : "Life OS (Dev)",
    slug: isProd ? "lifeos" : "lifeos-dev",
+   splash: {
+      image: "./assets/images/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#EBEBE8",
+   },
    plugins: [
       [
          "expo-font",

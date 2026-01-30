@@ -11,7 +11,7 @@ import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { authClient } from "@/lib/auth-client";
 
 export const unstable_settings = {
-   initialRouteName: "(tabs)",
+   initialRouteName: "boot",
 };
 
 const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
@@ -21,6 +21,7 @@ const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
 function StackLayout() {
    return (
       <Stack screenOptions={{}}>
+         <Stack.Screen name="boot" options={{ headerShown: false }} />
          <Stack.Screen name="index" options={{ headerShown: false }} />
          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
          <Stack.Screen

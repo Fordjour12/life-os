@@ -12,6 +12,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+
 import { authClient } from "@/lib/auth-client";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -173,6 +174,12 @@ export default function Home() {
                         <MachineText className="font-bold">
                           CREATE_IDENTITY
                         </MachineText>
+                      </Button>
+                    </Link>
+
+                    <Link href="/boot" asChild>
+                      <Button className="bg-surface border border-foreground rounded-none shadow-[4px_4px_0px_var(--color-foreground)] h-12">
+                        <MachineText className="font-bold">BOOT</MachineText>
                       </Button>
                     </Link>
                   </View>
