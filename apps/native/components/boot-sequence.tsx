@@ -87,7 +87,7 @@ type BootSequenceProps = {
 
 export function BootSequence({ onComplete }: BootSequenceProps) {
   const router = useRouter();
-  const { refreshSession, hasHydrated, user } = useAuth();
+  const { hasHydrated, user } = useAuth();
   const progress = useSharedValue(0);
   const scanOffset = useSharedValue(0);
   const [minDurationDone, setMinDurationDone] = useState(false);
@@ -106,10 +106,6 @@ export function BootSequence({ onComplete }: BootSequenceProps) {
       true,
     );
   }, [progress, scanOffset]);
-
-  useEffect(() => {
-    void refreshSession();
-  }, [refreshSession]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
