@@ -2,13 +2,13 @@ import { useLocalSearchParams } from "expo-router";
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { View, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { ChatMessageItem } from "@/components/threads/chat-message";
 import { ChatInput } from "@/components/threads/chat-input";
+import type { ChatMessage } from "@/components/threads/thread-types";
 
 function idem() {
   return `device:${Date.now()}:${Math.random().toString(16).slice(2)}`;
@@ -16,8 +16,8 @@ function idem() {
 
 export default function ThreadDetail() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
-  const messagesData = useQuery(api.threads.getMessages, { threadId });
-  const sendMessage = useMutation(api.threads.sendMessage);
+  const messagesData = useQuery(api.threads.getConversationMessages, { threadId });
+  const sendMessage = useMutation(api.threads.addMessage);
   
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -90,7 +90,7 @@ export default function ThreadDetail() {
               </MachineText>
             </View>
           ) : (
-            messages.map((message) => (
+            messages.map((message: ChatMessage) => (
               <ChatMessageItem key={message.id} message={message} />
             ))
           )}

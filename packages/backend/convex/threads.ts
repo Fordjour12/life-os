@@ -1,35 +1,42 @@
-import { mutation, query } from "./_generated/server";
+import { createThread as createAgentThread, listMessages, saveMessage } from "@convex-dev/agent";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 
-export const createThread = mutation({
+import { components } from "./_generated/api";
+import { mutation, query } from "./_generated/server";
+
+function getUserId(): string {
+  return "user_me";
+}
+
+export const createConversation = mutation({
   args: {
     title: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const thread = await ctx.runMutation(internal.agent.threads.createThread, {
+    const userId = getUserId();
+    const threadId = await createAgentThread(ctx, components.agent, {
+      userId,
       title: args.title,
     });
-    return { threadId: thread._id };
+    return { threadId };
   },
 });
 
-export const listThreads = query({
+export const listConversations = query({
   args: {
     cursor: v.optional(v.string()),
     numItems: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const result = await ctx.runQuery(
-      internal.agent.threads.listThreadsByUserId,
-      {
-        order: "desc",
-        paginationOpts: {
-          cursor: args.cursor ?? null,
-          numItems: args.numItems ?? 20,
-        },
+    const userId = getUserId();
+    const result = await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
+      userId,
+      order: "desc",
+      paginationOpts: {
+        cursor: args.cursor ?? null,
+        numItems: args.numItems ?? 20,
       },
-    );
+    });
 
     return {
       threads: result.page.map((thread) => ({
@@ -44,31 +51,29 @@ export const listThreads = query({
   },
 });
 
-export const getMessages = query({
+export const getConversationMessages = query({
   args: {
     threadId: v.string(),
     cursor: v.optional(v.string()),
     numItems: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const result = await ctx.runQuery(
-      internal.agent.messages.listMessagesByThreadId,
-      {
-        threadId: args.threadId,
-        order: "asc",
-        paginationOpts: {
-          cursor: args.cursor ?? null,
-          numItems: args.numItems ?? 50,
-        },
+    const result = await listMessages(ctx, components.agent, {
+      threadId: args.threadId,
+      excludeToolMessages: true,
+      paginationOpts: {
+        cursor: args.cursor ?? null,
+        numItems: args.numItems ?? 50,
       },
-    );
+    });
 
     return {
       messages: result.page.map((msg) => {
         const content = msg.message?.content;
+        const role = msg.message?.role ?? "user";
         return {
           id: msg._id,
-          role: msg.message?.role ?? "user",
+          role: role === "tool" ? "assistant" : role,
           content: typeof content === "string" ? content : "",
           timestamp: msg._creationTime,
         };
@@ -78,32 +83,31 @@ export const getMessages = query({
   },
 });
 
-export const sendMessage = mutation({
+export const addMessage = mutation({
   args: {
     threadId: v.string(),
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    await ctx.runMutation(internal.agent.messages.addMessages, {
-      messages: [
-        {
-          message: {
-            role: "user",
-            content: args.content,
-          },
-        },
-      ],
+    const userId = getUserId();
+    const { messageId } = await saveMessage(ctx, components.agent, {
+      threadId: args.threadId,
+      userId,
+      message: {
+        role: "user",
+        content: args.content,
+      },
     });
-    return { success: true };
+    return { messageId };
   },
 });
 
-export const deleteThread = mutation({
+export const deleteConversation = mutation({
   args: {
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    await ctx.runMutation(internal.agent.threads.deleteAllForThreadIdSync, {
+    await ctx.runMutation(components.agent.threads.deleteAllForThreadIdAsync, {
       threadId: args.threadId,
     });
     return { success: true };

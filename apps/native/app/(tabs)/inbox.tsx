@@ -25,7 +25,7 @@ export default function Inbox() {
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
-  const createThread = useMutation(api.threads.createThread);
+  const createThread = useMutation(api.threads.createConversation);
 
   const vote = async (suggestionId: string, voteValue: "up" | "down" | "ignore") => {
     await execute({

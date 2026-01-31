@@ -1,14 +1,13 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { View, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ScrollView, View } from "react-native";
 
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { ThreadList } from "@/components/threads/thread-list";
 
 export default function ThreadsIndex() {
-  const threadsData = useQuery(api.threads.listThreads);
+  const threadsData = useQuery(api.threads.listConversations, {});
 
   const threads = threadsData?.threads ?? [];
   const isLoading = threadsData === undefined;
