@@ -28,6 +28,14 @@ export const clearTestData = mutation({
       .collect();
     const testTasks = tasks.filter((task) => isTestTitle(task.title));
 
+    const journalEntries = await ctx.db
+      .query("journalEntries")
+      .withIndex("by_user_created", (q) => q.eq("userId", userId))
+      .collect();
+    const testJournalEntries = journalEntries.filter((entry) =>
+      isTestTitle(entry.text ?? ""),
+    );
+
     const events = await ctx.db
       .query("events")
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
@@ -76,6 +84,10 @@ export const clearTestData = mutation({
       await ctx.db.delete(task._id);
     }
 
+    for (const entry of testJournalEntries) {
+      await ctx.db.delete(entry._id);
+    }
+
     for (const event of testEvents) {
       await ctx.db.delete(event._id);
     }
@@ -100,6 +112,7 @@ export const clearTestData = mutation({
       ok: true,
       deletedBlocks: testBlocks.length,
       deletedTasks: testTasks.length,
+      deletedJournalEntries: testJournalEntries.length,
       deletedEvents: testEvents.length,
       deletedSuggestions: suggestions.length,
       deletedState: Boolean(stateDoc),
@@ -149,6 +162,33 @@ export const clearTestBlocks = mutation({
       ok: true,
       deletedBlocks: testBlocks.length,
       deletedEvents: testEvents.length,
+    };
+  },
+});
+
+export const clearTestJournalEntries = mutation({
+  args: {
+    day: v.optional(v.string()),
+  },
+  handler: async (ctx, { day }) => {
+    const userId = getUserId();
+
+    const entries = await ctx.db
+      .query("journalEntries")
+      .withIndex("by_user_created", (q) => q.eq("userId", userId))
+      .collect();
+    const testEntries = entries.filter((entry) => isTestTitle(entry.text ?? ""));
+    const filtered = day
+      ? testEntries.filter((entry) => entry.day === day)
+      : testEntries;
+
+    for (const entry of filtered) {
+      await ctx.db.delete(entry._id);
+    }
+
+    return {
+      ok: true,
+      deletedJournalEntries: filtered.length,
     };
   },
 });

@@ -15,8 +15,10 @@ const config: ExpoConfig = {
    scheme: isProd ? "lifeos" : "lifeos-dev",
    userInterfaceStyle: "automatic",
    orientation: "default",
+   icon: "./assets/images/icon.png",
    web: {
       bundler: "metro",
+      favicon: "./assets/images/favicon.png",
    },
    name: isProd ? "Life OS" : "Life OS (Dev)",
    slug: isProd ? "lifeos" : "lifeos-dev",

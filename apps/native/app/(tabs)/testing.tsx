@@ -20,6 +20,19 @@ function getMinuteOfDay(date = new Date()) {
   return date.getHours() * 60 + date.getMinutes();
 }
 
+function formatLocalDay(date: Date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function shiftLocalDay(day: string, deltaDays: number) {
+  const date = new Date(`${day}T00:00:00`);
+  date.setDate(date.getDate() + deltaDays);
+  return formatLocalDay(date);
+}
+
 export default function Testing() {
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
   const today = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
@@ -30,6 +43,8 @@ export default function Testing() {
   const executeCommand = useMutation(api.kernel.commands.executeCommand);
   const clearTestData = useMutation(api.kernel.testing.clearTestData);
   const clearTestBlocks = useMutation(api.kernel.testing.clearTestBlocks);
+  const createJournalEntry = useMutation(api.identity.createJournalEntry);
+  const clearTestJournalEntries = useMutation(api.kernel.testing.clearTestJournalEntries);
 
   const [isSeeding, setIsSeeding] = useState(false);
   const [lastSeed, setLastSeed] = useState<string | null>(null);
@@ -228,6 +243,36 @@ export default function Testing() {
     }
   };
 
+  const seedJournalEntries = async () => {
+    if (!day) return;
+    setIsSeeding(true);
+    try {
+      await createJournalEntry({
+        day,
+        mood: "ok",
+        text: "[TEST] Steady day, kept it gentle and focused.",
+      });
+      await createJournalEntry({
+        day: shiftLocalDay(day, -1),
+        mood: "low",
+        text: "[TEST] Heavy load. Needed more space than expected.",
+      });
+      await createJournalEntry({
+        day: shiftLocalDay(day, -3),
+        mood: "neutral",
+        text: "[TEST] Quiet day. Small resets helped.",
+      });
+      await createJournalEntry({
+        day: shiftLocalDay(day, -10),
+        mood: "good",
+        text: "[TEST] Momentum returned. Felt clean and light.",
+      });
+      setLastSeed("Journal entries seeded for filters/search");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   const clearTodayTestData = async () => {
     if (!day) return;
     setIsSeeding(true);
@@ -265,6 +310,53 @@ export default function Testing() {
             try {
               await clearTestBlocks({ day });
               setLastSeed("Cleared test blocks for today");
+            } finally {
+              setIsSeeding(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmClearJournal = () => {
+    Alert.alert(
+      "Clear test journal entries?",
+      "This removes only [TEST] journal entries (optionally for today).",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            if (!day) return;
+            setIsSeeding(true);
+            try {
+              await clearTestJournalEntries({ day });
+              setLastSeed("Cleared test journal entries for today");
+            } finally {
+              setIsSeeding(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmClearAllJournal = () => {
+    Alert.alert(
+      "Clear all test journal entries?",
+      "This removes all [TEST] journal entries across all days.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            setIsSeeding(true);
+            try {
+              await clearTestJournalEntries({});
+              setLastSeed("Cleared all test journal entries");
             } finally {
               setIsSeeding(false);
             }
@@ -342,6 +434,24 @@ export default function Testing() {
           </View>
         </HardCard>
 
+        <HardCard className="mb-6" padding="sm" label="JOURNAL TEST DATA">
+          <View className="gap-3 p-2">
+            <Button
+              size="sm"
+              className="bg-accent border border-foreground rounded-none"
+              isDisabled={isSeeding}
+              onPress={seedJournalEntries}
+            >
+              <MachineText className="text-xs font-bold text-accent-foreground">
+                SEED JOURNAL ENTRIES
+              </MachineText>
+            </Button>
+            <MachineText className="text-xs text-muted">
+              Creates [TEST] entries across multiple days with varied moods.
+            </MachineText>
+          </View>
+        </HardCard>
+
         <HardCard className="mb-6" padding="sm" label="RESET">
           <View className="gap-3 p-2">
             <Button
@@ -362,6 +472,26 @@ export default function Testing() {
             >
               <MachineText className="text-xs font-bold text-foreground">
                 CLEAR ONLY TEST BLOCKS
+              </MachineText>
+            </Button>
+            <Button
+              size="sm"
+              className="bg-surface border border-foreground rounded-none"
+              isDisabled={isSeeding}
+              onPress={confirmClearJournal}
+            >
+              <MachineText className="text-xs font-bold text-foreground">
+                CLEAR ONLY TEST JOURNAL
+              </MachineText>
+            </Button>
+            <Button
+              size="sm"
+              className="bg-surface border border-foreground rounded-none"
+              isDisabled={isSeeding}
+              onPress={confirmClearAllJournal}
+            >
+              <MachineText className="text-xs font-bold text-foreground">
+                CLEAR ALL TEST JOURNAL
               </MachineText>
             </Button>
             <MachineText className="text-xs text-muted">
