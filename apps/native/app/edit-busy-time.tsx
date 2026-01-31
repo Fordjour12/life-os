@@ -4,10 +4,10 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Button, Spinner, TextField } from "heroui-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
+import { Container } from "@/components/container";
 
 type BlockKind = "busy" | "focus" | "rest" | "personal";
 
@@ -95,7 +95,10 @@ export default function EditBusyTime() {
     };
   }, []);
 
-  const dayLabel = useMemo(() => (block ? formatDayLabel(block.day) : ""), [block]);
+  const dayLabel = useMemo(
+    () => (block ? formatDayLabel(block.day) : ""),
+    [block],
+  );
 
   const safeBack = () => {
     if (navigation.canGoBack()) {
@@ -103,7 +106,7 @@ export default function EditBusyTime() {
       return;
     }
 
-    router.replace("/(tabs)/today");
+    router.replace("/(tabs)");
   };
 
   const submit = async () => {
@@ -161,7 +164,7 @@ export default function EditBusyTime() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Container className="pt-6">
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View className="mb-6 flex-row justify-between items-end border-b-2 border-divider pb-2">
           <View>
@@ -236,22 +239,30 @@ export default function EditBusyTime() {
                 TYPE
               </MachineText>
               <View className="flex-row flex-wrap gap-3">
-                {(["busy", "focus", "rest", "personal"] as BlockKind[]).map((option) => (
-                  <Button
-                    key={option}
-                    size="sm"
-                    className={
-                      kind === option
-                        ? "bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
-                        : "bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
-                    }
-                    onPress={() => setKind(option)}
-                  >
-                    <MachineText className={kind === option ? "text-accent-foreground" : "text-foreground"}>
-                      {option.toUpperCase()}
-                    </MachineText>
-                  </Button>
-                ))}
+                {(["busy", "focus", "rest", "personal"] as BlockKind[]).map(
+                  (option) => (
+                    <Button
+                      key={option}
+                      size="sm"
+                      className={
+                        kind === option
+                          ? "bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                          : "bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                      }
+                      onPress={() => setKind(option)}
+                    >
+                      <MachineText
+                        className={
+                          kind === option
+                            ? "text-accent-foreground"
+                            : "text-foreground"
+                        }
+                      >
+                        {option.toUpperCase()}
+                      </MachineText>
+                    </Button>
+                  ),
+                )}
               </View>
             </View>
 
@@ -305,14 +316,18 @@ export default function EditBusyTime() {
               {isSaving ? (
                 <Spinner size="sm" color="white" />
               ) : (
-                <MachineText className="text-accent-foreground font-bold">SAVE_CHANGES</MachineText>
+                <MachineText className="text-accent-foreground font-bold">
+                  SAVE_CHANGES
+                </MachineText>
               )}
             </Button>
             <Button
               className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
               onPress={safeBack}
             >
-              <MachineText className="text-foreground font-bold">CANCEL</MachineText>
+              <MachineText className="text-foreground font-bold">
+                CANCEL
+              </MachineText>
             </Button>
             <MachineText className="text-xs text-foreground/70">
               Reason: keep the day accurate.
@@ -323,10 +338,12 @@ export default function EditBusyTime() {
       {toastMessage ? (
         <View className="absolute bottom-6 left-4 right-4">
           <View className="bg-foreground px-3 py-2 border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]">
-            <MachineText className="text-background text-xs">{toastMessage}</MachineText>
+            <MachineText className="text-background text-xs">
+              {toastMessage}
+            </MachineText>
           </View>
         </View>
       ) : null}
-    </SafeAreaView>
+    </Container>
   );
 }

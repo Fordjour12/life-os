@@ -10,9 +10,41 @@ type PolicyContext = {
   exitedRecoveryRecently: boolean;
   remainingRoomMin: number;
   tinyWinTask?: { taskId: string; title: string; estimateMin: number } | null;
+  boundaries?: {
+    isLateNight: boolean;
+    isRestWindow: boolean;
+    isFocusProtection: boolean;
+  };
 };
 
 const PLAN_RESET_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_BOUNDARIES = {
+  isLateNight: false,
+  isRestWindow: false,
+  isFocusProtection: false,
+};
+
+function applyBoundaryFilters(
+  suggestions: KernelSuggestion[],
+  boundaries: typeof DEFAULT_BOUNDARIES,
+): KernelSuggestion[] {
+  if (boundaries.isLateNight) {
+    const allowed = new Set(["MICRO_RECOVERY_PROTOCOL", "DAILY_REVIEW_QUESTION"]);
+    return suggestions.filter((suggestion) => allowed.has(suggestion.type));
+  }
+
+  if (boundaries.isRestWindow) {
+    const allowed = new Set(["MICRO_RECOVERY_PROTOCOL", "DAILY_REVIEW_QUESTION"]);
+    return suggestions.filter((suggestion) => allowed.has(suggestion.type));
+  }
+
+  if (boundaries.isFocusProtection) {
+    const blocked = new Set(["GENTLE_RETURN", "TINY_WIN"]);
+    return suggestions.filter((suggestion) => !blocked.has(suggestion.type));
+  }
+
+  return suggestions;
+}
 
 export function runPolicies(state: LifeState, context?: PolicyContext): KernelSuggestion[] {
   const out: KernelSuggestion[] = [];
@@ -24,6 +56,7 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
   const exitedRecoveryRecently = context?.exitedRecoveryRecently ?? false;
   const remainingRoomMin = context?.remainingRoomMin ?? 0;
   const tinyWinTask = context?.tinyWinTask ?? null;
+  const boundaries = context?.boundaries ?? DEFAULT_BOUNDARIES;
   const resetCooldownActive = Date.now() - lastPlanResetAt < PLAN_RESET_COOLDOWN_MS;
 
   if (state.mode === "recovery") {
@@ -63,7 +96,7 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
       cooldownKey: "micro_recovery",
     });
 
-    return out.slice(0, 1);
+    return applyBoundaryFilters(out, boundaries).slice(0, 1);
   }
 
   if (state.load === "overloaded" && !resetCooldownActive) {
@@ -171,5 +204,7 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
     cooldownKey: "daily_review",
   });
 
-  return out.sort((a, b) => b.priority - a.priority).slice(0, 3);
+  return applyBoundaryFilters(out, boundaries)
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 3);
 }

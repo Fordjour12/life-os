@@ -1,32 +1,24 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useRouter } from "expo-router";
 import { Button, Spinner } from "heroui-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { formatDayLabel, formatTime, shiftDay } from "@/lib/calendar-utils";
 
 type CalendarBlock = {
-  _id: string;
+  _id: Id<"calendarBlocks">;
   startMin: number;
   endMin: number;
   kind: "busy" | "focus" | "rest" | "personal";
   title?: string;
   notes?: string;
 };
-
-function formatTime(minutes: number) {
-  const clamped = Math.max(0, Math.min(1440, minutes));
-  const hours = Math.floor(clamped / 60)
-    .toString()
-    .padStart(2, "0");
-  const mins = (clamped % 60).toString().padStart(2, "0");
-  return `${hours}:${mins}`;
-}
 
 function formatMinutes(totalMinutes: number) {
   const minutes = Math.max(0, Math.round(totalMinutes));
@@ -35,24 +27,6 @@ function formatMinutes(totalMinutes: number) {
   if (hours <= 0) return `${remainder}m`;
   if (remainder === 0) return `${hours}h`;
   return `${hours}h ${remainder}m`;
-}
-
-function formatDayLabel(day: string) {
-  const date = new Date(`${day}T00:00:00Z`);
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "numeric",
-    day: "numeric",
-  });
-}
-
-function shiftDay(day: string, deltaDays: number) {
-  const date = new Date(`${day}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + deltaDays);
-  const yyyy = date.getUTCFullYear();
-  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(date.getUTCDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
 }
 
 const kindStyles: Record<
@@ -67,35 +41,44 @@ const kindStyles: Record<
 
 export default function TimeReality() {
   const router = useRouter();
-  const calendarApi = api as unknown as {
-    calendar: {
-      addBlock: any;
-      listBlocksForDay: any;
-      getFreeMinutesForDay: any;
-      removeBlock: any;
-    };
-  };
   const today = useQuery(api.kernel.commands.getToday);
-  const addBlockMutation = useMutation(calendarApi.calendar.addBlock);
-  const removeBlockMutation = useMutation(calendarApi.calendar.removeBlock);
+  const addBlockMutation = useMutation(api.calendar.addBlock);
+  const removeBlockMutation = useMutation(api.calendar.removeBlock);
   const blocks = useQuery(
-    calendarApi.calendar.listBlocksForDay,
+    api.calendar.listBlocksForDay,
     today ? { day: today.day } : "skip",
   );
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const activeDay = selectedDay ?? today?.day ?? null;
+  const calendarBlocks = useQuery(
+    api.calendar.listBlocksForDay,
+    activeDay ? { day: activeDay } : "skip",
+  );
   const freeData = useQuery(
-    calendarApi.calendar.getFreeMinutesForDay,
+    api.calendar.getFreeMinutesForDay,
     today ? { day: today.day } : "skip",
   );
 
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<Id<"calendarBlocks"> | null>(
+    null,
+  );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [expandedBlockId, setExpandedBlockId] = useState<string | null>(null);
+  const [expandedBlockId, setExpandedBlockId] = useState<Id<"calendarBlocks"> | null>(
+    null,
+  );
+  const [showCalendar, setShowCalendar] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sortedBlocks = useMemo(() => {
     const data = ((blocks ?? []) as CalendarBlock[]).slice();
     return data.sort((a, b) => a.startMin - b.startMin);
   }, [blocks]);
+
+  useEffect(() => {
+    if (today?.day && !selectedDay) {
+      setSelectedDay(today.day);
+    }
+  }, [selectedDay, today]);
 
   useEffect(() => {
     return () => {
@@ -131,6 +114,18 @@ export default function TimeReality() {
   }
 
   const dayLabel = formatDayLabel(today.day).toUpperCase();
+  const calendarDayLabel = activeDay
+    ? formatDayLabel(activeDay).toUpperCase()
+    : dayLabel;
+  const sortedCalendarBlocks = useMemo(
+    () =>
+      ((calendarBlocks ?? []) as CalendarBlock[])
+        .slice()
+        .sort((a, b) => a.startMin - b.startMin),
+    [calendarBlocks],
+  );
+  const prevDay = activeDay ? shiftDay(activeDay, -1) : today.day;
+  const nextDay = activeDay ? shiftDay(activeDay, 1) : today.day;
   const freeMinutesLabel = formatMinutes(freeData.freeMinutes);
   const effectiveFreeLabel = formatMinutes(freeData.effectiveFreeMinutes ?? 0);
   const focusMinutesLabel = formatMinutes(freeData.focusMinutes ?? 0);
@@ -141,11 +136,11 @@ export default function TimeReality() {
   );
   const totalLoggedLabel = formatMinutes(totals.total);
 
-  const toggleNotes = (blockId: string) => {
+  const toggleNotes = (blockId: Id<"calendarBlocks">) => {
     setExpandedBlockId((current) => (current === blockId ? null : blockId));
   };
 
-  const removeBlock = async (blockId: string) => {
+  const removeBlock = async (blockId: Id<"calendarBlocks">) => {
     setRemovingId(blockId);
     try {
       await removeBlockMutation({ blockId });
@@ -200,7 +195,7 @@ export default function TimeReality() {
     );
   };
 
-  const editBlock = (blockId: string) => {
+  const editBlock = (blockId: Id<"calendarBlocks">) => {
     router.push({
       pathname: "/edit-busy-time" as any,
       params: { blockId },
@@ -223,6 +218,138 @@ export default function TimeReality() {
             {dayLabel}
           </MachineText>
         </View>
+
+        <HardCard label="CALENDAR" className="mb-6">
+          <View className="gap-3 p-4">
+            <View className="flex-row justify-between items-end">
+              <View>
+                <MachineText variant="label" className="text-accent mb-1">
+                  DAILY_VIEW
+                </MachineText>
+                <MachineText variant="header" size="lg">
+                  {calendarDayLabel}
+                </MachineText>
+              </View>
+              <Button
+                size="sm"
+                className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                onPress={() => setShowCalendar((current) => !current)}
+              >
+                <MachineText className="text-[9px] font-bold text-foreground">
+                  {showCalendar ? "HIDE" : "OPEN"}
+                </MachineText>
+              </Button>
+            </View>
+
+            {showCalendar ? (
+              <View className="gap-3">
+                <View className="flex-row gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                    onPress={() => setSelectedDay(prevDay)}
+                  >
+                    <MachineText className="text-[10px] font-bold text-foreground">
+                      PREV_DAY
+                    </MachineText>
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                    onPress={() => setSelectedDay(today.day)}
+                  >
+                    <MachineText className="text-[10px] font-bold text-accent-foreground">
+                      TODAY
+                    </MachineText>
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                    onPress={() => setSelectedDay(nextDay)}
+                  >
+                    <MachineText className="text-[10px] font-bold text-foreground">
+                      NEXT_DAY
+                    </MachineText>
+                  </Button>
+                </View>
+                <View className="flex-row justify-between">
+                  <MachineText className="text-xs text-foreground/70">
+                    {formatDayLabel(prevDay).toUpperCase()}
+                  </MachineText>
+                  <MachineText className="text-xs text-foreground/70">
+                    {formatDayLabel(nextDay).toUpperCase()}
+                  </MachineText>
+                </View>
+                <HardCard label="BLOCKS">
+                  <View className="gap-3 p-3">
+                    {sortedCalendarBlocks.length === 0 ? (
+                      <View className="items-center py-6">
+                        <MachineText className="opacity-50">
+                          NO_BLOCKS_YET
+                        </MachineText>
+                      </View>
+                    ) : (
+                      sortedCalendarBlocks.map((block) => (
+                        <Pressable
+                          key={block._id}
+                          onPress={() => editBlock(block._id)}
+                          className="flex-row items-start justify-between border border-divider bg-surface px-3 py-2"
+                        >
+                          <View
+                            className={`w-1 self-stretch ${kindStyles[block.kind].badge}`}
+                          />
+                          <View className="flex-1 ml-3 mr-2">
+                            <MachineText className="font-bold text-sm">
+                              {formatTime(block.startMin)} -
+                              {formatTime(block.endMin)}
+                            </MachineText>
+                            <MachineText className="text-xs text-foreground/60">
+                              {block.title ? block.title : "Untitled block"}
+                            </MachineText>
+                            {block.notes ? (
+                              <MachineText className="text-[10px] text-foreground/50 mt-1">
+                                NOTES: {block.notes}
+                              </MachineText>
+                            ) : null}
+                            <MachineText className="text-[9px] text-foreground/40 mt-1">
+                              TAP_TO_EDIT
+                            </MachineText>
+                          </View>
+                          <View className="items-end">
+                            <View className="flex-row items-center gap-2">
+                              <View
+                                className={`w-2 h-2 ${kindStyles[block.kind].badge}`}
+                              />
+                              <MachineText variant="label">
+                                {kindStyles[block.kind].label}
+                              </MachineText>
+                            </View>
+                          </View>
+                        </Pressable>
+                      ))
+                    )}
+                  </View>
+                </HardCard>
+                <Button
+                  className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/add-busy-time" as any,
+                      params: { day: activeDay ?? today.day },
+                    })
+                  }
+                >
+                  <MachineText className="text-accent-foreground font-bold">
+                    ADD_BUSY_TIME
+                  </MachineText>
+                </Button>
+                <MachineText className="text-xs text-foreground/70">
+                  Reason: verify reality across days.
+                </MachineText>
+              </View>
+            ) : null}
+          </View>
+        </HardCard>
 
         <HardCard label="TODAY_CAPACITY" className="mb-6">
           <View className="gap-4 p-4">
@@ -397,14 +524,6 @@ export default function TimeReality() {
             >
               <MachineText className="text-accent-foreground font-bold">
                 ADD BUSY TIME
-              </MachineText>
-            </Button>
-            <Button
-              className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
-              onPress={() => router.push("/import-calendar" as any)}
-            >
-              <MachineText className="text-foreground font-bold">
-                IMPORT CALENDAR
               </MachineText>
             </Button>
             <MachineText className="text-xs text-foreground/70">

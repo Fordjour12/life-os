@@ -46,7 +46,7 @@ export function HardTabBar({ state, descriptors, navigation }: any) {
 
           // Icon mapping (simplified for this custom bar)
           let iconName: keyof typeof Ionicons.glyphMap = "square";
-          if (route.name === "index") iconName = "calendar";
+          if (route.name === "index") iconName = "grid";
           if (route.name === "planner") iconName = "compass";
           if (route.name === "tasks") iconName = "checkmark-circle";
           if (route.name === "inbox") iconName = "mail";

@@ -261,11 +261,47 @@ export default function Today() {
     return "default";
   };
 
+  const formatEventTime = (ts: number) =>
+    new Date(ts).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+  const formatEventLabel = (event: { type: string; meta?: Record<string, unknown> }) => {
+    if (event.type === "HABIT_DONE") return "Habit done";
+    if (event.type === "HABIT_MISSED") return "Habit missed";
+    if (event.type === "EXPENSE_ADDED") {
+      const amount = Number(event.meta?.amount ?? 0);
+      const category = String(event.meta?.category ?? "").trim();
+      if (Number.isFinite(amount) && amount > 0 && category) {
+        return `Expense $${amount} (${category})`;
+      }
+      if (Number.isFinite(amount) && amount > 0) {
+        return `Expense $${amount}`;
+      }
+      return "Expense added";
+    }
+    return "Event";
+  };
+
   const suggestions = useMemo(
     () => (data?.suggestions ?? []) as SuggestionItem[],
     [data],
   );
   const tasks = useMemo(() => (tasksData ?? []) as TaskItem[], [tasksData]);
+  const eventSummary = useMemo(
+    () =>
+      data?.eventSummary ?? {
+        habitDone: 0,
+        habitMissed: 0,
+        expenseAdded: 0,
+      },
+    [data],
+  );
+  const todayEvents = useMemo(
+    () => (data?.dailyEvents ?? []) as Array<{ type: string; ts: number; meta?: Record<string, unknown> }>,
+    [data],
+  );
 
   if (!data) {
     return <TodaySkeleton />;
@@ -318,6 +354,54 @@ export default function Today() {
             value={data.state?.habitHealth ?? "STABLE"}
             intent={getStatusIntent(data.state?.habitHealth ?? "Stable")}
           />
+        </View>
+      </HardCard>
+
+      <HardCard className="mb-8" padding="sm" label="TODAY EVENTS">
+        <View className="gap-3 p-2">
+          <View className="flex-row justify-between">
+            <MachineText variant="label" className="text-[10px]">
+              HABITS DONE
+            </MachineText>
+            <MachineText variant="value" className="text-sm">
+              {eventSummary.habitDone}
+            </MachineText>
+          </View>
+          <View className="flex-row justify-between">
+            <MachineText variant="label" className="text-[10px]">
+              HABITS MISSED
+            </MachineText>
+            <MachineText variant="value" className="text-sm">
+              {eventSummary.habitMissed}
+            </MachineText>
+          </View>
+          <View className="flex-row justify-between">
+            <MachineText variant="label" className="text-[10px]">
+              EXPENSES
+            </MachineText>
+            <MachineText variant="value" className="text-sm">
+              {eventSummary.expenseAdded}
+            </MachineText>
+          </View>
+
+          {todayEvents.length > 0 ? (
+            <View className="gap-2 pt-2">
+              {todayEvents.slice(0, 3).map((event, index) => (
+                <View key={`${event.type}-${event.ts}-${index}`} className="flex-row justify-between">
+                  <MachineText variant="label" className="text-[10px] text-foreground/70">
+                    {formatEventLabel(event)}
+                  </MachineText>
+                  <MachineText variant="value" className="text-xs">
+                    {formatEventTime(event.ts)}
+                  </MachineText>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <MachineText variant="label" className="pt-2 text-[10px] text-foreground/60">
+              No habit or expense events yet today.
+            </MachineText>
+          )}
         </View>
       </HardCard>
 

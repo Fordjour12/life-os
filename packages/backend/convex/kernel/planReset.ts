@@ -3,42 +3,20 @@ import { v } from "convex/values";
 import type { KernelEvent } from "../../../../src/kernel/types";
 import type { Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
-import type { MutationCtx } from "../_generated/server";
 
 import { sanitizeSuggestionCopy } from "../identity/guardrails";
 import { runPolicies } from "./policies";
 import { computeDailyState } from "./reducer";
+import {
+  DAILY_SUGGESTION_CAP,
+  getBoundaryFlagsFromBlocks,
+  getTimeMetricsFromBlocks,
+} from "./stabilization";
 
 function getUserId(): string {
   return "user_me";
 }
 
-const DAILY_CAPACITY_MIN = 480;
-const NON_FOCUS_WEIGHT = 0.6;
-
-async function getTimeMetricsForDay(ctx: MutationCtx, userId: string, day: string) {
-  const blocks = await ctx.db
-    .query("calendarBlocks")
-    .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
-    .collect();
-
-  const busyMinutes = blocks
-    .filter((block) => block.kind === "busy")
-    .reduce((total, block) => total + (block.endMin - block.startMin), 0);
-
-  const focusMinutes = blocks
-    .filter((block) => block.kind === "focus")
-    .reduce((total, block) => total + (block.endMin - block.startMin), 0);
-
-  const freeMinutes = Math.max(0, DAILY_CAPACITY_MIN - busyMinutes);
-  const focusWithinFree = Math.min(freeMinutes, focusMinutes);
-  const nonFocusFree = Math.max(0, freeMinutes - focusWithinFree);
-  const effectiveFreeMinutes = Math.round(
-    focusWithinFree + nonFocusFree * NON_FOCUS_WEIGHT,
-  );
-
-  return { freeMinutes, effectiveFreeMinutes, focusMinutes, busyMinutes };
-}
 
 function daysBetween(fromDay: string, toDay: string) {
   const fromDate = new Date(`${fromDay}T00:00:00Z`);
@@ -130,7 +108,12 @@ export const applyPlanReset = mutation({
       meta: event.meta,
     })) as KernelEvent[];
 
-    const timeMetrics = await getTimeMetricsForDay(ctx, userId, day);
+    const blocks = await ctx.db
+      .query("calendarBlocks")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
+      .collect();
+    const timeMetrics = getTimeMetricsFromBlocks(blocks);
+    const boundaries = getBoundaryFlagsFromBlocks(blocks, now);
     const state = computeDailyState(day, kernelEvents, timeMetrics);
 
     const activeTasksAfterReset = kept;
@@ -316,12 +299,32 @@ export const applyPlanReset = mutation({
             estimateMin: chosen.estimateMin,
           }
         : undefined,
+      boundaries,
     });
 
     const existingSugs = await ctx.db
       .query("suggestions")
       .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
       .collect();
+
+    const existingNewCount = existingSugs.filter((suggestion) => suggestion.status === "new").length;
+    if (existingNewCount > 0) {
+      return {
+        ok: true,
+        keptTaskIds: kept.map((task) => task._id as Id<"tasks">),
+        pausedTaskIds: paused.map((task) => task._id as Id<"tasks">),
+      };
+    }
+
+    const remainingSuggestionSlots = Math.max(0, DAILY_SUGGESTION_CAP - existingSugs.length);
+    if (remainingSuggestionSlots === 0) {
+      return {
+        ok: true,
+        keptTaskIds: kept.map((task) => task._id as Id<"tasks">),
+        pausedTaskIds: paused.map((task) => task._id as Id<"tasks">),
+      };
+    }
+    const cappedSuggestions = suggestions.slice(0, remainingSuggestionSlots);
 
     const TWELVE_HOURS = 12 * 60 * 60 * 1000;
     const recentlySuggested = (cooldownKey?: string) => {
@@ -339,7 +342,7 @@ export const applyPlanReset = mutation({
       }
     }
 
-    for (const suggestion of suggestions) {
+    for (const suggestion of cappedSuggestions) {
       if (recentlySuggested(suggestion.cooldownKey)) {
         continue;
       }

@@ -129,6 +129,9 @@ export function computeDailyState(
     load,
     momentum,
     focusCapacity,
+    habitHealth: "stable",
+    financialDrift: "ok",
+    backlogPressure: 0,
     reasons,
   };
 }

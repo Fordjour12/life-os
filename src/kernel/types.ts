@@ -36,6 +36,16 @@ export type KernelCommand =
       cmd: "submit_feedback";
       input: { suggestionId: string; vote: "up" | "down" | "ignore" };
       idempotencyKey: string;
+    }
+  | {
+      cmd: "log_habit";
+      input: { habitId: string; status: "done" | "missed"; note?: string };
+      idempotencyKey: string;
+    }
+  | {
+      cmd: "add_expense";
+      input: { amount: number; category: string; note?: string };
+      idempotencyKey: string;
     };
 
 export type KernelEvent =
@@ -104,6 +114,21 @@ export type KernelEvent =
       type: "RECOVERY_PROTOCOL_USED";
       ts: number;
       meta: { day: string; didTinyWin: boolean; didRest: boolean };
+    }
+  | {
+      type: "HABIT_DONE";
+      ts: number;
+      meta: { habitId: string; note?: string };
+    }
+  | {
+      type: "HABIT_MISSED";
+      ts: number;
+      meta: { habitId: string; note?: string };
+    }
+  | {
+      type: "EXPENSE_ADDED";
+      ts: number;
+      meta: { amount: number; category: string; note?: string };
     };
 
 export type LoadState = "underloaded" | "balanced" | "overloaded";
@@ -127,6 +152,9 @@ export type LifeState = {
   load: LoadState;
   momentum: Momentum;
   focusCapacity: FocusCapacity;
+  habitHealth: "fragile" | "stable" | "strong";
+  financialDrift: "ok" | "watch" | "risk";
+  backlogPressure: number;
 
   reasons: Array<{ code: string; detail: string }>;
 };
