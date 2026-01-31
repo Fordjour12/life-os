@@ -1,12 +1,13 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { Button, Spinner } from "heroui-native";
-import { View, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "heroui-native";
+import { View } from "react-native";
+import { useRouter } from "expo-router";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { InboxSkeleton } from "@/components/skeletons/inbox-skeleton";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type SuggestionItem = {
@@ -20,14 +21,13 @@ function idem() {
 }
 
 export default function Inbox() {
+  const router = useRouter();
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
+  const createThread = useMutation(api.threads.createConversation);
 
-  const vote = async (
-    suggestionId: string,
-    voteValue: "up" | "down" | "ignore",
-  ) => {
+  const vote = async (suggestionId: string, voteValue: "up" | "down" | "ignore") => {
     await execute({
       command: {
         cmd: "submit_feedback",
@@ -38,12 +38,15 @@ export default function Inbox() {
     });
   };
 
+  const startConversation = async () => {
+    const result = await createThread({ title: "New Conversation" });
+    if (result.threadId) {
+      router.push(`/threads/${result.threadId}`);
+    }
+  };
+
   if (!data) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <InboxSkeleton />;
   }
 
   const suggestions = (data.suggestions ?? []) as SuggestionItem[];
@@ -62,15 +65,9 @@ export default function Inbox() {
       {suggestions.length ? (
         <View className="gap-4">
           {suggestions.map((suggestion) => (
-            <HardCard
-              key={suggestion._id}
-              label="SIGNAL_DETECTED"
-              className="gap-3 p-4 bg-surface"
-            >
+            <HardCard key={suggestion._id} label="SIGNAL_DETECTED" className="gap-3 p-4 bg-surface">
               <View className="gap-1">
-                <MachineText className="font-bold text-lg">
-                  {suggestion.type}
-                </MachineText>
+                <MachineText className="font-bold text-lg">{suggestion.type}</MachineText>
                 <MachineText className="text-muted text-xs">
                   {suggestion.reason?.detail}
                 </MachineText>
@@ -109,13 +106,22 @@ export default function Inbox() {
           ))}
         </View>
       ) : (
-        <HardCard
-          variant="flat"
-          className="p-6 border-dashed items-center justify-center"
-        >
+        <HardCard variant="flat" className="p-6 border-dashed items-center justify-center">
           <MachineText className="text-muted">NO_SIGNALS_DETECTED</MachineText>
         </HardCard>
       )}
+
+      <View className="mt-8 pt-4 border-t border-divider">
+        <MachineText variant="label" className="mb-4">CONVERSATION</MachineText>
+        <Button
+          className="bg-primary rounded-none"
+          onPress={startConversation}
+        >
+          <MachineText className="text-primary-foreground font-bold text-[10px]">
+            START_CONVERSATION
+          </MachineText>
+        </Button>
+      </View>
     </Container>
   );
 }

@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { PlannerSkeleton } from "@/components/skeletons/planner-skeleton";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type PlanItem = {
@@ -29,13 +30,7 @@ type PlanData = {
   focusItems: PlanItem[];
 };
 
-type PlannerState =
-  | "NO_PLAN"
-  | "PLANNED_OK"
-  | "OVERLOADED"
-  | "STALLED"
-  | "RECOVERY"
-  | "RETURNING";
+type PlannerState = "NO_PLAN" | "PLANNED_OK" | "OVERLOADED" | "STALLED" | "RECOVERY" | "RETURNING";
 
 const allowedEstimates = [10, 25, 45, 60];
 
@@ -78,9 +73,7 @@ export default function Planner() {
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
-  const [draftItems, setDraftItems] = useState<DraftItem[]>(() =>
-    createEmptyDraft(),
-  );
+  const [draftItems, setDraftItems] = useState<DraftItem[]>(() => createEmptyDraft());
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nextStepIndex, setNextStepIndex] = useState(0);
@@ -88,11 +81,7 @@ export default function Planner() {
   const [showNextStep, setShowNextStep] = useState(false);
 
   if (!data) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <PlannerSkeleton />;
   }
 
   const plan = (data.plan ?? null) as PlanData | null;
@@ -111,9 +100,7 @@ export default function Planner() {
 
   const updateDraft = (index: number, patch: Partial<DraftItem>) => {
     setDraftItems((items) =>
-      items.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, ...patch } : item,
-      ),
+      items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)),
     );
   };
 
@@ -143,9 +130,7 @@ export default function Planner() {
       .map((item, index) => {
         const label = item.label.trim();
         if (!label) return null;
-        const estimatedMinutes = normalizeEstimate(
-          Number(item.estimatedMinutes),
-        );
+        const estimatedMinutes = normalizeEstimate(Number(item.estimatedMinutes));
         const id = item.id || `focus-${Date.now()}-${index}`;
         return { id, label, estimatedMinutes };
       })
@@ -190,11 +175,7 @@ export default function Planner() {
   };
 
   const getNextStepMinutes = () => {
-    if (
-      lifeState?.mode === "recovery" ||
-      lifeState?.focusCapacity === "very_low"
-    )
-      return 10;
+    if (lifeState?.mode === "recovery" || lifeState?.focusCapacity === "very_low") return 10;
     if (lifeState?.focusCapacity === "low") return 10;
     if (lifeState?.focusCapacity === "high") return 25;
     return 15;
@@ -208,10 +189,7 @@ export default function Planner() {
   };
 
   const shrinkNextStep = () => {
-    const min =
-      lifeState?.mode === "recovery" || lifeState?.focusCapacity === "very_low"
-        ? 5
-        : 10;
+    const min = lifeState?.mode === "recovery" || lifeState?.focusCapacity === "very_low" ? 5 : 10;
     setNextStepMinutes((minutes) => Math.max(min, minutes - 5));
   };
 
@@ -228,10 +206,8 @@ export default function Planner() {
   const subtitle = (() => {
     if (plannerState === "RETURNING") return "Welcome back. No pressure.";
     if (plannerState === "RECOVERY") return "Recovery mode. Keep it small.";
-    if (plannerState === "OVERLOADED")
-      return "This plan is heavier than your available time.";
-    if (plannerState === "STALLED")
-      return "No momentum yet. Let's make it easy.";
+    if (plannerState === "OVERLOADED") return "This plan is heavier than your available time.";
+    if (plannerState === "STALLED") return "No momentum yet. Let's make it easy.";
     return "What would make today a win?";
   })().toUpperCase();
 
@@ -241,9 +217,7 @@ export default function Planner() {
         <MachineText variant="header" size="2xl">
           PLANNER
         </MachineText>
-        <MachineText className="text-muted text-xs mt-1">
-          {subtitle}
-        </MachineText>
+        <MachineText className="text-muted text-xs mt-1">{subtitle}</MachineText>
       </View>
 
       <HardCard className="mb-6" padding="sm" label="EVENT SUMMARY">
@@ -298,9 +272,7 @@ export default function Planner() {
                   <TextField>
                     <TextField.Input
                       value={item.label}
-                      onChangeText={(value) =>
-                        updateDraft(index, { label: value })
-                      }
+                      onChangeText={(value) => updateDraft(index, { label: value })}
                       placeholder="Small, meaningful thing"
                       className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
                       style={{ fontFamily: "Menlo" }}
@@ -314,9 +286,7 @@ export default function Planner() {
                   <TextField>
                     <TextField.Input
                       value={item.estimatedMinutes}
-                      onChangeText={(value) =>
-                        updateDraft(index, { estimatedMinutes: value })
-                      }
+                      onChangeText={(value) => updateDraft(index, { estimatedMinutes: value })}
                       placeholder="25"
                       keyboardType="number-pad"
                       className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
@@ -337,9 +307,7 @@ export default function Planner() {
               {isSaving ? (
                 <Spinner size="sm" color="white" />
               ) : (
-                <MachineText className="text-background font-bold">
-                  SAVE_PLAN
-                </MachineText>
+                <MachineText className="text-background font-bold">SAVE_PLAN</MachineText>
               )}
             </Button>
             {plan ? (
@@ -349,9 +317,7 @@ export default function Planner() {
                 className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
                 size="sm"
               >
-                <MachineText className="text-foreground font-bold">
-                  CANCEL
-                </MachineText>
+                <MachineText className="text-foreground font-bold">CANCEL</MachineText>
               </Button>
             ) : null}
             {plannerState === "NO_PLAN" ? (
@@ -361,9 +327,7 @@ export default function Planner() {
                 className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
                 size="sm"
               >
-                <MachineText className="text-foreground font-bold">
-                  REST_DAY
-                </MachineText>
+                <MachineText className="text-foreground font-bold">REST_DAY</MachineText>
               </Button>
             ) : null}
           </View>
@@ -372,23 +336,14 @@ export default function Planner() {
         <HardCard label="CURRENT_Plan" className="gap-4 p-4">
           <View className="gap-1">
             <MachineText className="font-bold">TODAY'S PLAN</MachineText>
-            <MachineText className="text-xs text-muted">
-              TOTAL: {totalMinutes} MIN
-            </MachineText>
+            <MachineText className="text-xs text-muted">TOTAL: {totalMinutes} MIN</MachineText>
           </View>
           <View className="gap-3">
             {plan?.focusItems.map((item) => (
-              <HardCard
-                key={item.id}
-                variant="default"
-                padding="sm"
-                className="bg-surface"
-              >
+              <HardCard key={item.id} variant="default" padding="sm" className="bg-surface">
                 <View className="flex-row items-center justify-between">
                   <View className="gap-1">
-                    <MachineText className="font-bold">
-                      {item.label}
-                    </MachineText>
+                    <MachineText className="font-bold">{item.label}</MachineText>
                     <MachineText className="text-xs text-muted">
                       {item.estimatedMinutes} MIN
                     </MachineText>
@@ -399,25 +354,16 @@ export default function Planner() {
           </View>
 
           {showNextStep ? (
-            <HardCard
-              variant="flat"
-              className="gap-3 border-accent/40 bg-accent/10"
-            >
+            <HardCard variant="flat" className="gap-3 border-accent/40 bg-accent/10">
               <View className="gap-1">
-                <MachineText className="font-bold text-accent">
-                  NEXT_STEP
-                </MachineText>
-                <MachineText className="text-xs text-muted">
-                  Keep it small and doable.
-                </MachineText>
+                <MachineText className="font-bold text-accent">NEXT_STEP</MachineText>
+                <MachineText className="text-xs text-muted">Keep it small and doable.</MachineText>
               </View>
               <View>
                 <MachineText className="font-bold text-lg">
                   {plan?.focusItems[nextStepIndex]?.label}
                 </MachineText>
-                <MachineText className="text-xs text-muted">
-                  {nextStepMinutes} MIN
-                </MachineText>
+                <MachineText className="text-xs text-muted">{nextStepMinutes} MIN</MachineText>
               </View>
               <View className="flex-row gap-2 flex-wrap">
                 <Button
@@ -425,9 +371,7 @@ export default function Planner() {
                   onPress={() => setShowNextStep(false)}
                   size="sm"
                 >
-                  <MachineText className="text-accent-foreground font-bold">
-                    START
-                  </MachineText>
+                  <MachineText className="text-accent-foreground font-bold">START</MachineText>
                 </Button>
                 <Button
                   className="bg-surface border border-foreground rounded-none"
@@ -486,9 +430,7 @@ export default function Planner() {
                   isDisabled={isSaving}
                   size="sm"
                 >
-                  <MachineText className="text-background font-bold">
-                    START_SESSION
-                  </MachineText>
+                  <MachineText className="text-background font-bold">START_SESSION</MachineText>
                 </Button>
                 {plannerState === "STALLED" ? (
                   <Button
@@ -497,9 +439,7 @@ export default function Planner() {
                     isDisabled={isSaving}
                     size="sm"
                   >
-                    <MachineText className="text-foreground font-bold">
-                      TINY_WIN
-                    </MachineText>
+                    <MachineText className="text-foreground font-bold">TINY_WIN</MachineText>
                   </Button>
                 ) : null}
               </>
@@ -510,9 +450,7 @@ export default function Planner() {
               isDisabled={isSaving}
               size="sm"
             >
-              <MachineText className="text-foreground font-bold">
-                ADJUST
-              </MachineText>
+              <MachineText className="text-foreground font-bold">ADJUST</MachineText>
             </Button>
           </View>
         </HardCard>

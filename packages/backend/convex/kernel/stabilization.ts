@@ -25,9 +25,7 @@ export function getTimeMetricsFromBlocks(blocks: CalendarBlock[]) {
   const freeMinutes = Math.max(0, DAILY_CAPACITY_MIN - busyMinutes);
   const focusWithinFree = Math.min(freeMinutes, focusMinutes);
   const nonFocusFree = Math.max(0, freeMinutes - focusWithinFree);
-  const effectiveFreeMinutes = Math.round(
-    focusWithinFree + nonFocusFree * NON_FOCUS_WEIGHT,
-  );
+  const effectiveFreeMinutes = Math.round(focusWithinFree + nonFocusFree * NON_FOCUS_WEIGHT);
 
   return { freeMinutes, effectiveFreeMinutes, focusMinutes, busyMinutes };
 }
@@ -52,12 +50,10 @@ export function getBoundaryFlagsFromBlocks(
 ) {
   const minute = getMinuteOfDayUTC(now + tzOffsetMinutes * 60 * 1000);
   const isRestWindow = blocks.some(
-    (block) =>
-      block.kind === "rest" && isMinuteWithinWindow(minute, block.startMin, block.endMin),
+    (block) => block.kind === "rest" && isMinuteWithinWindow(minute, block.startMin, block.endMin),
   );
   const isFocusProtection = blocks.some(
-    (block) =>
-      block.kind === "focus" && isMinuteWithinWindow(minute, block.startMin, block.endMin),
+    (block) => block.kind === "focus" && isMinuteWithinWindow(minute, block.startMin, block.endMin),
   );
   const isLateNight =
     isRestWindow && isMinuteWithinWindow(minute, LATE_NIGHT_START_MIN, LATE_NIGHT_END_MIN);

@@ -131,17 +131,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       refreshSession,
       clearError,
     }),
-    [
-      clearError,
-      error,
-      hasHydrated,
-      isLoading,
-      refreshSession,
-      signIn,
-      signOut,
-      signUp,
-      user,
-    ],
+    [clearError, error, hasHydrated, isLoading, refreshSession, signIn, signOut, signUp, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

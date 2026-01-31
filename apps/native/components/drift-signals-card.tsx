@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import React from "react";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -15,7 +16,10 @@ type Props = {
   windowLabel?: string;
 };
 
-export function DriftSignalsCard({ signals, windowLabel }: Props) {
+export const DriftSignalsCard = React.memo(function DriftSignalsCard({
+  signals,
+  windowLabel,
+}: Props) {
   const items = signals ?? [];
   const label = windowLabel ?? "MONTH_WINDOW";
 
@@ -37,9 +41,7 @@ export function DriftSignalsCard({ signals, windowLabel }: Props) {
               <View key={item.id} className="gap-2 border border-divider bg-muted p-3">
                 <MachineText className="text-sm">{item.observation}</MachineText>
                 {item.suggestion ? (
-                  <MachineText className="text-[10px] text-muted">
-                    {item.suggestion}
-                  </MachineText>
+                  <MachineText className="text-[10px] text-muted">{item.suggestion}</MachineText>
                 ) : null}
               </View>
             ))}
@@ -48,4 +50,4 @@ export function DriftSignalsCard({ signals, windowLabel }: Props) {
       </View>
     </HardCard>
   );
-}
+});
