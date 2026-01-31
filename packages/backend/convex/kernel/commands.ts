@@ -1,4 +1,3 @@
-
 import type {
   KernelEvent,
   LifeState,
@@ -9,6 +8,7 @@ import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 
+import { internal } from "../_generated/api";
 import { computeDailyState } from "./reducer";
 import { sanitizeSuggestionCopy } from "../identity/guardrails";
 import { runPolicies } from "./policies";
@@ -66,9 +66,7 @@ function getDailyEvents(
   day: string,
   tzOffsetMinutes: number,
 ) {
-  return events.filter(
-    (event) => formatYYYYMMDDWithOffset(event.ts, tzOffsetMinutes) === day,
-  );
+  return events.filter((event) => formatYYYYMMDDWithOffset(event.ts, tzOffsetMinutes) === day);
 }
 
 function summarizeEvents(events: Array<{ type: string }>) {
@@ -88,7 +86,6 @@ const planReasons: PlanSetReason[] = ["initial", "adjust", "reset", "recovery", 
 function getUserId(): string {
   return "user_me";
 }
-
 
 export const executeCommand = mutation({
   args: {
@@ -426,10 +423,7 @@ export const executeCommand = mutation({
       }
     }
 
-    const remainingRoomMin = Math.max(
-      0,
-      (state.freeMinutes ?? 0) - (state.plannedMinutes ?? 0),
-    );
+    const remainingRoomMin = Math.max(0, (state.freeMinutes ?? 0) - (state.plannedMinutes ?? 0));
 
     const stateHistory = await ctx.db
       .query("stateDaily")
@@ -447,8 +441,7 @@ export const executeCommand = mutation({
     }
 
     const yesterdayState = stateByDay.get(shiftDay(day, -1));
-    const exitedRecoveryRecently =
-      yesterdayState?.mode === "recovery" && state.mode !== "recovery";
+    const exitedRecoveryRecently = yesterdayState?.mode === "recovery" && state.mode !== "recovery";
 
     const pausedTasks = await ctx.db
       .query("tasks")
@@ -473,13 +466,7 @@ export const executeCommand = mutation({
       ? String(prefs.lastGentleReturnTaskId)
       : null;
 
-    const suggestionStatuses = [
-      "new",
-      "accepted",
-      "downvoted",
-      "ignored",
-      "expired",
-    ] as const;
+    const suggestionStatuses = ["new", "accepted", "downvoted", "ignored", "expired"] as const;
     const suggestionBuckets = await Promise.all(
       suggestionStatuses.map((status) =>
         ctx.db
@@ -542,7 +529,9 @@ export const executeCommand = mutation({
         const penalty = isResistant ? 1000 : 0;
         return { task, score: (task.estimateMin ?? 0) + penalty };
       })
-      .sort((a, b) => (a.score !== b.score ? a.score - b.score : a.task.estimateMin - b.task.estimateMin));
+      .sort((a, b) =>
+        a.score !== b.score ? a.score - b.score : a.task.estimateMin - b.task.estimateMin,
+      );
 
     const rotated = scoredCandidates[0]?.task ?? null;
     const smallest =
@@ -578,7 +567,9 @@ export const executeCommand = mutation({
       .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
       .collect();
 
-    const existingNewCount = existingSugs.filter((suggestion) => suggestion.status === "new").length;
+    const existingNewCount = existingSugs.filter(
+      (suggestion) => suggestion.status === "new",
+    ).length;
     if (existingNewCount > 0) {
       return { ok: true, state, suggestionsCount: 0 };
     }
@@ -644,6 +635,12 @@ export const executeCommand = mutation({
       }
     }
 
+    await ctx.scheduler.runAfter(0, internal.kernel.aiSuggest.generateAiSuggestions, {
+      day,
+      tzOffsetMinutes,
+      source: "executeCommand",
+    });
+
     return { ok: true, state, suggestionsCount: cappedSuggestions.length };
   },
 });
@@ -672,14 +669,12 @@ export const getToday = query({
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
       .collect();
 
-    let plan:
-      | {
-          day: string;
-          version: number;
-          reason: PlanSetReason;
-          focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
-        }
-      | null = null;
+    let plan: {
+      day: string;
+      version: number;
+      reason: PlanSetReason;
+      focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
+    } | null = null;
     let latestPlanVersion = -1;
     let latestPlanTs = 0;
     for (const event of events) {
@@ -719,9 +714,7 @@ export const getToday = query({
       .map((event) => formatYYYYMMDDWithOffset(event.ts, offset))
       .filter((eventDay) => eventDay < day)
       .sort();
-    const lastEventDayValue = lastEventDay.length
-      ? lastEventDay[lastEventDay.length - 1]
-      : null;
+    const lastEventDayValue = lastEventDay.length ? lastEventDay[lastEventDay.length - 1] : null;
     const returning =
       Boolean(lastEventDayValue) &&
       hasTodayEvents &&
