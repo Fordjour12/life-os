@@ -7,6 +7,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
+import { useRouter } from "expo-router";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -32,6 +33,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,13 +73,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
         onSuccess: async () => {
           const session = await authClient.getSession();
           setUser((session.data?.user as AuthUser | undefined) ?? null);
+          router.replace("/(tabs)");
         },
         onFinished: () => {
           setIsLoading(false);
         },
       });
     },
-    [],
+    [router],
   );
 
   const signUp = useCallback(
@@ -93,13 +96,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
         onSuccess: async () => {
           const session = await authClient.getSession();
           setUser((session.data?.user as AuthUser | undefined) ?? null);
+          router.replace("/(tabs)");
         },
         onFinished: () => {
           setIsLoading(false);
         },
       });
     },
-    [],
+    [router],
   );
 
   const signOut = useCallback(async () => {

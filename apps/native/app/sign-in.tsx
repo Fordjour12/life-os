@@ -89,7 +89,12 @@ export default function SignInScreen() {
                 className="mt-2 bg-foreground rounded-none shadow-[4px_4px_0px_var(--color-accent)] h-12"
               >
                 {isLoading ? (
-                  <Spinner size="sm" color="white" />
+                  <View className="flex-row gap-2 items-center">
+                    <Spinner size="sm" color="white" />
+                    <MachineText className="text-background font-bold">
+                      INITIATING_HANDSHAKE ....
+                    </MachineText>
+                  </View>
                 ) : (
                   <MachineText className="text-background font-bold">
                     INITIATE_HANDSHAKE

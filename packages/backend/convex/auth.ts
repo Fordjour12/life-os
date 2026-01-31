@@ -9,13 +9,13 @@ import { components } from "./_generated/api";
 import { query } from "./_generated/server";
 import authConfig from "./auth.config";
 
-const nativeAppUrl = process.env.NATIVE_APP_URL || "mybettertapp://";
+const nativeAppUrl = process.env.NATIVE_APP_URL;
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
 function createAuth(ctx: GenericCtx<DataModel>) {
   return betterAuth({
-    trustedOrigins: [nativeAppUrl],
+    trustedOrigins: [nativeAppUrl!],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,
@@ -37,7 +37,7 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     return await authComponent.safeGetAuthUser(
-      ctx as unknown as Parameters<typeof authComponent.safeGetAuthUser>[0]
+      ctx as unknown as Parameters<typeof authComponent.safeGetAuthUser>[0],
     );
   },
 });
