@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
+import { Container } from "@/components/container";
 
 type PlanItem = {
   id: string;
@@ -75,7 +76,9 @@ function toDraftItems(items: PlanItem[]): DraftItem[] {
 export default function Planner() {
   const data = useQuery(api.kernel.commands.getToday);
   const execute = useMutation(api.kernel.commands.executeCommand);
-  const [draftItems, setDraftItems] = useState<DraftItem[]>(() => createEmptyDraft());
+  const [draftItems, setDraftItems] = useState<DraftItem[]>(() =>
+    createEmptyDraft(),
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nextStepIndex, setNextStepIndex] = useState(0);
@@ -101,7 +104,9 @@ export default function Planner() {
 
   const updateDraft = (index: number, patch: Partial<DraftItem>) => {
     setDraftItems((items) =>
-      items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)),
+      items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item,
+      ),
     );
   };
 
@@ -130,7 +135,9 @@ export default function Planner() {
       .map((item, index) => {
         const label = item.label.trim();
         if (!label) return null;
-        const estimatedMinutes = normalizeEstimate(Number(item.estimatedMinutes));
+        const estimatedMinutes = normalizeEstimate(
+          Number(item.estimatedMinutes),
+        );
         const id = item.id || `focus-${Date.now()}-${index}`;
         return { id, label, estimatedMinutes };
       })
@@ -175,7 +182,11 @@ export default function Planner() {
   };
 
   const getNextStepMinutes = () => {
-    if (lifeState?.mode === "recovery" || lifeState?.focusCapacity === "very_low") return 10;
+    if (
+      lifeState?.mode === "recovery" ||
+      lifeState?.focusCapacity === "very_low"
+    )
+      return 10;
     if (lifeState?.focusCapacity === "low") return 10;
     if (lifeState?.focusCapacity === "high") return 25;
     return 15;
@@ -189,7 +200,10 @@ export default function Planner() {
   };
 
   const shrinkNextStep = () => {
-    const min = lifeState?.mode === "recovery" || lifeState?.focusCapacity === "very_low" ? 5 : 10;
+    const min =
+      lifeState?.mode === "recovery" || lifeState?.focusCapacity === "very_low"
+        ? 5
+        : 10;
     setNextStepMinutes((minutes) => Math.max(min, minutes - 5));
   };
 
@@ -206,159 +220,266 @@ export default function Planner() {
   const subtitle = (() => {
     if (plannerState === "RETURNING") return "Welcome back. No pressure.";
     if (plannerState === "RECOVERY") return "Recovery mode. Keep it small.";
-    if (plannerState === "OVERLOADED") return "This plan is heavier than your available time.";
-    if (plannerState === "STALLED") return "No momentum yet. Let's make it easy.";
+    if (plannerState === "OVERLOADED")
+      return "This plan is heavier than your available time.";
+    if (plannerState === "STALLED")
+      return "No momentum yet. Let's make it easy.";
     return "What would make today a win?";
   })().toUpperCase();
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-        <View className="mb-6 border-b-2 border-divider pb-2">
-          <MachineText variant="header" size="2xl">PLANNER</MachineText>
-          <MachineText className="text-muted text-xs mt-1">{subtitle}</MachineText>
-        </View>
+    <Container className="pt-6">
+      <View className="mb-6 border-b-2 border-divider pb-2">
+        <MachineText variant="header" size="2xl">
+          PLANNER
+        </MachineText>
+        <MachineText className="text-muted text-xs mt-1">
+          {subtitle}
+        </MachineText>
+      </View>
 
-        {showEditor ? (
-          <HardCard label="EDIT_PLAN" className="gap-4 p-4">
-            <View className="gap-1">
-              <MachineText className="font-bold">TODAY'S FOCUS</MachineText>
-              <MachineText className="text-xs text-muted">Up to three items, rough effort only.</MachineText>
-            </View>
-            <View className="gap-4">
-              {draftItems.map((item, index) => (
-                <HardCard key={item.id} variant="flat" padding="sm" className="gap-2 bg-surface border-dashed">
-                  <View>
-                    <MachineText variant="label" className="mb-1">FOCUS ITEM {index + 1}</MachineText>
-                    <TextField>
-                      <TextField.Input
-                        value={item.label}
-                        onChangeText={(value) => updateDraft(index, { label: value })}
-                        placeholder="Small, meaningful thing"
-                        className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
-                        style={{ fontFamily: "Menlo" }}
-                      />
-                    </TextField>
-                  </View>
-                  <View>
-                    <MachineText variant="label" className="mb-1">ESTIMATE (MIN)</MachineText>
-                    <TextField>
-                      <TextField.Input
-                        value={item.estimatedMinutes}
-                        onChangeText={(value) => updateDraft(index, { estimatedMinutes: value })}
-                        placeholder="25"
-                        keyboardType="number-pad"
-                        className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
-                        style={{ fontFamily: "Menlo" }}
-                      />
-                    </TextField>
-                  </View>
-                </HardCard>
-              ))}
-            </View>
-            <View className="flex-row gap-2 flex-wrap">
-              <Button onPress={savePlan} isDisabled={isSaving} className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]" size="sm">
-                {isSaving ? <Spinner size="sm" color="white" /> : <MachineText className="text-background font-bold">SAVE_PLAN</MachineText>}
-              </Button>
-              {plan ? (
-                <Button
-                  onPress={() => setIsEditing(false)}
-                  isDisabled={isSaving}
-                  className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
-                  size="sm"
-                >
-                  <MachineText className="text-foreground font-bold">CANCEL</MachineText>
-                </Button>
-              ) : null}
-              {plannerState === "NO_PLAN" ? (
-                <Button onPress={restPlan} isDisabled={isSaving} className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" size="sm">
-                  <MachineText className="text-foreground font-bold">REST_DAY</MachineText>
-                </Button>
-              ) : null}
-            </View>
-          </HardCard>
-        ) : (
-          <HardCard label="CURRENT_Plan" className="gap-4 p-4">
-            <View className="gap-1">
-              <MachineText className="font-bold">TODAY'S PLAN</MachineText>
-              <MachineText className="text-xs text-muted">TOTAL: {totalMinutes} MIN</MachineText>
-            </View>
-            <View className="gap-3">
-              {plan?.focusItems.map((item) => (
-                <HardCard key={item.id} variant="default" padding="sm" className="bg-surface">
-                  <View className="flex-row items-center justify-between">
-                    <View className="gap-1">
-                      <MachineText className="font-bold">{item.label}</MachineText>
-                      <MachineText className="text-xs text-muted">{item.estimatedMinutes} MIN</MachineText>
-                    </View>
-                  </View>
-                </HardCard>
-              ))}
-            </View>
-
-            {showNextStep ? (
-              <HardCard variant="flat" className="gap-3 border-accent/40 bg-accent/10">
-                <View className="gap-1">
-                  <MachineText className="font-bold text-accent">NEXT_STEP</MachineText>
-                  <MachineText className="text-xs text-muted">Keep it small and doable.</MachineText>
+      {showEditor ? (
+        <HardCard label="EDIT_PLAN" className="gap-4 p-4">
+          <View className="gap-1">
+            <MachineText className="font-bold">TODAY'S FOCUS</MachineText>
+            <MachineText className="text-xs text-muted">
+              Up to three items, rough effort only.
+            </MachineText>
+          </View>
+          <View className="gap-4">
+            {draftItems.map((item, index) => (
+              <HardCard
+                key={item.id}
+                variant="flat"
+                padding="sm"
+                className="gap-2 bg-surface border-dashed"
+              >
+                <View>
+                  <MachineText variant="label" className="mb-1">
+                    FOCUS ITEM {index + 1}
+                  </MachineText>
+                  <TextField>
+                    <TextField.Input
+                      value={item.label}
+                      onChangeText={(value) =>
+                        updateDraft(index, { label: value })
+                      }
+                      placeholder="Small, meaningful thing"
+                      className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
+                      style={{ fontFamily: "Menlo" }}
+                    />
+                  </TextField>
                 </View>
                 <View>
-                  <MachineText className="font-bold text-lg">
-                    {plan?.focusItems[nextStepIndex]?.label}
+                  <MachineText variant="label" className="mb-1">
+                    ESTIMATE (MIN)
                   </MachineText>
-                  <MachineText className="text-xs text-muted">{nextStepMinutes} MIN</MachineText>
-                </View>
-                <View className="flex-row gap-2 flex-wrap">
-                  <Button className="bg-accent rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" onPress={() => setShowNextStep(false)} size="sm">
-                    <MachineText className="text-accent-foreground font-bold">START</MachineText>
-                  </Button>
-                  <Button className="bg-surface border border-foreground rounded-none" onPress={shrinkNextStep} size="sm">
-                    <MachineText className="text-foreground text-[10px] font-bold">SMALLER</MachineText>
-                  </Button>
-                  {plan && plan.focusItems.length > 1 ? (
-                    <Button className="bg-surface border border-foreground rounded-none" onPress={skipNextStep} size="sm">
-                      <MachineText className="text-foreground text-[10px] font-bold">SKIP</MachineText>
-                    </Button>
-                  ) : null}
+                  <TextField>
+                    <TextField.Input
+                      value={item.estimatedMinutes}
+                      onChangeText={(value) =>
+                        updateDraft(index, { estimatedMinutes: value })
+                      }
+                      placeholder="25"
+                      keyboardType="number-pad"
+                      className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
+                      style={{ fontFamily: "Menlo" }}
+                    />
+                  </TextField>
                 </View>
               </HardCard>
-            ) : null}
-
-            <View className="flex-row gap-2 flex-wrap mt-2">
-              {plannerState === "OVERLOADED" ? (
-                <>
-                  <Button onPress={resetPlan} className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" isDisabled={isSaving} size="sm">
-                    <MachineText className="text-foreground text-[10px] font-bold">PLAN_RESET</MachineText>
-                  </Button>
-                  <Button onPress={() => shrinkPlan(1)} className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" isDisabled={isSaving} size="sm">
-                    <MachineText className="text-foreground text-[10px] font-bold">SHRINK_TO_1</MachineText>
-                  </Button>
-                </>
-              ) : null}
-              {plannerState === "STALLED" || plannerState === "PLANNED_OK" ? (
-                <>
-                  <Button onPress={() => startNextStep()} className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]" isDisabled={isSaving} size="sm">
-                    <MachineText className="text-background font-bold">START_SESSION</MachineText>
-                  </Button>
-                  {plannerState === "STALLED" ? (
-                    <Button
-                      onPress={() => startNextStep(10)}
-                      className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
-                      isDisabled={isSaving}
-                      size="sm"
-                    >
-                      <MachineText className="text-foreground font-bold">TINY_WIN</MachineText>
-                    </Button>
-                  ) : null}
-                </>
-              ) : null}
-              <Button onPress={startAdjust} className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]" isDisabled={isSaving} size="sm">
-                <MachineText className="text-foreground font-bold">ADJUST</MachineText>
+            ))}
+          </View>
+          <View className="flex-row gap-2 flex-wrap">
+            <Button
+              onPress={savePlan}
+              isDisabled={isSaving}
+              className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]"
+              size="sm"
+            >
+              {isSaving ? (
+                <Spinner size="sm" color="white" />
+              ) : (
+                <MachineText className="text-background font-bold">
+                  SAVE_PLAN
+                </MachineText>
+              )}
+            </Button>
+            {plan ? (
+              <Button
+                onPress={() => setIsEditing(false)}
+                isDisabled={isSaving}
+                className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+                size="sm"
+              >
+                <MachineText className="text-foreground font-bold">
+                  CANCEL
+                </MachineText>
               </Button>
-            </View>
-          </HardCard>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+            ) : null}
+            {plannerState === "NO_PLAN" ? (
+              <Button
+                onPress={restPlan}
+                isDisabled={isSaving}
+                className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+                size="sm"
+              >
+                <MachineText className="text-foreground font-bold">
+                  REST_DAY
+                </MachineText>
+              </Button>
+            ) : null}
+          </View>
+        </HardCard>
+      ) : (
+        <HardCard label="CURRENT_Plan" className="gap-4 p-4">
+          <View className="gap-1">
+            <MachineText className="font-bold">TODAY'S PLAN</MachineText>
+            <MachineText className="text-xs text-muted">
+              TOTAL: {totalMinutes} MIN
+            </MachineText>
+          </View>
+          <View className="gap-3">
+            {plan?.focusItems.map((item) => (
+              <HardCard
+                key={item.id}
+                variant="default"
+                padding="sm"
+                className="bg-surface"
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="gap-1">
+                    <MachineText className="font-bold">
+                      {item.label}
+                    </MachineText>
+                    <MachineText className="text-xs text-muted">
+                      {item.estimatedMinutes} MIN
+                    </MachineText>
+                  </View>
+                </View>
+              </HardCard>
+            ))}
+          </View>
+
+          {showNextStep ? (
+            <HardCard
+              variant="flat"
+              className="gap-3 border-accent/40 bg-accent/10"
+            >
+              <View className="gap-1">
+                <MachineText className="font-bold text-accent">
+                  NEXT_STEP
+                </MachineText>
+                <MachineText className="text-xs text-muted">
+                  Keep it small and doable.
+                </MachineText>
+              </View>
+              <View>
+                <MachineText className="font-bold text-lg">
+                  {plan?.focusItems[nextStepIndex]?.label}
+                </MachineText>
+                <MachineText className="text-xs text-muted">
+                  {nextStepMinutes} MIN
+                </MachineText>
+              </View>
+              <View className="flex-row gap-2 flex-wrap">
+                <Button
+                  className="bg-accent rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+                  onPress={() => setShowNextStep(false)}
+                  size="sm"
+                >
+                  <MachineText className="text-accent-foreground font-bold">
+                    START
+                  </MachineText>
+                </Button>
+                <Button
+                  className="bg-surface border border-foreground rounded-none"
+                  onPress={shrinkNextStep}
+                  size="sm"
+                >
+                  <MachineText className="text-foreground text-[10px] font-bold">
+                    SMALLER
+                  </MachineText>
+                </Button>
+                {plan && plan.focusItems.length > 1 ? (
+                  <Button
+                    className="bg-surface border border-foreground rounded-none"
+                    onPress={skipNextStep}
+                    size="sm"
+                  >
+                    <MachineText className="text-foreground text-[10px] font-bold">
+                      SKIP
+                    </MachineText>
+                  </Button>
+                ) : null}
+              </View>
+            </HardCard>
+          ) : null}
+
+          <View className="flex-row gap-2 flex-wrap mt-2">
+            {plannerState === "OVERLOADED" ? (
+              <>
+                <Button
+                  onPress={resetPlan}
+                  className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+                  isDisabled={isSaving}
+                  size="sm"
+                >
+                  <MachineText className="text-foreground text-[10px] font-bold">
+                    PLAN_RESET
+                  </MachineText>
+                </Button>
+                <Button
+                  onPress={() => shrinkPlan(1)}
+                  className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+                  isDisabled={isSaving}
+                  size="sm"
+                >
+                  <MachineText className="text-foreground text-[10px] font-bold">
+                    SHRINK_TO_1
+                  </MachineText>
+                </Button>
+              </>
+            ) : null}
+            {plannerState === "STALLED" || plannerState === "PLANNED_OK" ? (
+              <>
+                <Button
+                  onPress={() => startNextStep()}
+                  className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]"
+                  isDisabled={isSaving}
+                  size="sm"
+                >
+                  <MachineText className="text-background font-bold">
+                    START_SESSION
+                  </MachineText>
+                </Button>
+                {plannerState === "STALLED" ? (
+                  <Button
+                    onPress={() => startNextStep(10)}
+                    className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+                    isDisabled={isSaving}
+                    size="sm"
+                  >
+                    <MachineText className="text-foreground font-bold">
+                      TINY_WIN
+                    </MachineText>
+                  </Button>
+                ) : null}
+              </>
+            ) : null}
+            <Button
+              onPress={startAdjust}
+              className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+              isDisabled={isSaving}
+              size="sm"
+            >
+              <MachineText className="text-foreground font-bold">
+                ADJUST
+              </MachineText>
+            </Button>
+          </View>
+        </HardCard>
+      )}
+    </Container>
   );
 }

@@ -50,6 +50,13 @@ export default function TabLayout() {
           title: "INPUT",
         }}
       />
+
+      <Tabs.Screen
+        name="weekly-review"
+        options={{
+          title: "REVIEW",
+        }}
+      />
     </Tabs>
   );
 }

@@ -6,7 +6,7 @@ const cardStyles = tv({
   variants: {
     variant: {
       default: "shadow-[2px_2px_0px_var(--color-foreground)]",
-      flat: "border-divider shadow-none bg-muted-foreground",
+      flat: "border-divider shadow-none bg-muted",
       pressed: "translate-x-[2px] translate-y-[2px] shadow-none border-divider",
     },
     radius: {

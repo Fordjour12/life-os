@@ -13,6 +13,8 @@ import { PatternInsightsCard } from "@/components/pattern-insights-card";
 import { WeeklyReviewCard } from "@/components/weekly-review-card";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
+import { Container } from "@/components/container";
+import { TodaySkeleton } from "@/components/skeletons/today-skeleton";
 
 // We'll define a local component for the "Engineering Badge" for now to match the style
 function EngBadge({
@@ -266,11 +268,7 @@ export default function Today() {
   const tasks = useMemo(() => (tasksData ?? []) as TaskItem[], [tasksData]);
 
   if (!data) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <TodaySkeleton />;
   }
 
   const currentDate = new Date()
@@ -282,314 +280,305 @@ export default function Today() {
     .toUpperCase();
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="mb-6 flex-row justify-between items-end border-b-2 border-divider pb-2">
-          <View>
-            <MachineText variant="label" className="text-accent mb-1">
-              SYSTEM://OVERVIEW
-            </MachineText>
-            <MachineText variant="header" size="2xl">
-              TODAY
-            </MachineText>
-          </View>
-          <MachineText variant="value" className="text-sm">
-            {currentDate}
+    <Container className="pt-8">
+      <View className="mb-6 flex-row justify-between items-end border-b-2 border-divider pb-2">
+        <View>
+          <MachineText variant="label" className="text-accent mb-1">
+            SYSTEM://OVERVIEW
+          </MachineText>
+          <MachineText variant="header" size="2xl">
+            TODAY
           </MachineText>
         </View>
+        <MachineText variant="value" className="text-sm">
+          {currentDate}
+        </MachineText>
+      </View>
 
-        {/* System State Row */}
-        <HardCard className="mb-8" padding="sm" label="KERNEL SYSTEM STATUS">
-          <View className="flex-row flex-wrap justify-between gap-y-4 p-2">
-            <EngBadge
-              label="SYS.LOAD"
-              value={data.state?.load ?? "BALANCED"}
-              intent={getStatusIntent(data.state?.load ?? "Balanced")}
-            />
-            <EngBadge
-              label="FLUX"
-              value={data.state?.momentum ?? "STEADY"}
-              intent={getStatusIntent(data.state?.momentum ?? "Steady")}
-            />
-            <EngBadge
-              label="CPU"
-              value={data.state?.focusCapacity ?? "MEDIUM"}
-              intent={getStatusIntent(data.state?.focusCapacity ?? "Medium")}
-            />
-            <EngBadge
-              label="PWR"
-              value={data.state?.habitHealth ?? "STABLE"}
-              intent={getStatusIntent(data.state?.habitHealth ?? "Stable")}
-            />
-          </View>
-        </HardCard>
+      {/* System State Row */}
+      <HardCard className="mb-8" padding="sm" label="KERNEL SYSTEM STATUS">
+        <View className="flex-row flex-wrap justify-between gap-y-4 p-2">
+          <EngBadge
+            label="SYS.LOAD"
+            value={data.state?.load ?? "BALANCED"}
+            intent={getStatusIntent(data.state?.load ?? "Balanced")}
+          />
+          <EngBadge
+            label="FLUX"
+            value={data.state?.momentum ?? "STEADY"}
+            intent={getStatusIntent(data.state?.momentum ?? "Steady")}
+          />
+          <EngBadge
+            label="CPU"
+            value={data.state?.focusCapacity ?? "MEDIUM"}
+            intent={getStatusIntent(data.state?.focusCapacity ?? "Medium")}
+          />
+          <EngBadge
+            label="PWR"
+            value={data.state?.habitHealth ?? "STABLE"}
+            intent={getStatusIntent(data.state?.habitHealth ?? "Stable")}
+          />
+        </View>
+      </HardCard>
 
-        <DailyIntentCard
-          plan={
-            (data.plan ?? null) as {
-              day: string;
-              version: number;
-              reason: string;
-              focusItems: Array<{
-                id: string;
-                label: string;
-                estimatedMinutes: number;
-              }>;
-            } | null
-          }
-          plannedMinutes={data.state?.plannedMinutes ?? null}
-          completedMinutes={data.state?.completedMinutes ?? null}
+      <DailyIntentCard
+        plan={
+          (data.plan ?? null) as {
+            day: string;
+            version: number;
+            reason: string;
+            focusItems: Array<{
+              id: string;
+              label: string;
+              estimatedMinutes: number;
+            }>;
+          } | null
+        }
+        plannedMinutes={data.state?.plannedMinutes ?? null}
+        completedMinutes={data.state?.completedMinutes ?? null}
+      />
+
+      {weeklyReview && (
+        <WeeklyReviewCard
+          review={weeklyReview ?? null}
+          onGenerate={generateWeeklyReview}
+          isGenerating={isGeneratingWeeklyReview}
         />
+      )}
 
-        {weeklyReview && (
-          <WeeklyReviewCard
-            review={weeklyReview ?? null}
-            onGenerate={generateWeeklyReview}
-            isGenerating={isGeneratingWeeklyReview}
-          />
-        )}
+      {patternInsights !== undefined ? (
+        <PatternInsightsCard
+          insights={patternInsights ?? null}
+          windowLabel="WEEK_WINDOW"
+        />
+      ) : null}
 
-        {patternInsights !== undefined ? (
-          <PatternInsightsCard
-            insights={patternInsights ?? null}
-            windowLabel="WEEK_WINDOW"
-          />
-        ) : null}
+      {driftSignals !== undefined ? (
+        <DriftSignalsCard
+          signals={driftSignals ?? null}
+          windowLabel="MONTH_WINDOW"
+        />
+      ) : null}
 
-        {driftSignals !== undefined ? (
-          <DriftSignalsCard
-            signals={driftSignals ?? null}
-            windowLabel="MONTH_WINDOW"
-          />
-        ) : null}
+      {journalPrompt !== undefined ? (
+        <JournalPromptCard
+          day={data.day}
+          prompt={journalPrompt?.prompt ?? null}
+          quiet={journalPrompt?.quiet}
+          reason={normalizeJournalReason(journalPrompt?.reason)}
+          onSubmit={submitJournalEntry}
+          onSkip={skipJournal}
+          entries={
+            (journalEntries ?? []) as Array<{
+              _id: string;
+              text?: string;
+              mood?: JournalMood;
+              createdAt: number;
+            }>
+          }
+          isSkipping={isSkippingJournal}
+          isSubmitting={isSubmittingJournal}
+        />
+      ) : null}
 
-        {journalPrompt !== undefined ? (
-          <JournalPromptCard
-            day={data.day}
-            prompt={journalPrompt?.prompt ?? null}
-            quiet={journalPrompt?.quiet}
-            reason={normalizeJournalReason(journalPrompt?.reason)}
-            onSubmit={submitJournalEntry}
-            onSkip={skipJournal}
-            entries={
-              (journalEntries ?? []) as Array<{
-                _id: string;
-                text?: string;
-                mood?: JournalMood;
-                createdAt: number;
-              }>
-            }
-            isSkipping={isSkippingJournal}
-            isSubmitting={isSubmittingJournal}
-          />
-        ) : null}
-
-        {/* Suggestions Section - Highlighted */}
-        {suggestions.length > 0 && (
-          <View className="mb-8">
-            <MachineText variant="label" className="mb-2 text-accent">
-              INPUT_SIGNALS ({suggestions.length})
-            </MachineText>
-            <View className="gap-3">
-              {suggestions.slice(0, 2).map((suggestion: SuggestionItem) => (
-                <HardCard
-                  key={suggestion._id}
-                  variant="default"
-                  className="border-accent"
-                  label={`SIG-${suggestion.type}`}
-                >
-                  <View className="flex-row items-start justify-between">
-                    <View className="flex-1 mr-4">
-                      <MachineText className="font-bold text-lg mb-1">
-                        {suggestion.type.replace(/_/g, " ")}
-                      </MachineText>
-                      <MachineText className="text-xs opacity-70">
-                        {suggestion.reason?.detail}
-                      </MachineText>
-                    </View>
-                    <View className="gap-2">
-                      {suggestion.type === "PLAN_RESET" && (
+      {/* Suggestions Section - Highlighted */}
+      {suggestions.length > 0 && (
+        <View className="mb-8">
+          <MachineText variant="label" className="mb-2 text-accent">
+            INPUT_SIGNALS ({suggestions.length})
+          </MachineText>
+          <View className="gap-3">
+            {suggestions.slice(0, 2).map((suggestion: SuggestionItem) => (
+              <HardCard
+                key={suggestion._id}
+                variant="default"
+                className="border-accent"
+                label={`SIG-${suggestion.type}`}
+              >
+                <View className="flex-row items-start justify-between">
+                  <View className="flex-1 mr-4">
+                    <MachineText className="font-bold text-lg mb-1">
+                      {suggestion.type.replace(/_/g, " ")}
+                    </MachineText>
+                    <MachineText className="text-xs opacity-70">
+                      {suggestion.reason?.detail}
+                    </MachineText>
+                  </View>
+                  <View className="gap-2">
+                    {suggestion.type === "PLAN_RESET" && (
+                      <Button
+                        size="sm"
+                        className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                        onPress={() =>
+                          applyPlanResetMutation({
+                            day: data.day,
+                            keepCount: suggestion.payload?.keepCount ?? 1,
+                            idempotencyKey: idem(),
+                          })
+                        }
+                      >
+                        <MachineText className="text-accent-foreground text-xs font-bold">
+                          EXECUTE
+                        </MachineText>
+                      </Button>
+                    )}
+                    {suggestion.type === "GENTLE_RETURN" && (
+                      <Button
+                        size="sm"
+                        className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                        onPress={() => resumeTask(suggestion.payload?.taskId)}
+                      >
+                        <MachineText className="text-accent-foreground text-xs font-bold">
+                          RESUME
+                        </MachineText>
+                      </Button>
+                    )}
+                    {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && (
+                      <View className="gap-2">
                         <Button
                           size="sm"
-                          className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
+                          className="bg-accent shadow-[2px_2px_0px_var(--color-foreground)] rounded-none border border-foreground"
+                          onPress={() => doTinyWin(suggestion.payload?.tinyWin)}
+                        >
+                          <MachineText className="text-accent-foreground text-xs font-bold">
+                            DO TINY WIN
+                          </MachineText>
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
                           onPress={() =>
-                            applyPlanResetMutation({
-                              day: data.day,
-                              keepCount: suggestion.payload?.keepCount ?? 1,
-                              idempotencyKey: idem(),
-                            })
+                            acceptRest(suggestion.payload?.rest?.minutes ?? 15)
                           }
                         >
-                          <MachineText className="text-accent-foreground text-xs font-bold">
-                            EXECUTE
+                          <MachineText className="text-xs font-bold text-foreground">
+                            REST
                           </MachineText>
                         </Button>
-                      )}
-                      {suggestion.type === "GENTLE_RETURN" && (
                         <Button
                           size="sm"
-                          className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
-                          onPress={() => resumeTask(suggestion.payload?.taskId)}
+                          className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+                          onPress={() => setShowReflection(!showReflection)}
                         >
-                          <MachineText className="text-accent-foreground text-xs font-bold">
-                            RESUME
+                          <MachineText className="text-xs font-bold text-foreground">
+                            REFLECT
                           </MachineText>
                         </Button>
-                      )}
-                      {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && (
-                        <View className="gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-accent shadow-[2px_2px_0px_var(--color-foreground)] rounded-none border border-foreground"
-                            onPress={() =>
-                              doTinyWin(suggestion.payload?.tinyWin)
-                            }
-                          >
-                            <MachineText className="text-accent-foreground text-xs font-bold">
-                              DO TINY WIN
-                            </MachineText>
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
-                            onPress={() =>
-                              acceptRest(
-                                suggestion.payload?.rest?.minutes ?? 15,
-                              )
-                            }
-                          >
-                            <MachineText className="text-xs font-bold text-foreground">
-                              REST
-                            </MachineText>
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
-                            onPress={() => setShowReflection(!showReflection)}
-                          >
-                            <MachineText className="text-xs font-bold text-foreground">
-                              REFLECT
-                            </MachineText>
-                          </Button>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                  {suggestion.type === "MICRO_RECOVERY_PROTOCOL" &&
-                  showReflection ? (
-                    <View className="mt-3 p-2 bg-muted border-t border-divider">
-                      <MachineText className="text-xs italic">
-                        {suggestion.payload?.reflection?.question}
-                      </MachineText>
-                    </View>
-                  ) : null}
-                </HardCard>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Tasks Section */}
-        <View className="mb-8">
-          <View className="flex-row justify-between items-end mb-4 px-1 border-b border-divider pb-2">
-            <MachineText variant="header" size="lg">
-              EXECUTION_QUEUE
-            </MachineText>
-            <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
-          </View>
-
-          <View className="gap-2 mb-6">
-            {tasks.length > 0 ? (
-              tasks.map((task: TaskItem, index) => (
-                <HardCard key={task._id} padding="sm" className="bg-surface">
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-3 flex-1">
-                      <MachineText
-                        variant="label"
-                        className="w-4 text-center text-foreground/30"
-                      >
-                        {index + 1}
-                      </MachineText>
-                      <View>
-                        <MachineText className="font-bold text-base">
-                          {task.title}
-                        </MachineText>
-                        <MachineText className="text-xs opacity-50">
-                          {task.estimateMin} MIN
-                        </MachineText>
                       </View>
-                    </View>
-                    <Button
-                      size="sm"
-                      onPress={() => completeTask(task._id)}
-                      className="border border-divider bg-muted shadow-[2px_2px_0px_var(--color-foreground)]"
-                    >
-                      <MachineText className="text-[10px] font-bold text-foreground">
-                        DONE
-                      </MachineText>
-                    </Button>
+                    )}
                   </View>
-                </HardCard>
-              ))
-            ) : (
-              <HardCard
-                variant="flat"
-                className="items-center py-6 border-dashed"
-              >
-                <MachineText className="opacity-50">QUEUE_EMPTY</MachineText>
+                </View>
+                {suggestion.type === "MICRO_RECOVERY_PROTOCOL" &&
+                showReflection ? (
+                  <View className="mt-3 p-2 bg-muted border-t border-divider">
+                    <MachineText className="text-xs italic">
+                      {suggestion.payload?.reflection?.question}
+                    </MachineText>
+                  </View>
+                ) : null}
               </HardCard>
-            )}
+            ))}
           </View>
+        </View>
+      )}
 
-          {/* Quick Add Form */}
-          <HardCard label="CMD_LINE_INPUT" className="bg-surface">
-            <View className="gap-3">
-              <View className="bg-surface border border-divider p-1">
+      {/* Tasks Section */}
+      <View className="mb-8">
+        <View className="flex-row justify-between items-end mb-4 px-1 border-b border-divider pb-2">
+          <MachineText variant="header" size="lg">
+            EXECUTION_QUEUE
+          </MachineText>
+          <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
+        </View>
+
+        <View className="gap-2 mb-6">
+          {tasks.length > 0 ? (
+            tasks.map((task: TaskItem, index) => (
+              <HardCard key={task._id} padding="sm" className="bg-surface">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-3 flex-1">
+                    <MachineText
+                      variant="label"
+                      className="w-4 text-center text-foreground/30"
+                    >
+                      {index + 1}
+                    </MachineText>
+                    <View>
+                      <MachineText className="font-bold text-base">
+                        {task.title}
+                      </MachineText>
+                      <MachineText className="text-xs opacity-50">
+                        {task.estimateMin} MIN
+                      </MachineText>
+                    </View>
+                  </View>
+                  <Button
+                    size="sm"
+                    onPress={() => completeTask(task._id)}
+                    className="border border-divider bg-muted shadow-[2px_2px_0px_var(--color-foreground)]"
+                  >
+                    <MachineText className="text-[10px] font-bold text-foreground">
+                      DONE
+                    </MachineText>
+                  </Button>
+                </View>
+              </HardCard>
+            ))
+          ) : (
+            <HardCard
+              variant="flat"
+              className="items-center py-6 border-dashed"
+            >
+              <MachineText className="opacity-50">QUEUE_EMPTY</MachineText>
+            </HardCard>
+          )}
+        </View>
+
+        {/* Quick Add Form */}
+        <HardCard label="CMD_LINE_INPUT" className="bg-surface">
+          <View className="gap-3">
+            <View className="bg-surface border border-divider p-1">
+              <TextField>
+                <TextField.Input
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="> TYPE_TASK_NAME..."
+                  className="font-mono text-sm"
+                  style={{ fontFamily: "Menlo", fontSize: 14 }}
+                />
+              </TextField>
+            </View>
+
+            <View className="flex-row gap-3">
+              <View className="flex-1 bg-surface border border-divider p-1">
                 <TextField>
                   <TextField.Input
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="> TYPE_TASK_NAME..."
-                    className="font-mono text-sm h-8"
-                    style={{ fontFamily: "Menlo", fontSize: 14 }}
+                    value={estimate}
+                    onChangeText={setEstimate}
+                    placeholder="MIN"
+                    keyboardType="number-pad"
+                    className="font-mono text-sm"
+                    style={{ fontFamily: "Menlo" }}
                   />
                 </TextField>
               </View>
-
-              <View className="flex-row gap-3">
-                <View className="flex-1 bg-surface border border-divider p-1">
-                  <TextField>
-                    <TextField.Input
-                      value={estimate}
-                      onChangeText={setEstimate}
-                      placeholder="MIN"
-                      keyboardType="number-pad"
-                      className="font-mono text-sm h-8"
-                      style={{ fontFamily: "Menlo" }}
-                    />
-                  </TextField>
-                </View>
-                <Button
-                  onPress={createTask}
-                  isDisabled={isCreating}
-                  className="bg-foreground px-6 shadow-[2px_2px_0px_var(--color-accent)]"
-                >
-                  {isCreating ? (
-                    <Spinner size="sm" color="white" />
-                  ) : (
-                    <MachineText className="text-background font-bold">
-                      ENTER
-                    </MachineText>
-                  )}
-                </Button>
-              </View>
+              <Button
+                onPress={createTask}
+                isDisabled={isCreating}
+                className="bg-foreground px-6 shadow-[2px_2px_0px_var(--color-accent)]"
+              >
+                {isCreating ? (
+                  <Spinner size="sm" color="white" />
+                ) : (
+                  <MachineText className="text-background font-bold">
+                    ENTER
+                  </MachineText>
+                )}
+              </Button>
             </View>
-          </HardCard>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          </View>
+        </HardCard>
+      </View>
+    </Container>
   );
 }

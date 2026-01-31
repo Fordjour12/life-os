@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
+import { Container } from "@/components/container";
 
 type CalendarBlock = {
   _id: string;
@@ -54,7 +55,10 @@ function shiftDay(day: string, deltaDays: number) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-const kindStyles: Record<CalendarBlock["kind"], { label: string; badge: string }> = {
+const kindStyles: Record<
+  CalendarBlock["kind"],
+  { label: string; badge: string }
+> = {
   busy: { label: "BUSY", badge: "bg-accent" },
   focus: { label: "FOCUS", badge: "bg-warning" },
   rest: { label: "REST", badge: "bg-success" },
@@ -168,7 +172,9 @@ export default function TimeReality() {
         title: block.title,
         notes: block.notes,
       });
-      setToastMessage(dayOverride ? "Duplicated to tomorrow." : "Block duplicated.");
+      setToastMessage(
+        dayOverride ? "Duplicated to tomorrow." : "Block duplicated.",
+      );
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
       toastTimeout.current = setTimeout(() => {
         setToastMessage(null);
@@ -185,7 +191,11 @@ export default function TimeReality() {
       "Reason: this protects what the day allows. Removing reduces the system’s reality signal.",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Remove", style: "destructive", onPress: () => removeBlock(block._id) },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => removeBlock(block._id),
+        },
       ],
     );
   };
@@ -198,7 +208,7 @@ export default function TimeReality() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Container className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View className="mb-6 flex-row justify-between items-end border-b-2 border-divider pb-2">
           <View>
@@ -225,19 +235,27 @@ export default function TimeReality() {
                 <MachineText variant="label" className="mt-2">
                   EFFECTIVE_FREE
                 </MachineText>
-                <MachineText className="text-sm">{effectiveFreeLabel}</MachineText>
+                <MachineText className="text-sm">
+                  {effectiveFreeLabel}
+                </MachineText>
               </View>
               <View className="items-end">
                 <MachineText variant="label">BUSY_COUNTS</MachineText>
-                <MachineText className="text-sm">{busyMinutesLabel}</MachineText>
+                <MachineText className="text-sm">
+                  {busyMinutesLabel}
+                </MachineText>
                 <MachineText variant="label" className="mt-2">
                   OTHER_BLOCKS_NO_COUNT
                 </MachineText>
-                <MachineText className="text-sm">{otherMinutesLabel}</MachineText>
+                <MachineText className="text-sm">
+                  {otherMinutesLabel}
+                </MachineText>
                 <MachineText variant="label" className="mt-2">
                   FOCUS_BLOCKS
                 </MachineText>
-                <MachineText className="text-sm">{focusMinutesLabel}</MachineText>
+                <MachineText className="text-sm">
+                  {focusMinutesLabel}
+                </MachineText>
                 <MachineText variant="label" className="mt-2">
                   CAPACITY
                 </MachineText>
@@ -253,7 +271,8 @@ export default function TimeReality() {
               </MachineText>
             </View>
             <MachineText className="text-[10px] text-foreground/60">
-              BUSY reduces free time. FOCUS boosts effective free. Other kinds are shown only.
+              BUSY reduces free time. FOCUS boosts effective free. Other kinds
+              are shown only.
             </MachineText>
           </View>
         </HardCard>
@@ -270,7 +289,9 @@ export default function TimeReality() {
                   key={block._id}
                   className="flex-row items-start justify-between border border-divider bg-surface px-3 py-2"
                 >
-                  <View className={`w-1 self-stretch ${kindStyles[block.kind].badge}`} />
+                  <View
+                    className={`w-1 self-stretch ${kindStyles[block.kind].badge}`}
+                  />
                   <Pressable
                     className="flex-1 ml-3 mr-2"
                     onPress={() => toggleNotes(block._id)}
@@ -294,8 +315,12 @@ export default function TimeReality() {
                   </Pressable>
                   <View className="items-end gap-2">
                     <View className="flex-row items-center gap-2">
-                      <View className={`w-2 h-2 ${kindStyles[block.kind].badge}`} />
-                      <MachineText variant="label">{kindStyles[block.kind].label}</MachineText>
+                      <View
+                        className={`w-2 h-2 ${kindStyles[block.kind].badge}`}
+                      />
+                      <MachineText variant="label">
+                        {kindStyles[block.kind].label}
+                      </MachineText>
                       {block.kind === "busy" ? (
                         <MachineText className="text-[9px] text-foreground/60">
                           COUNTS_FREE
@@ -370,13 +395,17 @@ export default function TimeReality() {
               className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
               onPress={() => router.push("/add-busy-time" as any)}
             >
-              <MachineText className="text-accent-foreground font-bold">ADD BUSY TIME</MachineText>
+              <MachineText className="text-accent-foreground font-bold">
+                ADD BUSY TIME
+              </MachineText>
             </Button>
             <Button
               className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
               onPress={() => router.push("/import-calendar" as any)}
             >
-              <MachineText className="text-foreground font-bold">IMPORT CALENDAR</MachineText>
+              <MachineText className="text-foreground font-bold">
+                IMPORT CALENDAR
+              </MachineText>
             </Button>
             <MachineText className="text-xs text-foreground/70">
               Reason: protect what the day allows.
@@ -387,10 +416,12 @@ export default function TimeReality() {
       {toastMessage ? (
         <View className="absolute bottom-6 left-4 right-4">
           <View className="bg-foreground px-3 py-2 border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]">
-            <MachineText className="text-background text-xs">{toastMessage}</MachineText>
+            <MachineText className="text-background text-xs">
+              {toastMessage}
+            </MachineText>
           </View>
         </View>
       ) : null}
-    </SafeAreaView>
+    </Container>
   );
 }

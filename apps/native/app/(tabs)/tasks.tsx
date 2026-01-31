@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
+import { Container } from "@/components/container";
 
 type TaskItem = {
   _id: Id<"tasks">;
@@ -24,7 +25,9 @@ export default function Tasks() {
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
   const pausedTasksData = useQuery(api.kernel.taskQueries.getPausedTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
-  const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
+  const completeTaskMutation = useMutation(
+    api.kernel.taskCommands.completeTask,
+  );
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
 
   const [title, setTitle] = useState("");
@@ -82,113 +85,166 @@ export default function Tasks() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-        <View className="mb-6 border-b-2 border-divider pb-2">
-          <MachineText variant="header" size="2xl">ALL_TASKS</MachineText>
-          <MachineText className="text-muted text-xs mt-1">
-            EXECUTION QUEUE MONITOR
-          </MachineText>
+    <Container className="pt-6">
+      <View className="mb-6 border-b-2 border-divider pb-2">
+        <MachineText variant="header" size="2xl">
+          ALL_TASKS
+        </MachineText>
+        <MachineText className="text-muted text-xs mt-1">
+          EXECUTION QUEUE MONITOR
+        </MachineText>
+      </View>
+
+      <View className="gap-6">
+        <HardCard label="CREATE_TASK" className="bg-surface gap-4 p-4">
+          <View className="gap-3">
+            <View>
+              <MachineText variant="label" className="mb-1">
+                TASK NAME
+              </MachineText>
+              <TextField>
+                <TextField.Input
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="Small, doable task..."
+                  className="bg-surface border text-sm font-mono h-10 border-divider"
+                  style={{ fontFamily: "Menlo" }}
+                />
+              </TextField>
+            </View>
+            <View>
+              <MachineText variant="label" className="mb-1">
+                ESTIMATE (MIN)
+              </MachineText>
+              <TextField>
+                <TextField.Input
+                  value={estimate}
+                  onChangeText={setEstimate}
+                  placeholder="25"
+                  keyboardType="number-pad"
+                  className="bg-surface border text-sm font-mono h-10 border-divider"
+                  style={{ fontFamily: "Menlo" }}
+                />
+              </TextField>
+            </View>
+            <Button
+              onPress={createTask}
+              isDisabled={isCreating}
+              className="bg-accent rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+            >
+              {isCreating ? (
+                <Spinner size="sm" color="white" />
+              ) : (
+                <MachineText className="text-accent-foreground font-bold">
+                  ADD_TASK
+                </MachineText>
+              )}
+            </Button>
+          </View>
+        </HardCard>
+
+        <View>
+          <View className="flex-row justify-between items-end mb-2 border-b border-divider pb-1">
+            <MachineText variant="header" size="md">
+              ACTIVE_QUEUE
+            </MachineText>
+            <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
+          </View>
+
+          <View className="gap-3">
+            {tasks.length ? (
+              tasks.map((task) => (
+                <HardCard key={task._id} padding="sm" className="bg-surface">
+                  <View className="flex-row items-center justify-between">
+                    <View className="gap-1 flex-1">
+                      <MachineText className="font-bold text-base">
+                        {task.title}
+                      </MachineText>
+                      <MachineText className="text-muted text-xs">
+                        {task.estimateMin} MIN
+                      </MachineText>
+                    </View>
+                    <Button
+                      size="sm"
+                      className="bg-surface border border-foreground rounded-none"
+                      onPress={() => completeTask(task._id)}
+                    >
+                      <MachineText className="text-foreground text-xs font-bold">
+                        DONE
+                      </MachineText>
+                    </Button>
+                  </View>
+                </HardCard>
+              ))
+            ) : (
+              <HardCard
+                variant="flat"
+                className="p-4 border-dashed items-center"
+              >
+                <MachineText className="text-muted">QUEUE_EMPTY</MachineText>
+              </HardCard>
+            )}
+          </View>
         </View>
 
-        <View className="gap-6">
-          <HardCard label="CREATE_TASK" className="bg-surface gap-4 p-4">
-            <View className="gap-3">
-              <View>
-                <MachineText variant="label" className="mb-1">TASK NAME</MachineText>
-                <TextField>
-                  <TextField.Input
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="Small, doable task..."
-                    className="bg-surface border text-sm font-mono h-10 border-divider"
-                    style={{ fontFamily: 'Menlo' }}
-                  />
-                </TextField>
-              </View>
-              <View>
-                <MachineText variant="label" className="mb-1">ESTIMATE (MIN)</MachineText>
-                <TextField>
-                  <TextField.Input
-                    value={estimate}
-                    onChangeText={setEstimate}
-                    placeholder="25"
-                    keyboardType="number-pad"
-                    className="bg-surface border text-sm font-mono h-10 border-divider"
-                    style={{ fontFamily: 'Menlo' }}
-                  />
-                </TextField>
-              </View>
-              <Button onPress={createTask} isDisabled={isCreating} className="bg-accent rounded-none shadow-[2px_2px_0px_var(--color-foreground)]">
-                {isCreating ? <Spinner size="sm" color="white" /> : <MachineText className="text-accent-foreground font-bold">ADD_TASK</MachineText>}
+        {pausedTasks.length ? (
+          <HardCard
+            label="PARKED_TASKS"
+            variant="flat"
+            className="gap-3 p-4 bg-muted"
+          >
+            <View className="flex-row items-center justify-between">
+              <MachineText className="font-bold">
+                PAUSED_ITEMS ({pausedTasks.length})
+              </MachineText>
+              <Button
+                size="sm"
+                className="bg-surface border border-foreground rounded-none"
+                onPress={() => setShowPaused(!showPaused)}
+              >
+                <MachineText className="text-foreground text-xs">
+                  {showPaused ? "HIDE" : "SHOW"}
+                </MachineText>
               </Button>
             </View>
-          </HardCard>
-
-          <View>
-            <View className="flex-row justify-between items-end mb-2 border-b border-divider pb-1">
-              <MachineText variant="header" size="md">ACTIVE_QUEUE</MachineText>
-              <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
-            </View>
-
-            <View className="gap-3">
-              {tasks.length ? (
-                tasks.map((task) => (
-                  <HardCard key={task._id} padding="sm" className="bg-surface">
+            {showPaused ? (
+              <View className="gap-2 mt-2">
+                {pausedTasks.map((task) => (
+                  <HardCard
+                    key={task._id}
+                    padding="sm"
+                    className="bg-surface/70"
+                  >
                     <View className="flex-row items-center justify-between">
                       <View className="gap-1 flex-1">
-                        <MachineText className="font-bold text-base">{task.title}</MachineText>
-                        <MachineText className="text-muted text-xs">{task.estimateMin} MIN</MachineText>
+                        <MachineText className="font-bold text-sm">
+                          {task.title}
+                        </MachineText>
+                        <MachineText className="text-muted text-[10px]">
+                          {task.estimateMin} MIN
+                        </MachineText>
                       </View>
-                      <Button size="sm" className="bg-surface border border-foreground rounded-none" onPress={() => completeTask(task._id)}>
-                        <MachineText className="text-foreground text-xs font-bold">DONE</MachineText>
+                      <Button
+                        size="sm"
+                        className="bg-foreground rounded-none"
+                        onPress={() => resumeTask(task._id)}
+                      >
+                        <MachineText className="text-background text-[10px]">
+                          RESUME
+                        </MachineText>
                       </Button>
                     </View>
                   </HardCard>
-                ))
-              ) : (
-                <HardCard variant="flat" className="p-4 border-dashed items-center">
-                  <MachineText className="text-muted">QUEUE_EMPTY</MachineText>
-                </HardCard>
-              )}
-            </View>
-          </View>
-
-          {pausedTasks.length ? (
-            <HardCard label="PARKED_TASKS" variant="flat" className="gap-3 p-4 bg-muted">
-              <View className="flex-row items-center justify-between">
-                <MachineText className="font-bold">
-                  PAUSED_ITEMS ({pausedTasks.length})
-                </MachineText>
-                <Button size="sm" className="bg-surface border border-foreground rounded-none" onPress={() => setShowPaused(!showPaused)}>
-                  <MachineText className="text-foreground text-xs">
-                    {showPaused ? "HIDE" : "SHOW"}
-                  </MachineText>
-                </Button>
+                ))}
               </View>
-              {showPaused ? (
-                <View className="gap-2 mt-2">
-                  {pausedTasks.map((task) => (
-                    <HardCard key={task._id} padding="sm" className="bg-surface/70">
-                      <View className="flex-row items-center justify-between">
-                        <View className="gap-1 flex-1">
-                          <MachineText className="font-bold text-sm">{task.title}</MachineText>
-                          <MachineText className="text-muted text-[10px]">{task.estimateMin} MIN</MachineText>
-                        </View>
-                        <Button size="sm" className="bg-foreground rounded-none" onPress={() => resumeTask(task._id)}>
-                          <MachineText className="text-background text-[10px]">RESUME</MachineText>
-                        </Button>
-                      </View>
-                    </HardCard>
-                  ))}
-                </View>
-              ) : (
-                <MachineText className="text-muted text-xs">Stored safely until plan reset.</MachineText>
-              )}
-            </HardCard>
-          ) : null}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+            ) : (
+              <MachineText className="text-muted text-xs">
+                Stored safely until plan reset.
+              </MachineText>
+            )}
+          </HardCard>
+        ) : null}
+      </View>
+    </Container>
   );
 }

@@ -26,9 +26,6 @@ function StackLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="boot" options={{ headerShown: false }} />
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-
       <Stack.Protected guard={isLoggedIn}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
@@ -62,6 +59,7 @@ function StackLayout() {
       </Stack.Protected>
 
       <Stack.Protected guard={!isLoggedIn}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="sign-up" options={{ headerShown: false }} />
       </Stack.Protected>
