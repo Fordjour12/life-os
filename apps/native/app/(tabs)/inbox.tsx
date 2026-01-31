@@ -112,11 +112,10 @@ export default function Inbox() {
       )}
 
       <View className="mt-8 pt-4 border-t border-divider">
-        <MachineText variant="label" className="mb-4">CONVERSATION</MachineText>
-        <Button
-          className="bg-primary rounded-none"
-          onPress={startConversation}
-        >
+        <MachineText variant="label" className="mb-4">
+          CONVERSATION
+        </MachineText>
+        <Button className="bg-primary rounded-none" onPress={startConversation}>
           <MachineText className="text-primary-foreground font-bold text-[10px]">
             START_CONVERSATION
           </MachineText>

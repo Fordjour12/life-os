@@ -12,9 +12,24 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
   const { currentTheme } = useAppTheme();
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const colors = currentTheme === "dark"
-    ? { surface: "#1A1A1A", border: "#333333", text: "#FFFFFF", textMuted: "#888888", primary: "#0066CC", surfaceVariant: "#2A2A2A" }
-    : { surface: "#FFFFFF", border: "#E0E0E0", text: "#000000", textMuted: "#888888", primary: "#0066CC", surfaceVariant: "#F0F0F0" };
+  const colors =
+    currentTheme === "dark"
+      ? {
+          surface: "#1A1A1A",
+          border: "#333333",
+          text: "#FFFFFF",
+          textMuted: "#888888",
+          primary: "#0066CC",
+          surfaceVariant: "#2A2A2A",
+        }
+      : {
+          surface: "#FFFFFF",
+          border: "#E0E0E0",
+          text: "#000000",
+          textMuted: "#888888",
+          primary: "#0066CC",
+          surfaceVariant: "#F0F0F0",
+        };
 
   const handleSend = useCallback(async () => {
     if (!text.trim() || isSending || disabled) return;
@@ -40,10 +55,7 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
         ]}
       >
         <TextInput
-          style={[
-            styles.input,
-            { color: colors.text },
-          ]}
+          style={[styles.input, { color: colors.text }]}
           value={text}
           onChangeText={setText}
           placeholder={placeholder ?? "Type a message..."}
@@ -62,7 +74,15 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
             },
           ]}
         >
-          <Text style={{ color: text.trim() ? "#FFFFFF" : colors.textMuted, fontSize: 18, fontWeight: "bold" }}>↑</Text>
+          <Text
+            style={{
+              color: text.trim() ? "#FFFFFF" : colors.textMuted,
+              fontSize: 18,
+              fontWeight: "bold",
+            }}
+          >
+            ↑
+          </Text>
         </Pressable>
       </View>
     </View>

@@ -19,17 +19,25 @@ function formatTime(timestamp: number): string {
 export function ChatMessageItem({ message }: ChatMessageProps) {
   const { currentTheme } = useAppTheme();
   const isUser = message.role === "user";
-  const colors = currentTheme === "dark" 
-    ? { primary: "#0066CC", surfaceVariant: "#2A2A2A", text: "#FFFFFF", textMuted: "#888888", background: "#1A1A1A" }
-    : { primary: "#0066CC", surfaceVariant: "#F0F0F0", text: "#000000", textMuted: "#888888", background: "#FFFFFF" };
+  const colors =
+    currentTheme === "dark"
+      ? {
+          primary: "#0066CC",
+          surfaceVariant: "#2A2A2A",
+          text: "#FFFFFF",
+          textMuted: "#888888",
+          background: "#1A1A1A",
+        }
+      : {
+          primary: "#0066CC",
+          surfaceVariant: "#F0F0F0",
+          text: "#000000",
+          textMuted: "#888888",
+          background: "#FFFFFF",
+        };
 
   return (
-    <View
-      style={[
-        styles.container,
-        isUser ? styles.userContainer : styles.assistantContainer,
-      ]}
-    >
+    <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
       <View
         style={[
           styles.bubble,
@@ -38,21 +46,11 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
           },
         ]}
       >
-        <Text
-          style={[
-            styles.content,
-            { color: isUser ? "#FFFFFF" : colors.text },
-          ]}
-        >
+        <Text style={[styles.content, { color: isUser ? "#FFFFFF" : colors.text }]}>
           {message.content}
         </Text>
       </View>
-      <Text
-        style={[
-          styles.timestamp,
-          { color: colors.textMuted },
-        ]}
-      >
+      <Text style={[styles.timestamp, { color: colors.textMuted }]}>
         {formatTime(message.timestamp)}
       </Text>
     </View>

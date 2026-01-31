@@ -13,16 +13,42 @@ function formatDate(timestamp: number): string {
   const date = new Date(timestamp);
   const now = new Date();
   const isCurrentYear = date.getFullYear() === now.getFullYear();
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${monthNames[date.getMonth()]} ${date.getDate()}${isCurrentYear ? "" : ` ${date.getFullYear()}`}`;
 }
 
 export function ThreadList({ threads, isLoading }: ThreadListProps) {
   const { currentTheme } = useAppTheme();
   const router = useRouter();
-  const colors = currentTheme === "dark"
-    ? { surface: "#1A1A1A", border: "#333333", text: "#FFFFFF", textMuted: "#888888", textSecondary: "#AAAAAA" }
-    : { surface: "#FFFFFF", border: "#E0E0E0", text: "#000000", textMuted: "#888888", textSecondary: "#666666" };
+  const colors =
+    currentTheme === "dark"
+      ? {
+          surface: "#1A1A1A",
+          border: "#333333",
+          text: "#FFFFFF",
+          textMuted: "#888888",
+          textSecondary: "#AAAAAA",
+        }
+      : {
+          surface: "#FFFFFF",
+          border: "#E0E0E0",
+          text: "#000000",
+          textMuted: "#888888",
+          textSecondary: "#666666",
+        };
 
   if (isLoading) {
     return (
@@ -48,10 +74,7 @@ export function ThreadList({ threads, isLoading }: ThreadListProps) {
         <Pressable
           key={thread.id}
           onPress={() => router.push(`/threads/${thread.id}` as any)}
-          style={[
-            styles.item,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
+          style={[styles.item, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
           <View style={styles.header}>
             <MachineText style={[styles.title, { color: colors.text }]}>
@@ -62,7 +85,10 @@ export function ThreadList({ threads, isLoading }: ThreadListProps) {
             </MachineText>
           </View>
           {thread.summary && (
-            <MachineText style={[styles.summary, { color: colors.textSecondary }]} numberOfLines={2}>
+            <MachineText
+              style={[styles.summary, { color: colors.textSecondary }]}
+              numberOfLines={2}
+            >
               {thread.summary}
             </MachineText>
           )}

@@ -18,25 +18,28 @@ export default function ThreadDetail() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
   const messagesData = useQuery(api.threads.getConversationMessages, { threadId });
   const sendMessage = useMutation(api.threads.addMessage);
-  
+
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const messages = messagesData?.messages ?? [];
   const isLoading = messagesData === undefined;
 
-  const handleSend = useCallback(async (text: string) => {
-    if (!text.trim()) return;
-    setIsSending(true);
-    try {
-      await sendMessage({
-        threadId,
-        content: text,
-      });
-    } finally {
-      setIsSending(false);
-    }
-  }, [threadId, sendMessage]);
+  const handleSend = useCallback(
+    async (text: string) => {
+      if (!text.trim()) return;
+      setIsSending(true);
+      try {
+        await sendMessage({
+          threadId,
+          content: text,
+        });
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [threadId, sendMessage],
+  );
 
   useEffect(() => {
     if (scrollRef.current && messages.length > 0) {
@@ -70,21 +73,17 @@ export default function ThreadDetail() {
           </MachineText>
         </View>
 
-        <ScrollView 
+        <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 16 }}
         >
           {isLoading ? (
-            <MachineText className="text-muted text-center mt-8">
-              LOADING_MESSAGES...
-            </MachineText>
+            <MachineText className="text-muted text-center mt-8">LOADING_MESSAGES...</MachineText>
           ) : messages.length === 0 ? (
             <View className="items-center justify-center py-12">
-              <MachineText className="text-muted text-center">
-                NO_MESSAGES_YET
-              </MachineText>
+              <MachineText className="text-muted text-center">NO_MESSAGES_YET</MachineText>
               <MachineText className="text-muted text-center text-xs mt-2">
                 Start the conversation below
               </MachineText>
@@ -96,11 +95,7 @@ export default function ThreadDetail() {
           )}
         </ScrollView>
 
-        <ChatInput 
-          onSend={handleSend} 
-          disabled={isSending}
-          placeholder="Type a message..."
-        />
+        <ChatInput onSend={handleSend} disabled={isSending} placeholder="Type a message..." />
       </Container>
     </KeyboardAvoidingView>
   );

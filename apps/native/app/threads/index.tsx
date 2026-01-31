@@ -18,9 +18,7 @@ export default function ThreadsIndex() {
         <MachineText variant="header" size="2xl">
           CONVERSATIONS
         </MachineText>
-        <MachineText className="text-muted text-xs mt-1 uppercase">
-          Thread History
-        </MachineText>
+        <MachineText className="text-muted text-xs mt-1 uppercase">Thread History</MachineText>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
