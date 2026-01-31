@@ -128,6 +128,14 @@ export default function TimeReality() {
         .sort((a, b) => a.startMin - b.startMin),
     [calendarBlocks],
   );
+  const calendarTotalMinutes = useMemo(
+    () =>
+      ((calendarBlocks ?? []) as CalendarBlock[]).reduce(
+        (total, block) => total + (block.endMin - block.startMin),
+        0,
+      ),
+    [calendarBlocks],
+  );
   const prevDay = activeDay ? shiftDay(activeDay, -1) : today.day;
   const nextDay = activeDay ? shiftDay(activeDay, 1) : today.day;
   const weekDays = useMemo(() => {
@@ -251,6 +259,12 @@ export default function TimeReality() {
                 </MachineText>
                 <MachineText variant="header" size="lg">
                   {calendarDayLabel}
+                </MachineText>
+              </View>
+              <View className="items-end">
+                <MachineText variant="label">TOTAL_LOGGED</MachineText>
+                <MachineText className="text-sm">
+                  {formatMinutes(calendarTotalMinutes)}
                 </MachineText>
               </View>
             </View>
@@ -379,6 +393,22 @@ export default function TimeReality() {
                                 ) : (
                                   <MachineText className="text-[9px] font-bold text-foreground">
                                     DUPLICATE
+                                  </MachineText>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
+                                onPress={() =>
+                                  duplicateBlock(block, shiftDay(activeDay ?? today.day, 1))
+                                }
+                                isDisabled={removingId === block._id}
+                              >
+                                {removingId === block._id ? (
+                                  <Spinner size="sm" color="black" />
+                                ) : (
+                                  <MachineText className="text-[9px] font-bold text-foreground">
+                                    TOMORROW
                                   </MachineText>
                                 )}
                               </Button>
