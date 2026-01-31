@@ -33,6 +33,7 @@ import { PlatformColor } from "react-native";
 ## Common Icons
 
 ### Navigation & Actions
+
 - `house.fill` - home
 - `gear` - settings
 - `magnifyingglass` - search
@@ -44,6 +45,7 @@ import { PlatformColor } from "react-native";
 - `arrow.right` - forward arrow
 
 ### Media
+
 - `play.fill` - play
 - `pause.fill` - pause
 - `stop.fill` - stop
@@ -53,6 +55,7 @@ import { PlatformColor } from "react-native";
 - `speaker.slash.fill` - mute
 
 ### Camera
+
 - `camera` - camera
 - `camera.fill` - camera filled
 - `arrow.triangle.2.circlepath` - flip camera
@@ -61,6 +64,7 @@ import { PlatformColor } from "react-native";
 - `bolt.slash` - flash off
 
 ### Communication
+
 - `message` - message
 - `message.fill` - message filled
 - `envelope` - email
@@ -71,6 +75,7 @@ import { PlatformColor } from "react-native";
 - `video.fill` - video call filled
 
 ### Social
+
 - `heart` - like
 - `heart.fill` - liked
 - `star` - favorite
@@ -83,6 +88,7 @@ import { PlatformColor } from "react-native";
 - `person.2.fill` - people filled
 
 ### Content Actions
+
 - `square.and.arrow.up` - share
 - `square.and.arrow.down` - download
 - `doc.on.doc` - copy
@@ -94,6 +100,7 @@ import { PlatformColor } from "react-native";
 - `bookmark.fill` - bookmarked
 
 ### Status & Feedback
+
 - `checkmark` - success/done
 - `checkmark.circle.fill` - completed
 - `xmark.circle.fill` - error/failed
@@ -104,6 +111,7 @@ import { PlatformColor } from "react-native";
 - `bell.fill` - notification filled
 
 ### Misc
+
 - `ellipsis` - more options
 - `ellipsis.circle` - more in circle
 - `line.3.horizontal` - menu/hamburger

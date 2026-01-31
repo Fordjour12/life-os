@@ -110,9 +110,7 @@ export const getPatternInsights = query({
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
       .collect();
 
-    const windowEvents = events.filter(
-      (event) => event.ts >= startTs && event.ts < endTs,
-    );
+    const windowEvents = events.filter((event) => event.ts >= startTs && event.ts < endTs);
 
     const completionsByDay = new Map<string, number>();
     const tinyWinsByDay = new Map<string, number>();
@@ -187,7 +185,9 @@ export const getPatternInsights = query({
     const tinyWinDays = [...tinyWinsByDay.keys()].sort();
     let tinyWinLift = 0;
     for (const day of tinyWinDays) {
-      const nextDay = formatYYYYMMDD(new Date(new Date(`${day}T00:00:00Z`).getTime() + MILLISECONDS_IN_DAY));
+      const nextDay = formatYYYYMMDD(
+        new Date(new Date(`${day}T00:00:00Z`).getTime() + MILLISECONDS_IN_DAY),
+      );
       const nextState = stateByDay.get(nextDay);
       if (nextState && getMomentum(nextState) && getMomentum(nextState) !== "stalled") {
         tinyWinLift += 1;
@@ -222,9 +222,7 @@ export const getDriftSignals = query({
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
       .collect();
 
-    const windowEvents = events.filter(
-      (event) => event.ts >= startTs && event.ts < endTs,
-    );
+    const windowEvents = events.filter((event) => event.ts >= startTs && event.ts < endTs);
 
     const lateNightDays = new Set<string>();
     for (const event of windowEvents) {
@@ -315,7 +313,8 @@ export const getDriftSignals = query({
       const prev = completionDays[index - 1];
       const next = completionDays[index];
       if (!prev || !next) continue;
-      const gapMs = new Date(`${next}T00:00:00Z`).getTime() - new Date(`${prev}T00:00:00Z`).getTime();
+      const gapMs =
+        new Date(`${next}T00:00:00Z`).getTime() - new Date(`${prev}T00:00:00Z`).getTime();
       const gapDays = Math.floor(gapMs / MILLISECONDS_IN_DAY);
       if (gapDays >= 3) {
         const nextState = stateByDay.get(next);

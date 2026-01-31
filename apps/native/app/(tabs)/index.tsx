@@ -42,9 +42,7 @@ function EngBadge({
       </MachineText>
       <View className="flex-row gap-2 border border-divider items-center px-2 py-1 bg-surface">
         <View className={`w-2 h-2 ${dotColor}`} />
-        <MachineText className="text-[12px] font-bold">
-          {value.toUpperCase()}
-        </MachineText>
+        <MachineText className="text-[12px] font-bold">{value.toUpperCase()}</MachineText>
       </View>
     </View>
   );
@@ -99,9 +97,7 @@ const allowedJournalReasons = new Set([
 
 function normalizeJournalReason(value: unknown): JournalPromptReason {
   if (typeof value !== "string") return null;
-  return allowedJournalReasons.has(value)
-    ? (value as JournalPromptReason)
-    : null;
+  return allowedJournalReasons.has(value) ? (value as JournalPromptReason) : null;
 }
 
 function idem() {
@@ -113,33 +109,20 @@ export default function Today() {
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
-  const completeTaskMutation = useMutation(
-    api.kernel.taskCommands.completeTask,
-  );
-  const applyPlanResetMutation = useMutation(
-    api.kernel.planReset.applyPlanReset,
-  );
+  const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
+  const applyPlanResetMutation = useMutation(api.kernel.planReset.applyPlanReset);
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
-  const executeCommandMutation = useMutation(
-    api.kernel.commands.executeCommand,
-  );
+  const executeCommandMutation = useMutation(api.kernel.commands.executeCommand);
   const weeklyReview = useQuery(api.identity.weeklyReview.getWeeklyReview, {});
-  const generateWeeklyReviewMutation = useMutation(
-    api.identity.weeklyReview.generateWeeklyReview,
-  );
+  const generateWeeklyReviewMutation = useMutation(api.identity.weeklyReview.generateWeeklyReview);
   const patternInsights = useQuery(api.identity.getPatternInsights, {
     window: "week",
   });
   const driftSignals = useQuery(api.identity.getDriftSignals, {
     window: "month",
   });
-  const journalPrompt = useQuery(
-    api.identity.getJournalPrompt,
-    data ? { day: data.day } : "skip",
-  );
-  const createJournalEntryMutation = useMutation(
-    api.identity.createJournalEntry,
-  );
+  const journalPrompt = useQuery(api.identity.getJournalPrompt, data ? { day: data.day } : "skip");
+  const createJournalEntryMutation = useMutation(api.identity.createJournalEntry);
   const journalEntries = useQuery(
     api.identity.getJournalEntriesForDay,
     data ? { day: data.day } : "skip",
@@ -155,8 +138,7 @@ export default function Today() {
   const [isLoggingHabit, setIsLoggingHabit] = useState(false);
   const [isLoggingExpense, setIsLoggingExpense] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
-  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] =
-    useState(false);
+  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
   const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
   const [isSkippingJournal, setIsSkippingJournal] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
@@ -165,8 +147,7 @@ export default function Today() {
   const createTask = async () => {
     const trimmedTitle = title.trim();
     const estimateMin = Number.parseInt(estimate, 10);
-    if (!trimmedTitle || !Number.isFinite(estimateMin) || estimateMin <= 0)
-      return;
+    if (!trimmedTitle || !Number.isFinite(estimateMin) || estimateMin <= 0) return;
 
     setIsCreating(true);
     try {
@@ -277,11 +258,7 @@ export default function Today() {
     }
   };
 
-  const submitJournalEntry = async (input: {
-    day: string;
-    text?: string;
-    mood?: JournalMood;
-  }) => {
+  const submitJournalEntry = async (input: { day: string; text?: string; mood?: JournalMood }) => {
     setIsSubmittingJournal(true);
     try {
       await createJournalEntryMutation(input);
@@ -299,15 +276,11 @@ export default function Today() {
     }
   };
 
-  const getStatusIntent = (
-    value: string,
-  ): "success" | "warning" | "danger" | "default" => {
+  const getStatusIntent = (value: string): "success" | "warning" | "danger" | "default" => {
     const val = value?.toLowerCase();
-    if (["high", "balanced", "strong", "operational"].includes(val))
-      return "success";
+    if (["high", "balanced", "strong", "operational"].includes(val)) return "success";
     if (["medium", "steady", "stable"].includes(val)) return "warning";
-    if (["low", "over", "fragile", "stalled", "disconnected"].includes(val))
-      return "danger";
+    if (["low", "over", "fragile", "stalled", "disconnected"].includes(val)) return "danger";
     return "default";
   };
 
@@ -334,10 +307,7 @@ export default function Today() {
     return "Event";
   };
 
-  const suggestions = useMemo(
-    () => (data?.suggestions ?? []) as SuggestionItem[],
-    [data],
-  );
+  const suggestions = useMemo(() => (data?.suggestions ?? []) as SuggestionItem[], [data]);
   const tasks = useMemo(() => (tasksData ?? []) as TaskItem[], [tasksData]);
   const eventSummary = useMemo(
     () =>
@@ -500,9 +470,11 @@ export default function Today() {
 
           {filteredEvents.length > 0 ? (
             <View className="gap-2 pt-2">
-              {(showAllEvents ? filteredEvents : filteredEvents.slice(0, 3)).map(
-                (event, index) => (
-                <View key={`${event.type}-${event.ts}-${index}`} className="flex-row justify-between">
+              {(showAllEvents ? filteredEvents : filteredEvents.slice(0, 3)).map((event, index) => (
+                <View
+                  key={`${event.type}-${event.ts}-${index}`}
+                  className="flex-row justify-between"
+                >
                   <MachineText variant="label" className="text-[10px] text-foreground/70">
                     {formatEventLabel(event)}
                   </MachineText>
@@ -510,8 +482,7 @@ export default function Today() {
                     {formatEventTime(event.ts)}
                   </MachineText>
                 </View>
-              ),
-              )}
+              ))}
               {filteredEvents.length > 3 ? (
                 <Button
                   size="sm"
@@ -554,9 +525,7 @@ export default function Today() {
                 onPress={() => logHabit("done")}
                 isDisabled={isLoggingHabit || !habitId.trim()}
               >
-                <MachineText className="text-xs font-bold text-accent-foreground">
-                  DONE
-                </MachineText>
+                <MachineText className="text-xs font-bold text-accent-foreground">DONE</MachineText>
               </Button>
               <Button
                 size="sm"
@@ -564,9 +533,7 @@ export default function Today() {
                 onPress={() => logHabit("missed")}
                 isDisabled={isLoggingHabit || !habitId.trim()}
               >
-                <MachineText className="text-xs font-bold text-foreground">
-                  MISSED
-                </MachineText>
+                <MachineText className="text-xs font-bold text-foreground">MISSED</MachineText>
               </Button>
             </View>
           </View>
@@ -641,17 +608,11 @@ export default function Today() {
       )}
 
       {patternInsights !== undefined ? (
-        <PatternInsightsCard
-          insights={patternInsights ?? null}
-          windowLabel="WEEK_WINDOW"
-        />
+        <PatternInsightsCard insights={patternInsights ?? null} windowLabel="WEEK_WINDOW" />
       ) : null}
 
       {driftSignals !== undefined ? (
-        <DriftSignalsCard
-          signals={driftSignals ?? null}
-          windowLabel="MONTH_WINDOW"
-        />
+        <DriftSignalsCard signals={driftSignals ?? null} windowLabel="MONTH_WINDOW" />
       ) : null}
 
       {journalPrompt !== undefined ? (
@@ -742,9 +703,7 @@ export default function Today() {
                         <Button
                           size="sm"
                           className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
-                          onPress={() =>
-                            acceptRest(suggestion.payload?.rest?.minutes ?? 15)
-                          }
+                          onPress={() => acceptRest(suggestion.payload?.rest?.minutes ?? 15)}
                         >
                           <MachineText className="text-xs font-bold text-foreground">
                             REST
@@ -763,8 +722,7 @@ export default function Today() {
                     )}
                   </View>
                 </View>
-                {suggestion.type === "MICRO_RECOVERY_PROTOCOL" &&
-                showReflection ? (
+                {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && showReflection ? (
                   <View className="mt-3 p-2 bg-muted border-t border-divider">
                     <MachineText className="text-xs italic">
                       {suggestion.payload?.reflection?.question}
@@ -792,16 +750,11 @@ export default function Today() {
               <HardCard key={task._id} padding="sm" className="bg-surface">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-3 flex-1">
-                    <MachineText
-                      variant="label"
-                      className="w-4 text-center text-foreground/30"
-                    >
+                    <MachineText variant="label" className="w-4 text-center text-foreground/30">
                       {index + 1}
                     </MachineText>
                     <View>
-                      <MachineText className="font-bold text-base">
-                        {task.title}
-                      </MachineText>
+                      <MachineText className="font-bold text-base">{task.title}</MachineText>
                       <MachineText className="text-xs opacity-50">
                         {task.estimateMin} MIN
                       </MachineText>
@@ -820,10 +773,7 @@ export default function Today() {
               </HardCard>
             ))
           ) : (
-            <HardCard
-              variant="flat"
-              className="items-center py-6 border-dashed"
-            >
+            <HardCard variant="flat" className="items-center py-6 border-dashed">
               <MachineText className="opacity-50">QUEUE_EMPTY</MachineText>
             </HardCard>
           )}
@@ -865,9 +815,7 @@ export default function Today() {
                 {isCreating ? (
                   <Spinner size="sm" color="white" />
                 ) : (
-                  <MachineText className="text-background font-bold">
-                    ENTER
-                  </MachineText>
+                  <MachineText className="text-background font-bold">ENTER</MachineText>
                 )}
               </Button>
             </View>

@@ -18,7 +18,6 @@ function getUserId(): string {
   return "user_me";
 }
 
-
 function daysBetween(fromDay: string, toDay: string) {
   const fromDate = new Date(`${fromDay}T00:00:00Z`);
   const toDate = new Date(`${toDay}T00:00:00Z`);
@@ -50,9 +49,7 @@ export const applyPlanReset = mutation({
 
     const existing = await ctx.db
       .query("events")
-      .withIndex("by_user_idem", (q) =>
-        q.eq("userId", userId).eq("idempotencyKey", idempotencyKey),
-      )
+      .withIndex("by_user_idem", (q) => q.eq("userId", userId).eq("idempotencyKey", idempotencyKey))
       .first();
 
     if (existing) {
@@ -125,8 +122,7 @@ export const applyPlanReset = mutation({
       .filter((task) => (task.estimateMin ?? 0) <= 10)
       .sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0];
     const smallestActive =
-      activeTasksAfterReset.sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0] ??
-      null;
+      activeTasksAfterReset.sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0] ?? null;
     const tinyWinTask = under10 ?? smallestActive ?? null;
 
     if (state.mode === "recovery") {
@@ -159,10 +155,7 @@ export const applyPlanReset = mutation({
       await ctx.db.insert("stateDaily", { userId, day, state, updatedAt: now });
     }
 
-    const remainingRoomMin = Math.max(
-      0,
-      (state.freeMinutes ?? 0) - (state.plannedMinutes ?? 0),
-    );
+    const remainingRoomMin = Math.max(0, (state.freeMinutes ?? 0) - (state.plannedMinutes ?? 0));
 
     const stateHistory = await ctx.db
       .query("stateDaily")
@@ -180,8 +173,7 @@ export const applyPlanReset = mutation({
     }
 
     const yesterdayState = stateByDay.get(shiftDay(day, -1)) as { mode?: string } | undefined;
-    const exitedRecoveryRecently =
-      yesterdayState?.mode === "recovery" && state.mode !== "recovery";
+    const exitedRecoveryRecently = yesterdayState?.mode === "recovery" && state.mode !== "recovery";
 
     const pausedTasks = await ctx.db
       .query("tasks")
@@ -206,13 +198,7 @@ export const applyPlanReset = mutation({
       ? String(prefs.lastGentleReturnTaskId)
       : null;
 
-    const suggestionStatuses = [
-      "new",
-      "accepted",
-      "downvoted",
-      "ignored",
-      "expired",
-    ] as const;
+    const suggestionStatuses = ["new", "accepted", "downvoted", "ignored", "expired"] as const;
     const suggestionBuckets = await Promise.all(
       suggestionStatuses.map((status) =>
         ctx.db
@@ -275,7 +261,9 @@ export const applyPlanReset = mutation({
         const penalty = isResistant ? 1000 : 0;
         return { task, score: (task.estimateMin ?? 0) + penalty };
       })
-      .sort((a, b) => (a.score !== b.score ? a.score - b.score : a.task.estimateMin - b.task.estimateMin));
+      .sort((a, b) =>
+        a.score !== b.score ? a.score - b.score : a.task.estimateMin - b.task.estimateMin,
+      );
 
     const rotated = scoredCandidates[0]?.task ?? null;
     const smallest =
@@ -310,7 +298,9 @@ export const applyPlanReset = mutation({
       .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
       .collect();
 
-    const existingNewCount = existingSugs.filter((suggestion) => suggestion.status === "new").length;
+    const existingNewCount = existingSugs.filter(
+      (suggestion) => suggestion.status === "new",
+    ).length;
     if (existingNewCount > 0) {
       return {
         ok: true,

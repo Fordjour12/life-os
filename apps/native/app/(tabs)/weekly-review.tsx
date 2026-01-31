@@ -19,11 +19,8 @@ export default function WeeklyReviewScreen() {
   const driftSignals = useQuery(api.identity.getDriftSignals, {
     window: "month",
   });
-  const generateWeeklyReviewMutation = useMutation(
-    api.identity.weeklyReview.generateWeeklyReview,
-  );
-  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] =
-    useState(false);
+  const generateWeeklyReviewMutation = useMutation(api.identity.weeklyReview.generateWeeklyReview);
+  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
 
   const generateWeeklyReview = async () => {
     setIsGeneratingWeeklyReview(true);
@@ -59,15 +56,9 @@ export default function WeeklyReviewScreen() {
         isGenerating={isGeneratingWeeklyReview}
       />
 
-      <PatternInsightsCard
-        insights={patternInsights ?? null}
-        windowLabel="WEEK_WINDOW"
-      />
+      <PatternInsightsCard insights={patternInsights ?? null} windowLabel="WEEK_WINDOW" />
 
-      <DriftSignalsCard
-        signals={driftSignals ?? null}
-        windowLabel="MONTH_WINDOW"
-      />
+      <DriftSignalsCard signals={driftSignals ?? null} windowLabel="MONTH_WINDOW" />
 
       <HardCard label="DOCUMENTATION" className="bg-surface">
         <View className="p-2 gap-2">

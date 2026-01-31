@@ -77,7 +77,9 @@ export default function Testing() {
     });
   };
 
-  const setDailyPlan = async (items: Array<{ id: string; label: string; estimatedMinutes: number }>) => {
+  const setDailyPlan = async (
+    items: Array<{ id: string; label: string; estimatedMinutes: number }>,
+  ) => {
     if (!day) return;
     await executeCommand({
       command: {
@@ -232,9 +234,7 @@ export default function Testing() {
           idempotencyKey: idem(),
         });
 
-        await setDailyPlan([
-          { id: "focus-1", label: "Small follow-up", estimatedMinutes: 10 },
-        ]);
+        await setDailyPlan([{ id: "focus-1", label: "Small follow-up", estimatedMinutes: 10 }]);
 
         setLastSeed("Fragmented day seeded (expect tiny suggestions)");
       }
@@ -428,9 +428,7 @@ export default function Testing() {
                 SEED FRAGMENTED DAY
               </MachineText>
             </Button>
-            {lastSeed ? (
-              <MachineText className="text-xs text-muted">{lastSeed}</MachineText>
-            ) : null}
+            {lastSeed ? <MachineText className="text-xs text-muted">{lastSeed}</MachineText> : null}
           </View>
         </HardCard>
 

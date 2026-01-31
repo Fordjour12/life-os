@@ -22,38 +22,17 @@ const BOOT_DURATION_MS = 2600;
 export const BOOT_MIN_DURATION_MS = 2800;
 const SEGMENT_COUNT = 12;
 
-const BOOT_STEPS = [
-  "INIT_KERNEL",
-  "LOAD_MODULES",
-  "SYNC_EVENTS",
-  "READY_FOR_INPUT",
-];
+const BOOT_STEPS = ["INIT_KERNEL", "LOAD_MODULES", "SYNC_EVENTS", "READY_FOR_INPUT"];
 
-function BootSegment({
-  index,
-  progress,
-}: {
-  index: number;
-  progress: SharedValue<number>;
-}) {
+function BootSegment({ index, progress }: { index: number; progress: SharedValue<number> }) {
   const style = useAnimatedStyle(() => {
     const start = index / SEGMENT_COUNT;
     const end = (index + 1) / SEGMENT_COUNT;
-    const opacity = interpolate(
-      progress.value,
-      [start, end],
-      [0.2, 1],
-      Extrapolation.CLAMP,
-    );
+    const opacity = interpolate(progress.value, [start, end], [0.2, 1], Extrapolation.CLAMP);
     return { opacity };
   });
 
-  return (
-    <Animated.View
-      style={style}
-      className="h-2 flex-1 bg-foreground border border-divider"
-    />
-  );
+  return <Animated.View style={style} className="h-2 flex-1 bg-foreground border border-divider" />;
 }
 
 function BootStep({
@@ -141,12 +120,7 @@ export function BootSequenceView({ progress, scanOffset }: BootSequenceViewProps
 
               <View className="gap-2">
                 {BOOT_STEPS.map((step, index) => (
-                  <BootStep
-                    key={step}
-                    step={step}
-                    index={index}
-                    progress={progress}
-                  />
+                  <BootStep key={step} step={step} index={index} progress={progress} />
                 ))}
               </View>
 
@@ -156,11 +130,7 @@ export function BootSequenceView({ progress, scanOffset }: BootSequenceViewProps
                 </MachineText>
                 <View className="flex-row gap-1">
                   {Array.from({ length: SEGMENT_COUNT }).map((_, index) => (
-                    <BootSegment
-                      key={`seg-${index}`}
-                      index={index}
-                      progress={progress}
-                    />
+                    <BootSegment key={`seg-${index}`} index={index} progress={progress} />
                   ))}
                 </View>
               </View>
@@ -170,9 +140,7 @@ export function BootSequenceView({ progress, scanOffset }: BootSequenceViewProps
 
         <Animated.View entering={FadeInUp.duration(320).delay(160)}>
           <View className="border border-divider px-3 py-2 bg-surface">
-            <MachineText className="text-xs text-muted">
-              READYING LOCAL-FIRST CONTEXT.
-            </MachineText>
+            <MachineText className="text-xs text-muted">READYING LOCAL-FIRST CONTEXT.</MachineText>
           </View>
         </Animated.View>
       </View>

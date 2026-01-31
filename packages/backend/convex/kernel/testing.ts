@@ -32,9 +32,7 @@ export const clearTestData = mutation({
       .query("journalEntries")
       .withIndex("by_user_created", (q) => q.eq("userId", userId))
       .collect();
-    const testJournalEntries = journalEntries.filter((entry) =>
-      isTestTitle(entry.text ?? ""),
-    );
+    const testJournalEntries = journalEntries.filter((entry) => isTestTitle(entry.text ?? ""));
 
     const events = await ctx.db
       .query("events")
@@ -178,9 +176,7 @@ export const clearTestJournalEntries = mutation({
       .withIndex("by_user_created", (q) => q.eq("userId", userId))
       .collect();
     const testEntries = entries.filter((entry) => isTestTitle(entry.text ?? ""));
-    const filtered = day
-      ? testEntries.filter((entry) => entry.day === day)
-      : testEntries;
+    const filtered = day ? testEntries.filter((entry) => entry.day === day) : testEntries;
 
     for (const entry of filtered) {
       await ctx.db.delete(entry._id);
