@@ -32,7 +32,12 @@ export function PlannerSkeleton() {
 
           <View className="gap-4">
             {Array.from({ length: 3 }).map((_, index) => (
-              <HardCard key={`focus-${index}`} variant="flat" padding="sm" className="gap-2 bg-surface border-dashed">
+              <HardCard
+                key={`focus-${index}`}
+                variant="flat"
+                padding="sm"
+                className="gap-2 bg-surface border-dashed"
+              >
                 <View>
                   <SkeletonGroup.Item className="h-3 w-20 rounded-md mb-1" />
                   <SkeletonGroup.Item className="h-10 w-full rounded-md" />

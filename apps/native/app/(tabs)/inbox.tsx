@@ -1,8 +1,8 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { Button } from "heroui-native";
-import { View, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
+import { useRouter } from "expo-router";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -21,9 +21,11 @@ function idem() {
 }
 
 export default function Inbox() {
+  const router = useRouter();
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
+  const createThread = useMutation(api.threads.createThread);
 
   const vote = async (suggestionId: string, voteValue: "up" | "down" | "ignore") => {
     await execute({
@@ -34,6 +36,13 @@ export default function Inbox() {
         tzOffsetMinutes,
       },
     });
+  };
+
+  const startConversation = async () => {
+    const result = await createThread({ title: "New Conversation" });
+    if (result.threadId) {
+      router.push(`/threads/${result.threadId}`);
+    }
   };
 
   if (!data) {
@@ -101,6 +110,18 @@ export default function Inbox() {
           <MachineText className="text-muted">NO_SIGNALS_DETECTED</MachineText>
         </HardCard>
       )}
+
+      <View className="mt-8 pt-4 border-t border-divider">
+        <MachineText variant="label" className="mb-4">CONVERSATION</MachineText>
+        <Button
+          className="bg-primary rounded-none"
+          onPress={startConversation}
+        >
+          <MachineText className="text-primary-foreground font-bold text-[10px]">
+            START_CONVERSATION
+          </MachineText>
+        </Button>
+      </View>
     </Container>
   );
 }

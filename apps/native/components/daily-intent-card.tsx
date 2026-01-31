@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import React from "react";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -22,7 +23,11 @@ type Props = {
   completedMinutes?: number | null;
 };
 
-export function DailyIntentCard({ plan, plannedMinutes, completedMinutes }: Props) {
+export const DailyIntentCard = React.memo(function DailyIntentCard({
+  plan,
+  plannedMinutes,
+  completedMinutes,
+}: Props) {
   const items = plan?.focusItems ?? [];
   const planned =
     plannedMinutes ?? items.reduce((sum, item) => sum + (item.estimatedMinutes || 0), 0);
@@ -92,4 +97,4 @@ export function DailyIntentCard({ plan, plannedMinutes, completedMinutes }: Prop
       </View>
     </HardCard>
   );
-}
+});

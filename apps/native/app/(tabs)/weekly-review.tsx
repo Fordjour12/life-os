@@ -26,28 +26,22 @@ export default function WeeklyReviewScreen() {
   const executeCommandMutation = useMutation(api.kernel.commands.executeCommand);
   const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
-  const [aiDraft, setAiDraft] = useState<
-    | {
-        highlights: string[];
-        frictionPoints: string[];
-        reflectionQuestion: string;
-        narrative: string;
-        reason: { code: string; detail: string };
-      }
-    | null
-  >(null);
-  const [weeklyPlanDraft, setWeeklyPlanDraft] = useState<
-    | {
-        week: string;
-        days: Array<{
-          day: string;
-          focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
-          reason: { code: string; detail: string };
-        }>;
-        reason: { code: string; detail: string };
-      }
-    | null
-  >(null);
+  const [aiDraft, setAiDraft] = useState<{
+    highlights: string[];
+    frictionPoints: string[];
+    reflectionQuestion: string;
+    narrative: string;
+    reason: { code: string; detail: string };
+  } | null>(null);
+  const [weeklyPlanDraft, setWeeklyPlanDraft] = useState<{
+    week: string;
+    days: Array<{
+      day: string;
+      focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
+      reason: { code: string; detail: string };
+    }>;
+    reason: { code: string; detail: string };
+  } | null>(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [applyingDay, setApplyingDay] = useState<string | null>(null);
   const [isApplyingAll, setIsApplyingAll] = useState(false);
@@ -158,9 +152,7 @@ export default function WeeklyReviewScreen() {
             <MachineText variant="label" className="text-accent">
               AI_DRAFT
             </MachineText>
-            <MachineText className="text-xs text-muted">
-              DRAFT_ONLY. YOU_DECIDE.
-            </MachineText>
+            <MachineText className="text-xs text-muted">DRAFT_ONLY. YOU_DECIDE.</MachineText>
           </View>
           {aiDraft ? (
             <View className="gap-3">
@@ -216,9 +208,7 @@ export default function WeeklyReviewScreen() {
             <MachineText variant="label" className="text-accent">
               PLAN_DRAFT
             </MachineText>
-            <MachineText className="text-xs text-muted">
-              DRAFT_ONLY. APPLY_PER_DAY.
-            </MachineText>
+            <MachineText className="text-xs text-muted">DRAFT_ONLY. APPLY_PER_DAY.</MachineText>
           </View>
           {weeklyPlanDraft ? (
             <View className="gap-3">

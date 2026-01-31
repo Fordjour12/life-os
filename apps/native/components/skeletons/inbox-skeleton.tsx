@@ -14,7 +14,11 @@ export function InboxSkeleton() {
         </View>
 
         {Array.from({ length: 3 }).map((_, index) => (
-          <HardCard key={`suggestion-${index}`} label="SIGNAL_DETECTED" className="gap-3 p-4 bg-surface">
+          <HardCard
+            key={`suggestion-${index}`}
+            label="SIGNAL_DETECTED"
+            className="gap-3 p-4 bg-surface"
+          >
             <View className="gap-1">
               <SkeletonGroup.Item className="h-6 w-32 rounded-md" />
               <SkeletonGroup.Item className="h-4 w-48 rounded-md" />

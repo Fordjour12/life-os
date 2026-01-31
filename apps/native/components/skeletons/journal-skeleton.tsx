@@ -44,7 +44,11 @@ export function JournalSkeleton() {
 
         <View className="gap-6">
           {Array.from({ length: 2 }).map((_, dayIndex) => (
-            <HardCard key={`day-${dayIndex}`} label={`DAY_2026-01-${30 - dayIndex}`} className="bg-surface">
+            <HardCard
+              key={`day-${dayIndex}`}
+              label={`DAY_2026-01-${30 - dayIndex}`}
+              className="bg-surface"
+            >
               <View className="gap-3 p-2">
                 <View className="flex-row justify-between items-center opacity-50">
                   <SkeletonGroup.Item className="h-3 w-20 rounded-md" />
@@ -52,7 +56,10 @@ export function JournalSkeleton() {
                 </View>
                 <View className="gap-3">
                   {Array.from({ length: 2 }).map((_, entryIndex) => (
-                    <View key={`entry-${entryIndex}`} className="gap-3 bg-muted p-3 border-l-4 border-foreground">
+                    <View
+                      key={`entry-${entryIndex}`}
+                      className="gap-3 bg-muted p-3 border-l-4 border-foreground"
+                    >
                       <View className="flex-row justify-between items-center">
                         <SkeletonGroup.Item className="h-3 w-16 rounded-md" />
                         <SkeletonGroup.Item className="h-3 w-16 rounded-md" />

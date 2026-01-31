@@ -499,11 +499,9 @@ OUTPUT FORMAT: JSON array of suggestions with fields: day, type, priority, reaso
 Generate suggestions based on:
 ${JSON.stringify(context, null, 2)}`;
 
-    const result = await suggestionAgent.generateText(
-      ctx,
-      { threadId, userId },
-      { prompt } as Parameters<typeof suggestionAgent.generateText>[2],
-    );
+    const result = await suggestionAgent.generateText(ctx, { threadId, userId }, {
+      prompt,
+    } as Parameters<typeof suggestionAgent.generateText>[2]);
 
     if (!result.text) {
       console.log("[vex-agents] Empty response from AI");
@@ -635,10 +633,7 @@ type WeeklyReviewDraft = {
   reason: { code: string; detail: string };
 };
 
-function normalizeWeeklyReviewDraft(
-  raw: unknown,
-  fallback: WeeklyReviewDraft,
-): WeeklyReviewDraft {
+function normalizeWeeklyReviewDraft(raw: unknown, fallback: WeeklyReviewDraft): WeeklyReviewDraft {
   if (!raw || typeof raw !== "object") return fallback;
   const candidate = raw as Record<string, unknown>;
   const highlightsRaw = Array.isArray(candidate.highlights)
@@ -656,15 +651,16 @@ function normalizeWeeklyReviewDraft(
       ? safeCopy(candidate.narrative, fallback.narrative)
       : fallback.narrative;
   const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
-  const reason = reasonRaw?.code && typeof reasonRaw.code === "string"
-    ? {
-        code: reasonRaw.code,
-        detail: safeCopy(
-          typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
-          fallback.reason.detail,
-        ),
-      }
-    : fallback.reason;
+  const reason =
+    reasonRaw?.code && typeof reasonRaw.code === "string"
+      ? {
+          code: reasonRaw.code,
+          detail: safeCopy(
+            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
+            fallback.reason.detail,
+          ),
+        }
+      : fallback.reason;
 
   return {
     highlights: filterSafeStrings(highlightsRaw).slice(0, 2),
@@ -840,11 +836,9 @@ RULES:
 OUTPUT FORMAT:
 { "highlights": string[], "frictionPoints": string[], "reflectionQuestion": string, "narrative": string, "reason": { "code": string, "detail": string } }`;
 
-      const result = await weeklyReviewAgent.generateText(
-        ctx,
-        { threadId, userId },
-        { prompt } as Parameters<typeof weeklyReviewAgent.generateText>[2],
-      );
+      const result = await weeklyReviewAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof weeklyReviewAgent.generateText>[2]);
 
       if (!result.text) {
         return { status: "success", source: "fallback", draft: fallback, week: weekId } as const;
@@ -959,11 +953,9 @@ RULES:
 OUTPUT FORMAT:
 { "week": "${weekId}", "days": [{ "day": "YYYY-MM-DD", "focusItems": [{ "id": string, "label": string, "estimatedMinutes": number }], "reason": { "code": string, "detail": string } }], "reason": { "code": string, "detail": string } }`;
 
-      const result = await suggestionAgent.generateText(
-        ctx,
-        { threadId, userId },
-        { prompt } as Parameters<typeof suggestionAgent.generateText>[2],
-      );
+      const result = await suggestionAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof suggestionAgent.generateText>[2]);
 
       if (!result.text) {
         return { status: "success", source: "fallback", draft: fallback } as const;
@@ -999,15 +991,18 @@ function normalizeJournalPromptDraft(
         ? safeCopy(candidate.prompt, fallback.prompt ?? "")
         : fallback.prompt;
   const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
-  const reason = reasonRaw?.code && typeof reasonRaw.code === "string"
-    ? {
-        code: reasonRaw.code,
-        detail: safeCopy(
-          typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason?.detail ?? "",
-          fallback.reason?.detail ?? "",
-        ),
-      }
-    : fallback.reason;
+  const reason =
+    reasonRaw?.code && typeof reasonRaw.code === "string"
+      ? {
+          code: reasonRaw.code,
+          detail: safeCopy(
+            typeof reasonRaw.detail === "string"
+              ? reasonRaw.detail
+              : (fallback.reason?.detail ?? ""),
+            fallback.reason?.detail ?? "",
+          ),
+        }
+      : fallback.reason;
   const quiet = typeof candidate.quiet === "boolean" ? candidate.quiet : fallback.quiet;
 
   return {
@@ -1029,22 +1024,21 @@ function normalizeNextStepDraft(raw: unknown, fallback: NextStepDraft): NextStep
   if (!raw || typeof raw !== "object") return fallback;
   const candidate = raw as Record<string, unknown>;
   const step =
-    typeof candidate.step === "string"
-      ? safeCopy(candidate.step, fallback.step)
-      : fallback.step;
+    typeof candidate.step === "string" ? safeCopy(candidate.step, fallback.step) : fallback.step;
   const estimateMin = Number.isFinite(Number(candidate.estimateMin))
     ? Math.max(1, Math.round(Number(candidate.estimateMin)))
     : fallback.estimateMin;
   const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
-  const reason = reasonRaw?.code && typeof reasonRaw.code === "string"
-    ? {
-        code: reasonRaw.code,
-        detail: safeCopy(
-          typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
-          fallback.reason.detail,
-        ),
-      }
-    : fallback.reason;
+  const reason =
+    reasonRaw?.code && typeof reasonRaw.code === "string"
+      ? {
+          code: reasonRaw.code,
+          detail: safeCopy(
+            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
+            fallback.reason.detail,
+          ),
+        }
+      : fallback.reason;
 
   return {
     taskId: fallback.taskId,
@@ -1075,20 +1069,23 @@ function normalizeRecoveryProtocolDraft(
   const stepsRaw = Array.isArray(candidate.steps)
     ? candidate.steps.map((item) => safeCopy(String(item), ""))
     : fallback.steps;
-  const steps = filterSafeStrings(stepsRaw).filter((step) => step.trim()).slice(0, 3);
+  const steps = filterSafeStrings(stepsRaw)
+    .filter((step) => step.trim())
+    .slice(0, 3);
   const minutes = Number.isFinite(Number(candidate.minutes))
     ? Math.max(5, Math.round(Number(candidate.minutes)))
     : fallback.minutes;
   const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
-  const reason = reasonRaw?.code && typeof reasonRaw.code === "string"
-    ? {
-        code: reasonRaw.code,
-        detail: safeCopy(
-          typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
-          fallback.reason.detail,
-        ),
-      }
-    : fallback.reason;
+  const reason =
+    reasonRaw?.code && typeof reasonRaw.code === "string"
+      ? {
+          code: reasonRaw.code,
+          detail: safeCopy(
+            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
+            fallback.reason.detail,
+          ),
+        }
+      : fallback.reason;
 
   return {
     day: fallback.day,
@@ -1123,15 +1120,16 @@ function normalizeWeeklyPlanDraft(raw: unknown, fallback: WeeklyPlanDraft): Week
   const candidate = raw as Record<string, unknown>;
   const daysRaw = Array.isArray(candidate.days) ? candidate.days : fallback.days;
   const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
-  const reason = reasonRaw?.code && typeof reasonRaw.code === "string"
-    ? {
-        code: reasonRaw.code,
-        detail: safeCopy(
-          typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
-          fallback.reason.detail,
-        ),
-      }
-    : fallback.reason;
+  const reason =
+    reasonRaw?.code && typeof reasonRaw.code === "string"
+      ? {
+          code: reasonRaw.code,
+          detail: safeCopy(
+            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
+            fallback.reason.detail,
+          ),
+        }
+      : fallback.reason;
 
   const days = daysRaw
     .map((entry) => {
@@ -1156,17 +1154,18 @@ function normalizeWeeklyPlanDraft(raw: unknown, fallback: WeeklyPlanDraft): Week
           Boolean(focus),
         );
       const reasonValue = item.reason as { code?: string; detail?: string } | undefined;
-      const reason = reasonValue?.code && typeof reasonValue.code === "string"
-        ? {
-            code: reasonValue.code,
-            detail: safeCopy(
-              typeof reasonValue.detail === "string"
-                ? reasonValue.detail
-                : "Reason provided for this plan day.",
-              "Reason provided for this plan day.",
-            ),
-          }
-        : { code: "draft", detail: "Drafted to fit your capacity for the day." };
+      const reason =
+        reasonValue?.code && typeof reasonValue.code === "string"
+          ? {
+              code: reasonValue.code,
+              detail: safeCopy(
+                typeof reasonValue.detail === "string"
+                  ? reasonValue.detail
+                  : "Reason provided for this plan day.",
+                "Reason provided for this plan day.",
+              ),
+            }
+          : { code: "draft", detail: "Drafted to fit your capacity for the day." };
 
       if (!/\d{4}-\d{2}-\d{2}/.test(day) || focusItems.length === 0) return null;
 
@@ -1296,11 +1295,9 @@ RULES:
 OUTPUT FORMAT:
 { "prompt": string, "reason": { "code": string, "detail": string }, "quiet": false }`;
 
-      const result = await journalAgent.generateText(
-        ctx,
-        { threadId, userId },
-        { prompt } as Parameters<typeof journalAgent.generateText>[2],
-      );
+      const result = await journalAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof journalAgent.generateText>[2]);
       if (!result.text) {
         return { status: "success", source: "fallback", draft: fallback } as const;
       }
@@ -1379,11 +1376,9 @@ RULES:
 OUTPUT FORMAT:
 { "step": string, "estimateMin": number, "reason": { "code": string, "detail": string } }`;
 
-      const result = await suggestionAgent.generateText(
-        ctx,
-        { threadId, userId },
-        { prompt } as Parameters<typeof suggestionAgent.generateText>[2],
-      );
+      const result = await suggestionAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof suggestionAgent.generateText>[2]);
 
       if (!result.text) {
         return { status: "success", source: "fallback", draft: fallback } as const;
@@ -1455,11 +1450,9 @@ RULES:
 OUTPUT FORMAT:
 { "title": string, "steps": string[], "minutes": number, "reason": { "code": string, "detail": string } }`;
 
-      const result = await journalAgent.generateText(
-        ctx,
-        { threadId, userId },
-        { prompt } as Parameters<typeof journalAgent.generateText>[2],
-      );
+      const result = await journalAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof journalAgent.generateText>[2]);
 
       if (!result.text) {
         return { status: "success", source: "fallback", draft: fallback } as const;
@@ -1571,15 +1564,16 @@ export const getNextStepRawData = internalQuery({
     const userId = getUserId();
 
     const task = await ctx.db.get(taskId);
-    const safeTask = task && task.userId === userId
-      ? {
-          _id: task._id,
-          title: task.title,
-          estimateMin: task.estimateMin,
-          priority: task.priority ?? undefined,
-          status: task.status,
-        }
-      : null;
+    const safeTask =
+      task && task.userId === userId
+        ? {
+            _id: task._id,
+            title: task.title,
+            estimateMin: task.estimateMin,
+            priority: task.priority ?? undefined,
+            status: task.status,
+          }
+        : null;
 
     const stateDoc = await ctx.db
       .query("stateDaily")

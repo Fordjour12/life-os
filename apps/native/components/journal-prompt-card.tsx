@@ -1,6 +1,7 @@
 import { Button, Spinner, TextField } from "heroui-native";
 import { useState } from "react";
 import { View } from "react-native";
+import React from "react";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -35,7 +36,7 @@ const moods: Array<{ value: Mood; label: string }> = [
   { value: "good", label: "GOOD" },
 ];
 
-export function JournalPromptCard({
+export const JournalPromptCard = React.memo(function JournalPromptCard({
   day,
   prompt,
   quiet,
@@ -247,4 +248,4 @@ export function JournalPromptCard({
       </View>
     </HardCard>
   );
-}
+});

@@ -30,6 +30,7 @@ import type * as kernel_testing from "../kernel/testing.js";
 import type * as kernel_vexAgents from "../kernel/vexAgents.js";
 import type * as privateData from "../privateData.js";
 import type * as tasks from "../tasks.js";
+import type * as threads from "../threads.js";
 
 import type {
   ApiFromModules,
@@ -60,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   "kernel/vexAgents": typeof kernel_vexAgents;
   privateData: typeof privateData;
   tasks: typeof tasks;
+  threads: typeof threads;
 }>;
 
 /**

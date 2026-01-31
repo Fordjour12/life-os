@@ -1,5 +1,5 @@
 import { Button, Spinner } from "heroui-native";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { View } from "react-native";
 
 import { HardCard } from "@/components/ui/hard-card";
@@ -27,7 +27,11 @@ type Props = {
   isGenerating?: boolean;
 };
 
-export function WeeklyReviewCard({ review, onGenerate, isGenerating }: Props) {
+export const WeeklyReviewCard = React.memo(function WeeklyReviewCard({
+  review,
+  onGenerate,
+  isGenerating,
+}: Props) {
   const facts = review?.facts;
   const highlights = review?.highlights ?? [];
   const frictionPoints = review?.frictionPoints ?? [];
@@ -125,9 +129,9 @@ export function WeeklyReviewCard({ review, onGenerate, isGenerating }: Props) {
       </View>
     </HardCard>
   );
-}
+});
 
-function Fact({ label, value }: { label: string; value: number }) {
+const Fact = React.memo(function Fact({ label, value }: { label: string; value: number }) {
   return (
     <View className="min-w-[120px] gap-1">
       <MachineText className="text-2xl font-bold">{value}</MachineText>
@@ -136,4 +140,4 @@ function Fact({ label, value }: { label: string; value: number }) {
       </MachineText>
     </View>
   );
-}
+});

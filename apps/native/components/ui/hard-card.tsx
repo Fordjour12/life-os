@@ -1,4 +1,5 @@
 import { View, ViewProps, Text } from "react-native";
+import React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
 const cardStyles = tv({
@@ -34,7 +35,7 @@ interface HardCardProps extends ViewProps, CardVariants {
   className?: string; // Explicitly keeping className in props for clarity
 }
 
-export function HardCard({
+export const HardCard = React.memo(function HardCard({
   children,
   style,
   variant,
@@ -56,4 +57,4 @@ export function HardCard({
       <View>{children}</View>
     </View>
   );
-}
+});

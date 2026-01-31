@@ -3,8 +3,9 @@ import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Button, Spinner, TextField } from "heroui-native";
 import { useEffect, useMemo, useState } from "react";
-import { View, ScrollView } from "react-native";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { FlashList } from "@shopify/flash-list";
 
 import { DailyIntentCard } from "@/components/daily-intent-card";
 import { DriftSignalsCard } from "@/components/drift-signals-card";
@@ -16,6 +17,7 @@ import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { TodaySkeleton } from "@/components/skeletons/today-skeleton";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
+import { TaskCard } from "@/components/task-card";
 
 // We'll define a local component for the "Engineering Badge" for now to match the style
 function EngBadge({
@@ -123,7 +125,9 @@ export default function Today() {
   });
   const generateWeeklyReviewDraft = useAction(api.kernel.vexAgents.generateWeeklyReviewDraft);
   const generateJournalPromptDraft = useAction(api.kernel.vexAgents.generateJournalPromptDraft);
-  const generateRecoveryProtocolDraft = useAction(api.kernel.vexAgents.generateRecoveryProtocolDraft);
+  const generateRecoveryProtocolDraft = useAction(
+    api.kernel.vexAgents.generateRecoveryProtocolDraft,
+  );
   const createJournalEntryMutation = useMutation(api.identity.createJournalEntry);
   const journalEntries = useQuery(
     api.identity.getJournalEntriesForDay,
@@ -140,39 +144,30 @@ export default function Today() {
   const [isLoggingHabit, setIsLoggingHabit] = useState(false);
   const [isLoggingExpense, setIsLoggingExpense] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
-  const [journalDraft, setJournalDraft] = useState<
-    | {
-        day: string;
-        prompt: string | null;
-        reason: { code: string; detail: string } | null;
-        quiet: boolean;
-      }
-    | null
-  >(null);
+  const [journalDraft, setJournalDraft] = useState<{
+    day: string;
+    prompt: string | null;
+    reason: { code: string; detail: string } | null;
+    quiet: boolean;
+  } | null>(null);
   const [isLoadingJournalDraft, setIsLoadingJournalDraft] = useState(false);
   const [isRegeneratingJournalDraft, setIsRegeneratingJournalDraft] = useState(false);
-  const [recoveryDraft, setRecoveryDraft] = useState<
-    | {
-        day: string;
-        title: string;
-        steps: string[];
-        minutes: number;
-        reason: { code: string; detail: string };
-      }
-    | null
-  >(null);
+  const [recoveryDraft, setRecoveryDraft] = useState<{
+    day: string;
+    title: string;
+    steps: string[];
+    minutes: number;
+    reason: { code: string; detail: string };
+  } | null>(null);
   const [isLoadingRecoveryDraft, setIsLoadingRecoveryDraft] = useState(false);
-  const [weeklyDraft, setWeeklyDraft] = useState<
-    | {
-        highlights: string[];
-        frictionPoints: string[];
-        reflectionQuestion: string;
-        narrative: string;
-        reason: { code: string; detail: string };
-        week: string;
-      }
-    | null
-  >(null);
+  const [weeklyDraft, setWeeklyDraft] = useState<{
+    highlights: string[];
+    frictionPoints: string[];
+    reflectionQuestion: string;
+    narrative: string;
+    reason: { code: string; detail: string };
+    week: string;
+  } | null>(null);
   const [isLoadingWeeklyDraft, setIsLoadingWeeklyDraft] = useState(false);
   const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
   const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
@@ -916,34 +911,16 @@ export default function Today() {
           <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
         </View>
 
-        <View className="gap-2 mb-6">
+        <View className="gap-2 mb-6 min-h-[100px]">
           {tasks.length > 0 ? (
-            tasks.map((task: TaskItem, index) => (
-              <HardCard key={task._id} padding="sm" className="bg-surface">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-3 flex-1">
-                    <MachineText variant="label" className="w-4 text-center text-foreground/30">
-                      {index + 1}
-                    </MachineText>
-                    <View>
-                      <MachineText className="font-bold text-base">{task.title}</MachineText>
-                      <MachineText className="text-xs opacity-50">
-                        {task.estimateMin} MIN
-                      </MachineText>
-                    </View>
-                  </View>
-                  <Button
-                    size="sm"
-                    onPress={() => completeTask(task._id)}
-                    className="border border-divider bg-muted shadow-[2px_2px_0px_var(--color-foreground)]"
-                  >
-                    <MachineText className="text-[10px] font-bold text-foreground">
-                      DONE
-                    </MachineText>
-                  </Button>
-                </View>
-              </HardCard>
-            ))
+            <FlashList
+              data={tasks}
+              renderItem={({ item, index }) => <TaskCard task={item} index={index} />}
+              estimatedItemSize={72}
+              keyExtractor={(item) => item._id}
+              contentContainerStyle={{ gap: 8 }}
+              showsVerticalScrollIndicator={false}
+            />
           ) : (
             <HardCard variant="flat" className="items-center py-6 border-dashed">
               <MachineText className="opacity-50">QUEUE_EMPTY</MachineText>
