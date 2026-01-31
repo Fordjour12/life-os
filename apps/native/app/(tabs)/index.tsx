@@ -1,8 +1,8 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Button, Spinner, TextField } from "heroui-native";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -121,7 +121,9 @@ export default function Today() {
   const driftSignals = useQuery(api.identity.getDriftSignals, {
     window: "month",
   });
-  const journalPrompt = useQuery(api.identity.getJournalPrompt, data ? { day: data.day } : "skip");
+  const generateWeeklyReviewDraft = useAction(api.kernel.vexAgents.generateWeeklyReviewDraft);
+  const generateJournalPromptDraft = useAction(api.kernel.vexAgents.generateJournalPromptDraft);
+  const generateRecoveryProtocolDraft = useAction(api.kernel.vexAgents.generateRecoveryProtocolDraft);
   const createJournalEntryMutation = useMutation(api.identity.createJournalEntry);
   const journalEntries = useQuery(
     api.identity.getJournalEntriesForDay,
@@ -138,6 +140,40 @@ export default function Today() {
   const [isLoggingHabit, setIsLoggingHabit] = useState(false);
   const [isLoggingExpense, setIsLoggingExpense] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
+  const [journalDraft, setJournalDraft] = useState<
+    | {
+        day: string;
+        prompt: string | null;
+        reason: { code: string; detail: string } | null;
+        quiet: boolean;
+      }
+    | null
+  >(null);
+  const [isLoadingJournalDraft, setIsLoadingJournalDraft] = useState(false);
+  const [isRegeneratingJournalDraft, setIsRegeneratingJournalDraft] = useState(false);
+  const [recoveryDraft, setRecoveryDraft] = useState<
+    | {
+        day: string;
+        title: string;
+        steps: string[];
+        minutes: number;
+        reason: { code: string; detail: string };
+      }
+    | null
+  >(null);
+  const [isLoadingRecoveryDraft, setIsLoadingRecoveryDraft] = useState(false);
+  const [weeklyDraft, setWeeklyDraft] = useState<
+    | {
+        highlights: string[];
+        frictionPoints: string[];
+        reflectionQuestion: string;
+        narrative: string;
+        reason: { code: string; detail: string };
+        week: string;
+      }
+    | null
+  >(null);
+  const [isLoadingWeeklyDraft, setIsLoadingWeeklyDraft] = useState(false);
   const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
   const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
   const [isSkippingJournal, setIsSkippingJournal] = useState(false);
@@ -308,6 +344,73 @@ export default function Today() {
   };
 
   const suggestions = useMemo(() => (data?.suggestions ?? []) as SuggestionItem[], [data]);
+
+  useEffect(() => {
+    if (!data) return;
+    let cancelled = false;
+    setIsLoadingJournalDraft(true);
+    generateJournalPromptDraft({ day: data.day })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.status === "success") {
+          setJournalDraft(result.draft);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingJournalDraft(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [data, generateJournalPromptDraft]);
+
+  useEffect(() => {
+    if (!weeklyReview?.week) return;
+    let cancelled = false;
+    setIsLoadingWeeklyDraft(true);
+    generateWeeklyReviewDraft({ week: weeklyReview.week })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.status === "success") {
+          setWeeklyDraft({ ...result.draft, week: result.week });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingWeeklyDraft(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [generateWeeklyReviewDraft, weeklyReview?.week]);
+
+  const regenerateJournalPrompt = async () => {
+    if (!data) return;
+    setIsRegeneratingJournalDraft(true);
+    try {
+      const result = await generateJournalPromptDraft({ day: data.day });
+      if (result.status === "success") {
+        setJournalDraft(result.draft);
+      }
+    } finally {
+      setIsRegeneratingJournalDraft(false);
+    }
+  };
+
+  const loadRecoveryProtocol = async () => {
+    if (!data) return;
+    setIsLoadingRecoveryDraft(true);
+    try {
+      const result = await generateRecoveryProtocolDraft({
+        day: data.day,
+        tzOffsetMinutes,
+      });
+      if (result.status === "success") {
+        setRecoveryDraft(result.draft);
+      }
+    } finally {
+      setIsLoadingRecoveryDraft(false);
+    }
+  };
   const tasks = useMemo(() => (tasksData ?? []) as TaskItem[], [tasksData]);
   const eventSummary = useMemo(
     () =>
@@ -607,6 +710,28 @@ export default function Today() {
         />
       )}
 
+      {weeklyReview ? (
+        <HardCard label="AI_NARRATIVE" className="mb-6 bg-surface">
+          <View className="p-2 gap-3">
+            <MachineText variant="label" className="text-accent">
+              WEEKLY_AI_SUMMARY
+            </MachineText>
+            {weeklyDraft ? (
+              <View className="gap-2">
+                <MachineText className="text-sm">{weeklyDraft.narrative}</MachineText>
+                <MachineText className="text-[10px] text-muted">
+                  REASON: {weeklyDraft.reason.detail}
+                </MachineText>
+              </View>
+            ) : isLoadingWeeklyDraft ? (
+              <Spinner size="sm" color="warning" />
+            ) : (
+              <MachineText className="text-sm">NO_AI_DRAFT_YET.</MachineText>
+            )}
+          </View>
+        </HardCard>
+      ) : null}
+
       {patternInsights !== undefined ? (
         <PatternInsightsCard insights={patternInsights ?? null} windowLabel="WEEK_WINDOW" />
       ) : null}
@@ -615,14 +740,61 @@ export default function Today() {
         <DriftSignalsCard signals={driftSignals ?? null} windowLabel="MONTH_WINDOW" />
       ) : null}
 
-      {journalPrompt !== undefined ? (
+      {data?.state?.mode === "recovery" ? (
+        <HardCard label="RECOVERY_PROTOCOL" className="mb-6 bg-surface">
+          <View className="p-2 gap-3">
+            <MachineText variant="label" className="text-accent">
+              RECOVERY_MODE_ACTIVE
+            </MachineText>
+            {recoveryDraft ? (
+              <View className="gap-2">
+                <MachineText className="text-lg font-bold">{recoveryDraft.title}</MachineText>
+                <View className="gap-1">
+                  {recoveryDraft.steps.map((step, index) => (
+                    <MachineText key={`${step}-${index}`} className="text-sm">
+                      {index + 1}. {step}
+                    </MachineText>
+                  ))}
+                </View>
+                <MachineText className="text-[10px] text-muted">
+                  REASON: {recoveryDraft.reason.detail}
+                </MachineText>
+              </View>
+            ) : (
+              <MachineText className="text-sm">NO_RECOVERY_DRAFT_YET.</MachineText>
+            )}
+            <Button
+              size="sm"
+              onPress={loadRecoveryProtocol}
+              isDisabled={isLoadingRecoveryDraft}
+              className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]"
+            >
+              {isLoadingRecoveryDraft ? (
+                <Spinner size="sm" color="white" />
+              ) : (
+                <MachineText className="text-background font-bold">GENERATE_PROTOCOL</MachineText>
+              )}
+            </Button>
+          </View>
+        </HardCard>
+      ) : null}
+
+      {isLoadingJournalDraft && !journalDraft ? (
+        <HardCard label="REFLECTION_MODULE" className="mb-6 bg-surface">
+          <View className="p-4 items-center">
+            <Spinner size="sm" color="warning" />
+          </View>
+        </HardCard>
+      ) : journalDraft ? (
         <JournalPromptCard
           day={data.day}
-          prompt={journalPrompt?.prompt ?? null}
-          quiet={journalPrompt?.quiet}
-          reason={normalizeJournalReason(journalPrompt?.reason)}
+          prompt={journalDraft.prompt}
+          quiet={journalDraft.quiet}
+          reason={normalizeJournalReason(journalDraft.reason?.code)}
           onSubmit={submitJournalEntry}
           onSkip={skipJournal}
+          onRegenerate={regenerateJournalPrompt}
+          isRegenerating={isRegeneratingJournalDraft}
           entries={
             (journalEntries ?? []) as Array<{
               _id: string;

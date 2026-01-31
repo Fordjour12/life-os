@@ -21,6 +21,8 @@ type Props = {
   reason?: "reflection" | "recovery" | "plan_reset" | "micro_recovery" | "quiet" | null;
   onSubmit: (input: { day: string; text?: string; mood?: Mood }) => Promise<void>;
   onSkip: (day: string) => Promise<void>;
+  onRegenerate?: () => Promise<void> | void;
+  isRegenerating?: boolean;
   entries?: JournalEntry[];
   isSkipping?: boolean;
   isSubmitting?: boolean;
@@ -40,6 +42,8 @@ export function JournalPromptCard({
   reason,
   onSubmit,
   onSkip,
+  onRegenerate,
+  isRegenerating,
   entries = [],
   isSkipping,
   isSubmitting,
@@ -110,15 +114,33 @@ export function JournalPromptCard({
           <MachineText className="text-lg font-bold" style={{ opacity: promptOpacity }}>
             {prompt}
           </MachineText>
-          <Button
-            size="sm"
-            onPress={() => setShowHints((value) => !value)}
-            className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
-          >
-            <MachineText className="text-foreground font-bold text-[10px]">
-              {showHints ? "HIDE_HINTS" : "SHOW_HINTS"}
-            </MachineText>
-          </Button>
+          <View className="flex-row flex-wrap gap-2">
+            <Button
+              size="sm"
+              onPress={() => setShowHints((value) => !value)}
+              className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
+            >
+              <MachineText className="text-foreground font-bold text-[10px]">
+                {showHints ? "HIDE_HINTS" : "SHOW_HINTS"}
+              </MachineText>
+            </Button>
+            {onRegenerate ? (
+              <Button
+                size="sm"
+                onPress={onRegenerate}
+                isDisabled={isRegenerating}
+                className="bg-foreground rounded-none"
+              >
+                {isRegenerating ? (
+                  <Spinner size="sm" color="white" />
+                ) : (
+                  <MachineText className="text-background font-bold text-[10px]">
+                    REGENERATE
+                  </MachineText>
+                )}
+              </Button>
+            ) : null}
+          </View>
           {showHints ? (
             <View className="gap-1">
               {hint ? <MachineText className="text-[10px] text-muted">{hint}</MachineText> : null}
