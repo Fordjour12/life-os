@@ -111,15 +111,7 @@ export default function TimeReality() {
     );
   }, [blocks]);
 
-  if (!today || !freeData) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
-  }
-
-  const dayLabel = formatDayLabel(today.day).toUpperCase();
+  const dayLabel = today ? formatDayLabel(today.day).toUpperCase() : "";
   const calendarDayLabel = activeDay
     ? formatDayLabel(activeDay).toUpperCase()
     : dayLabel;
@@ -138,23 +130,31 @@ export default function TimeReality() {
       ),
     [calendarBlocks],
   );
-  const prevDay = activeDay ? shiftDay(activeDay, -1) : today.day;
-  const nextDay = activeDay ? shiftDay(activeDay, 1) : today.day;
+  const prevDay = activeDay ? shiftDay(activeDay, -1) : today?.day ?? "";
+  const nextDay = activeDay ? shiftDay(activeDay, 1) : today?.day ?? "";
   const weekDays = useMemo(() => {
     if (!activeDay) return [] as string[];
     return [-3, -2, -1, 0, 1, 2, 3].map((offset) =>
       shiftDay(activeDay, offset),
     );
   }, [activeDay]);
-  const freeMinutesLabel = formatMinutes(freeData.freeMinutes);
-  const effectiveFreeLabel = formatMinutes(freeData.effectiveFreeMinutes ?? 0);
-  const focusMinutesLabel = formatMinutes(freeData.focusMinutes ?? 0);
-  const busyMinutesLabel = formatMinutes(freeData.busyMinutes ?? 0);
-  const capacityLabel = formatMinutes(freeData.capacityMinutes ?? 0);
+  const freeMinutesLabel = formatMinutes(freeData?.freeMinutes ?? 0);
+  const effectiveFreeLabel = formatMinutes(freeData?.effectiveFreeMinutes ?? 0);
+  const focusMinutesLabel = formatMinutes(freeData?.focusMinutes ?? 0);
+  const busyMinutesLabel = formatMinutes(freeData?.busyMinutes ?? 0);
+  const capacityLabel = formatMinutes(freeData?.capacityMinutes ?? 0);
   const otherMinutesLabel = formatMinutes(
     totals.focus + totals.rest + totals.personal,
   );
   const totalLoggedLabel = formatMinutes(totals.total);
+
+  if (!today || !freeData) {
+    return (
+      <View className="flex-1 justify-center items-center bg-background">
+        <Spinner size="lg" color="warning" />
+      </View>
+    );
+  }
 
   const toggleNotes = (blockId: Id<"calendarBlocks">) => {
     setExpandedBlockId((current) => (current === blockId ? null : blockId));
