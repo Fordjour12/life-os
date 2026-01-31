@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { PlannerSkeleton } from "@/components/skeletons/planner-skeleton";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type PlanItem = {
@@ -80,11 +81,7 @@ export default function Planner() {
   const [showNextStep, setShowNextStep] = useState(false);
 
   if (!data) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <PlannerSkeleton />;
   }
 
   const plan = (data.plan ?? null) as PlanData | null;

@@ -1,12 +1,13 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Button, Spinner, TextField } from "heroui-native";
+import { Button, TextField } from "heroui-native";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, View } from "react-native";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
+import { JournalSkeleton } from "@/components/skeletons/journal-skeleton";
 import { storage } from "@/lib/storage";
 
 type Mood = "low" | "neutral" | "ok" | "good";
@@ -176,11 +177,7 @@ export default function JournalScreen() {
   }, [groupedEntries]);
 
   if (entries === undefined) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <JournalSkeleton />;
   }
 
   const confirmDelete = (entryId: Id<"journalEntries">) => {

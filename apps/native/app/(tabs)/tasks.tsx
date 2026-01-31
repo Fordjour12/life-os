@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { TasksSkeleton } from "@/components/skeletons/tasks-skeleton";
 
 type TaskItem = {
   _id: Id<"tasks">;
@@ -121,11 +122,7 @@ export default function Tasks() {
   };
 
   if (!tasksData || !pausedTasksData) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <TasksSkeleton />;
   }
 
   return (

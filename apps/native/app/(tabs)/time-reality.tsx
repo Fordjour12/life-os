@@ -11,6 +11,7 @@ import { withUniwind } from "uniwind";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { TimeRealitySkeleton } from "@/components/skeletons/time-reality-skeleton";
 import { formatDayLabel, formatTime, shiftDay } from "@/lib/calendar-utils";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 
@@ -128,11 +129,7 @@ export default function TimeReality() {
   const totalLoggedLabel = formatMinutes(totals.total);
 
   if (!today || !freeData) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <TimeRealitySkeleton />;
   }
 
   const toggleNotes = (blockId: Id<"calendarBlocks">) => {

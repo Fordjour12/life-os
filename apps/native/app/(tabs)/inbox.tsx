@@ -1,12 +1,13 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { Button, Spinner } from "heroui-native";
+import { Button } from "heroui-native";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { InboxSkeleton } from "@/components/skeletons/inbox-skeleton";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type SuggestionItem = {
@@ -36,11 +37,7 @@ export default function Inbox() {
   };
 
   if (!data) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <InboxSkeleton />;
   }
 
   const suggestions = (data.suggestions ?? []) as SuggestionItem[];

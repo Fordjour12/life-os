@@ -10,6 +10,7 @@ import { WeeklyReviewCard } from "@/components/weekly-review-card";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { WeeklyReviewSkeleton } from "@/components/skeletons/weekly-review-skeleton";
 
 export default function WeeklyReviewScreen() {
   const weeklyReview = useQuery(api.identity.weeklyReview.getWeeklyReview, {});
@@ -131,11 +132,7 @@ export default function WeeklyReviewScreen() {
   };
 
   if (weeklyReview === undefined) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <WeeklyReviewSkeleton />;
   }
 
   return (
