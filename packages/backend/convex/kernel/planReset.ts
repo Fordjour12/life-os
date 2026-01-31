@@ -11,6 +11,7 @@ import {
   DAILY_SUGGESTION_CAP,
   getBoundaryFlagsFromBlocks,
   getTimeMetricsFromBlocks,
+  normalizeOffsetMinutes,
 } from "./stabilization";
 
 function getUserId(): string {
@@ -39,11 +40,13 @@ export const applyPlanReset = mutation({
     day: v.string(),
     keepCount: v.optional(v.union(v.literal(1), v.literal(2))),
     idempotencyKey: v.string(),
+    tzOffsetMinutes: v.optional(v.number()),
   },
-  handler: async (ctx, { day, keepCount, idempotencyKey }) => {
+  handler: async (ctx, { day, keepCount, idempotencyKey, tzOffsetMinutes }) => {
     const userId = getUserId();
     const now = Date.now();
     const keepN = keepCount ?? 1;
+    const offset = normalizeOffsetMinutes(tzOffsetMinutes);
 
     const existing = await ctx.db
       .query("events")
@@ -113,7 +116,7 @@ export const applyPlanReset = mutation({
       .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
       .collect();
     const timeMetrics = getTimeMetricsFromBlocks(blocks);
-    const boundaries = getBoundaryFlagsFromBlocks(blocks, now);
+    const boundaries = getBoundaryFlagsFromBlocks(blocks, now, offset);
     const state = computeDailyState(day, kernelEvents, timeMetrics);
 
     const activeTasksAfterReset = kept;

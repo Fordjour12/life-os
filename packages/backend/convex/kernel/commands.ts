@@ -16,6 +16,7 @@ import {
   DAILY_SUGGESTION_CAP,
   getBoundaryFlagsFromBlocks,
   getTimeMetricsFromBlocks,
+  normalizeOffsetMinutes,
 } from "./stabilization";
 
 function getTodayYYYYMMDD() {
@@ -24,12 +25,6 @@ function getTodayYYYYMMDD() {
   const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
   const dd = String(date.getUTCDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
-}
-
-function normalizeOffsetMinutes(value: unknown) {
-  const raw = Number(value ?? 0);
-  if (!Number.isFinite(raw)) return 0;
-  return Math.max(-840, Math.min(840, raw));
 }
 
 function formatYYYYMMDDWithOffset(ts: number, tzOffsetMinutes: number) {

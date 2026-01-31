@@ -24,3 +24,7 @@ export function formatShortDate(input?: DateInput) {
     })
     .toUpperCase();
 }
+
+export function getTimezoneOffsetMinutes(date = new Date()) {
+  return -date.getTimezoneOffset();
+}

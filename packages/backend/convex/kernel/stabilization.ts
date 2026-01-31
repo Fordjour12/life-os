@@ -7,6 +7,12 @@ export const DAILY_SUGGESTION_CAP = 3;
 export const LATE_NIGHT_START_MIN = 22 * 60 + 30;
 export const LATE_NIGHT_END_MIN = 6 * 60;
 
+export function normalizeOffsetMinutes(value: unknown) {
+  const raw = Number(value ?? 0);
+  if (!Number.isFinite(raw)) return 0;
+  return Math.max(-840, Math.min(840, raw));
+}
+
 export function getTimeMetricsFromBlocks(blocks: CalendarBlock[]) {
   const busyMinutes = blocks
     .filter((block) => block.kind === "busy")

@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
@@ -5,11 +6,14 @@ import { useRouter } from "expo-router";
 import { Button, Spinner } from "heroui-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
+import { withUniwind } from "uniwind";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { formatDayLabel, formatTime, shiftDay } from "@/lib/calendar-utils";
+
+const StyledIonicons = withUniwind(Ionicons);
 
 type CalendarBlock = {
   _id: Id<"calendarBlocks">;
@@ -41,7 +45,7 @@ const kindStyles: Record<
 
 export default function TimeReality() {
   const router = useRouter();
-  const today = useQuery(api.kernel.commands.getToday);
+  const today = useQuery(api.kernel.commands.getToday, {});
   const addBlockMutation = useMutation(api.calendar.addBlock);
   const removeBlockMutation = useMutation(api.calendar.removeBlock);
   const blocks = useQuery(
@@ -126,6 +130,12 @@ export default function TimeReality() {
   );
   const prevDay = activeDay ? shiftDay(activeDay, -1) : today.day;
   const nextDay = activeDay ? shiftDay(activeDay, 1) : today.day;
+  const weekDays = useMemo(() => {
+    if (!activeDay) return [] as string[];
+    return [-3, -2, -1, 0, 1, 2, 3].map((offset) =>
+      shiftDay(activeDay, offset),
+    );
+  }, [activeDay]);
   const freeMinutesLabel = formatMinutes(freeData.freeMinutes);
   const effectiveFreeLabel = formatMinutes(freeData.effectiveFreeMinutes ?? 0);
   const focusMinutesLabel = formatMinutes(freeData.focusMinutes ?? 0);
@@ -214,9 +224,22 @@ export default function TimeReality() {
               TIME_REALITY
             </MachineText>
           </View>
-          <MachineText variant="value" className="text-sm">
-            {dayLabel}
-          </MachineText>
+          <View className="items-end gap-2">
+            <Pressable
+              onPress={() => setShowCalendar((current) => !current)}
+              accessibilityLabel="Toggle calendar"
+              className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2 py-1"
+            >
+              <StyledIonicons
+                name={showCalendar ? "calendar" : "calendar-outline"}
+                size={16}
+                className="text-foreground"
+              />
+            </Pressable>
+            <MachineText variant="value" className="text-sm">
+              {dayLabel}
+            </MachineText>
+          </View>
         </View>
 
         <HardCard label="CALENDAR" className="mb-6">
@@ -230,15 +253,6 @@ export default function TimeReality() {
                   {calendarDayLabel}
                 </MachineText>
               </View>
-              <Button
-                size="sm"
-                className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
-                onPress={() => setShowCalendar((current) => !current)}
-              >
-                <MachineText className="text-[9px] font-bold text-foreground">
-                  {showCalendar ? "HIDE" : "OPEN"}
-                </MachineText>
-              </Button>
             </View>
 
             {showCalendar ? (
@@ -280,6 +294,31 @@ export default function TimeReality() {
                     {formatDayLabel(nextDay).toUpperCase()}
                   </MachineText>
                 </View>
+                <HardCard label="WEEK_STRIP">
+                  <View className="gap-2 p-3">
+                    <View className="flex-row flex-wrap gap-2">
+                      {weekDays.map((day) => {
+                        const isActive = day === activeDay;
+                        return (
+                          <Pressable
+                            key={day}
+                            onPress={() => setSelectedDay(day)}
+                            className={`px-2 py-1 border border-foreground ${isActive ? "bg-accent" : "bg-surface shadow-[2px_2px_0px_var(--color-foreground)]"}`}
+                          >
+                            <MachineText
+                              className={`text-[9px] font-bold ${isActive ? "text-accent-foreground" : "text-foreground"}`}
+                            >
+                              {formatDayLabel(day).toUpperCase()}
+                            </MachineText>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    <MachineText className="text-xs text-foreground/60">
+                      Reason: move quickly across the week.
+                    </MachineText>
+                  </View>
+                </HardCard>
                 <HardCard label="BLOCKS">
                   <View className="gap-3 p-3">
                     {sortedCalendarBlocks.length === 0 ? (
@@ -290,15 +329,17 @@ export default function TimeReality() {
                       </View>
                     ) : (
                       sortedCalendarBlocks.map((block) => (
-                        <Pressable
+                        <View
                           key={block._id}
-                          onPress={() => editBlock(block._id)}
                           className="flex-row items-start justify-between border border-divider bg-surface px-3 py-2"
                         >
                           <View
                             className={`w-1 self-stretch ${kindStyles[block.kind].badge}`}
                           />
-                          <View className="flex-1 ml-3 mr-2">
+                          <Pressable
+                            className="flex-1 ml-3 mr-2"
+                            onPress={() => editBlock(block._id)}
+                          >
                             <MachineText className="font-bold text-sm">
                               {formatTime(block.startMin)} -
                               {formatTime(block.endMin)}
@@ -314,8 +355,8 @@ export default function TimeReality() {
                             <MachineText className="text-[9px] text-foreground/40 mt-1">
                               TAP_TO_EDIT
                             </MachineText>
-                          </View>
-                          <View className="items-end">
+                          </Pressable>
+                          <View className="items-end gap-2">
                             <View className="flex-row items-center gap-2">
                               <View
                                 className={`w-2 h-2 ${kindStyles[block.kind].badge}`}
@@ -324,8 +365,40 @@ export default function TimeReality() {
                                 {kindStyles[block.kind].label}
                               </MachineText>
                             </View>
+                            <View className="flex-row flex-wrap justify-end gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
+                                onPress={() =>
+                                  duplicateBlock(block, activeDay ?? today.day)
+                                }
+                                isDisabled={removingId === block._id}
+                              >
+                                {removingId === block._id ? (
+                                  <Spinner size="sm" color="black" />
+                                ) : (
+                                  <MachineText className="text-[9px] font-bold text-foreground">
+                                    DUPLICATE
+                                  </MachineText>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
+                                onPress={() => confirmRemove(block)}
+                                isDisabled={removingId === block._id}
+                              >
+                                {removingId === block._id ? (
+                                  <Spinner size="sm" color="black" />
+                                ) : (
+                                  <MachineText className="text-[9px] font-bold text-foreground">
+                                    REMOVE
+                                  </MachineText>
+                                )}
+                              </Button>
+                            </View>
                           </View>
-                        </Pressable>
+                        </View>
                       ))
                     )}
                   </View>
