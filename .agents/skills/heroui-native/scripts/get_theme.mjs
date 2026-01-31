@@ -108,7 +108,7 @@ async function fetchApi(endpoint) {
 
   try {
     const response = await fetch(url, {
-      headers: {"User-Agent": "HeroUI-Native-Skill/1.0"},
+      headers: { "User-Agent": "HeroUI-Native-Skill/1.0" },
       signal: AbortSignal.timeout(30000),
     });
 

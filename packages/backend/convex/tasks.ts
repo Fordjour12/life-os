@@ -11,9 +11,7 @@ export const listOpen = query({
 
     return ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "active"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
       .order("desc")
       .collect();
   },

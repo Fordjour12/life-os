@@ -164,7 +164,9 @@ export const generateWeeklyReview = mutation({
     }
 
     const frictionPoints: string[] = [];
-    const overloadedDays = weekStates.filter((entry) => getLoad(entry.state) === "overloaded").length;
+    const overloadedDays = weekStates.filter(
+      (entry) => getLoad(entry.state) === "overloaded",
+    ).length;
     if (overloadedDays > 0) {
       frictionPoints.push(
         `Overload showed up on ${overloadedDays} day${overloadedDays === 1 ? "" : "s"}.`,

@@ -77,12 +77,7 @@ export default defineSchema({
     day: v.string(),
     startMin: v.number(),
     endMin: v.number(),
-    kind: v.union(
-      v.literal("busy"),
-      v.literal("focus"),
-      v.literal("rest"),
-      v.literal("personal"),
-    ),
+    kind: v.union(v.literal("busy"), v.literal("focus"), v.literal("rest"), v.literal("personal")),
     source: v.union(v.literal("manual"), v.literal("imported")),
     title: v.optional(v.string()),
     notes: v.optional(v.string()),
@@ -96,7 +91,9 @@ export default defineSchema({
     userId: v.string(),
     day: v.string(),
     text: v.optional(v.string()),
-    mood: v.optional(v.union(v.literal("low"), v.literal("neutral"), v.literal("ok"), v.literal("good"))),
+    mood: v.optional(
+      v.union(v.literal("low"), v.literal("neutral"), v.literal("ok"), v.literal("good")),
+    ),
     createdAt: v.number(),
   })
     .index("by_user_day", ["userId", "day"])

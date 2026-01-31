@@ -142,9 +142,7 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
 
   const hasWins = (state.completedTasksCount ?? 0) >= 2;
   const hasStability = stableDaysCount >= 2;
-  const hasRoom = smallestPausedTask
-    ? remainingRoomMin >= smallestPausedTask.estimateMin
-    : false;
+  const hasRoom = smallestPausedTask ? remainingRoomMin >= smallestPausedTask.estimateMin : false;
   const canGentleReturn =
     state.load !== "overloaded" && hasRoom && (hasStability || exitedRecoveryRecently || hasWins);
   if (canGentleReturn && smallestPausedTask) {

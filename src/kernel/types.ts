@@ -175,12 +175,7 @@ export type LifeState = {
   reasons: Array<{ code: string; detail: string }>;
 };
 
-export type SuggestionStatus =
-  | "new"
-  | "accepted"
-  | "downvoted"
-  | "ignored"
-  | "expired";
+export type SuggestionStatus = "new" | "accepted" | "downvoted" | "ignored" | "expired";
 
 export type KernelSuggestion = {
   day: string;

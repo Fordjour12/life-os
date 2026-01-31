@@ -1,11 +1,10 @@
-
 Option 3 isn’t “features” — it’s where your Life OS becomes **self-aware** without becoming creepy.
 
-I’ll design this as a **layer**, not a module, so it *observes* everything you already built instead of controlling it.
+I’ll design this as a **layer**, not a module, so it _observes_ everything you already built instead of controlling it.
 
 I’ll break it into:
 
-1. What this layer *is* (and is not)
+1. What this layer _is_ (and is not)
 2. Journaling (minimal, safe, powerful)
 3. Weekly Review (earned reflection, not reports)
 4. Pattern Awareness (signals, not judgments)
@@ -22,21 +21,21 @@ It **mirrors patterns back** so the user can decide.
 
 Think of it as:
 
-> *“Here’s what I noticed. You tell me what it means.”*
+> _“Here’s what I noticed. You tell me what it means.”_
 
 ### Core principles (aligned with your manifesto)
 
-* No labels
-* No diagnoses
-* No scores
-* No moral language
-* No “you are X”
+- No labels
+- No diagnoses
+- No scores
+- No moral language
+- No “you are X”
 
 Only:
 
-* observations
-* gentle questions
-* optional meaning-making
+- observations
+- gentle questions
+- optional meaning-making
 
 ---
 
@@ -47,10 +46,10 @@ It’s a **state-aware, low-friction reflection surface**.
 
 ## Journaling goals
 
-* Capture truth without pressure
-* Allow mess
-* Never require consistency
-* Never punish silence
+- Capture truth without pressure
+- Allow mess
+- Never require consistency
+- Never punish silence
 
 ---
 
@@ -70,9 +69,9 @@ type JournalEntry = {
 **Important:**
 Journal entries are:
 
-* optional
-* unstructured
-* never “required”
+- optional
+- unstructured
+- never “required”
 
 ---
 
@@ -82,16 +81,16 @@ Journaling is **contextual**, not constant.
 
 Triggers:
 
-* End of day (if recovery OR reflection suggestion exists)
-* After Plan Reset
-* After Micro-Recovery
-* During Weekly Review
+- End of day (if recovery OR reflection suggestion exists)
+- After Plan Reset
+- After Micro-Recovery
+- During Weekly Review
 
 Prompt examples (rotate, never repeat too often):
 
-* “What felt heavy today?”
-* “What helped, even a little?”
-* “Anything you want to unload here?”
+- “What felt heavy today?”
+- “What helped, even a little?”
+- “Anything you want to unload here?”
 
 The user can always ignore it.
 
@@ -112,10 +111,10 @@ A weekly review has **4 sections max**:
 
 Neutral facts:
 
-* days in recovery
-* days balanced
-* total tiny wins
-* plan resets used
+- days in recovery
+- days balanced
+- total tiny wins
+- plan resets used
 
 Language:
 
@@ -127,9 +126,9 @@ Language:
 
 Derived from:
 
-* moments where momentum increased
-* days after rest
-* successful Gentle Returns
+- moments where momentum increased
+- days after rest
+- successful Gentle Returns
 
 Language:
 
@@ -141,9 +140,9 @@ Language:
 
 No blame.
 
-* overload clusters
-* late nights
-* clutter signals (see later)
+- overload clusters
+- late nights
+- clutter signals (see later)
 
 Language:
 
@@ -155,8 +154,8 @@ Language:
 
 Always just **one**:
 
-* “What would you like to protect next week?”
-* “Do you want more space or more structure?”
+- “What would you like to protect next week?”
+- “Do you want more space or more structure?”
 
 No action required.
 
@@ -179,13 +178,13 @@ type WeeklyReview = {
 
 # 4️⃣ Pattern Awareness (without judgment)
 
-This is where your OS becomes *aware* — carefully.
+This is where your OS becomes _aware_ — carefully.
 
 ## Pattern rules
 
-* Patterns are **observed**, not named
-* Patterns are **suggested**, not asserted
-* Patterns are **dismissible**
+- Patterns are **observed**, not named
+- Patterns are **suggested**, not asserted
+- Patterns are **dismissible**
 
 ---
 
@@ -236,22 +235,22 @@ This is the most sensitive part — and you’re doing it right by being careful
 
 ---
 
-## 5.1 What you *can* safely detect
+## 5.1 What you _can_ safely detect
 
 ### Allowed signals
 
-* Repeated late-night activity
-* Long gaps followed by overload
-* Frequent Plan Resets
-* Many tiny wins but no returns
-* Repeated clutter phrases in journal (“messy”, “dirty”, “chaos”)
+- Repeated late-night activity
+- Long gaps followed by overload
+- Frequent Plan Resets
+- Many tiny wins but no returns
+- Repeated clutter phrases in journal (“messy”, “dirty”, “chaos”)
 
 ### Disallowed
 
-* Diagnoses
-* Labels
-* Identity statements
-* Predictions
+- Diagnoses
+- Labels
+- Identity statements
+- Predictions
 
 ---
 
@@ -278,16 +277,16 @@ This layer **never mutates core state directly**.
 
 It:
 
-* reads events
-* reads daily state
-* reads suggestions used/ignored
-* reads journal entries
+- reads events
+- reads daily state
+- reads suggestions used/ignored
+- reads journal entries
 
 It outputs:
 
-* insights
-* questions
-* optional suggestions (never commands)
+- insights
+- questions
+- optional suggestions (never commands)
 
 Think of it as a **read-only intelligence layer** with a soft voice.
 
@@ -305,9 +304,9 @@ You stop when:
 
 If any reflection makes the user feel:
 
-* judged
-* watched
-* boxed in
+- judged
+- watched
+- boxed in
 
 …it’s a bug.
 
@@ -325,9 +324,9 @@ Start with **Weekly Review**, not journaling.
 
 Why?
 
-* It uses data you already have
-* It doesn’t demand daily effort
-* It sets tone for everything else
+- It uses data you already have
+- It doesn’t demand daily effort
+- It sets tone for everything else
 
 ### Build order
 
@@ -341,9 +340,9 @@ Why?
 
 If you want, next I can:
 
-* design the **Weekly Review generator logic**
-* write the **exact Convex job**
-* design the **Reflection UI**
-* or help you define **ethical guardrails as code comments**
+- design the **Weekly Review generator logic**
+- write the **exact Convex job**
+- design the **Reflection UI**
+- or help you define **ethical guardrails as code comments**
 
 Just say which one you want to build first.

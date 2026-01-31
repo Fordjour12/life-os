@@ -25,9 +25,7 @@ export default function Tasks() {
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
   const pausedTasksData = useQuery(api.kernel.taskQueries.getPausedTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
-  const completeTaskMutation = useMutation(
-    api.kernel.taskCommands.completeTask,
-  );
+  const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
 
   const [title, setTitle] = useState("");
@@ -90,9 +88,7 @@ export default function Tasks() {
         <MachineText variant="header" size="2xl">
           ALL_TASKS
         </MachineText>
-        <MachineText className="text-muted text-xs mt-1">
-          EXECUTION QUEUE MONITOR
-        </MachineText>
+        <MachineText className="text-muted text-xs mt-1">EXECUTION QUEUE MONITOR</MachineText>
       </View>
 
       <View className="gap-6">
@@ -135,9 +131,7 @@ export default function Tasks() {
               {isCreating ? (
                 <Spinner size="sm" color="white" />
               ) : (
-                <MachineText className="text-accent-foreground font-bold">
-                  ADD_TASK
-                </MachineText>
+                <MachineText className="text-accent-foreground font-bold">ADD_TASK</MachineText>
               )}
             </Button>
           </View>
@@ -157,9 +151,7 @@ export default function Tasks() {
                 <HardCard key={task._id} padding="sm" className="bg-surface">
                   <View className="flex-row items-center justify-between">
                     <View className="gap-1 flex-1">
-                      <MachineText className="font-bold text-base">
-                        {task.title}
-                      </MachineText>
+                      <MachineText className="font-bold text-base">{task.title}</MachineText>
                       <MachineText className="text-muted text-xs">
                         {task.estimateMin} MIN
                       </MachineText>
@@ -169,18 +161,13 @@ export default function Tasks() {
                       className="bg-surface border border-foreground rounded-none"
                       onPress={() => completeTask(task._id)}
                     >
-                      <MachineText className="text-foreground text-xs font-bold">
-                        DONE
-                      </MachineText>
+                      <MachineText className="text-foreground text-xs font-bold">DONE</MachineText>
                     </Button>
                   </View>
                 </HardCard>
               ))
             ) : (
-              <HardCard
-                variant="flat"
-                className="p-4 border-dashed items-center"
-              >
+              <HardCard variant="flat" className="p-4 border-dashed items-center">
                 <MachineText className="text-muted">QUEUE_EMPTY</MachineText>
               </HardCard>
             )}
@@ -188,15 +175,9 @@ export default function Tasks() {
         </View>
 
         {pausedTasks.length ? (
-          <HardCard
-            label="PARKED_TASKS"
-            variant="flat"
-            className="gap-3 p-4 bg-muted"
-          >
+          <HardCard label="PARKED_TASKS" variant="flat" className="gap-3 p-4 bg-muted">
             <View className="flex-row items-center justify-between">
-              <MachineText className="font-bold">
-                PAUSED_ITEMS ({pausedTasks.length})
-              </MachineText>
+              <MachineText className="font-bold">PAUSED_ITEMS ({pausedTasks.length})</MachineText>
               <Button
                 size="sm"
                 className="bg-surface border border-foreground rounded-none"
@@ -210,16 +191,10 @@ export default function Tasks() {
             {showPaused ? (
               <View className="gap-2 mt-2">
                 {pausedTasks.map((task) => (
-                  <HardCard
-                    key={task._id}
-                    padding="sm"
-                    className="bg-surface/70"
-                  >
+                  <HardCard key={task._id} padding="sm" className="bg-surface/70">
                     <View className="flex-row items-center justify-between">
                       <View className="gap-1 flex-1">
-                        <MachineText className="font-bold text-sm">
-                          {task.title}
-                        </MachineText>
+                        <MachineText className="font-bold text-sm">{task.title}</MachineText>
                         <MachineText className="text-muted text-[10px]">
                           {task.estimateMin} MIN
                         </MachineText>
@@ -229,9 +204,7 @@ export default function Tasks() {
                         className="bg-foreground rounded-none"
                         onPress={() => resumeTask(task._id)}
                       >
-                        <MachineText className="text-background text-[10px]">
-                          RESUME
-                        </MachineText>
+                        <MachineText className="text-background text-[10px]">RESUME</MachineText>
                       </Button>
                     </View>
                   </HardCard>

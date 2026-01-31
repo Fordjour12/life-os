@@ -98,9 +98,7 @@ export default function ImportCalendar() {
                 />
               </TextField>
             </View>
-            {error ? (
-              <MachineText className="text-xs text-danger">{error}</MachineText>
-            ) : null}
+            {error ? <MachineText className="text-xs text-danger">{error}</MachineText> : null}
           </View>
         </HardCard>
 
@@ -132,12 +130,8 @@ export default function ImportCalendar() {
         {result ? (
           <HardCard label="RESULT">
             <View className="gap-2 p-4">
-              <MachineText className="text-sm">
-                IMPORTED: {result.imported}
-              </MachineText>
-              <MachineText className="text-sm">
-                SKIPPED: {result.skipped}
-              </MachineText>
+              <MachineText className="text-sm">IMPORTED: {result.imported}</MachineText>
+              <MachineText className="text-sm">SKIPPED: {result.skipped}</MachineText>
             </View>
           </HardCard>
         ) : null}

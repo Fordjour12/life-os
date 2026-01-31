@@ -47,9 +47,7 @@ function Modal() {
             className="w-full bg-accent rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
             size="lg"
           >
-            <MachineText className="text-accent-foreground font-bold">
-              ACKNOWLEDGE
-            </MachineText>
+            <MachineText className="text-accent-foreground font-bold">ACKNOWLEDGE</MachineText>
           </Button>
         </View>
       </HardCard>
