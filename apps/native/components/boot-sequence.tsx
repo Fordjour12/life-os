@@ -19,7 +19,7 @@ import { Container } from "@/components/container";
 import { useAuth } from "@/contexts/auth-context";
 
 const BOOT_DURATION_MS = 2600;
-const NAV_DELAY_MS = 2800;
+export const BOOT_MIN_DURATION_MS = 2800;
 const SEGMENT_COUNT = 12;
 
 const BOOT_STEPS = [
@@ -81,16 +81,9 @@ function BootStep({
   );
 }
 
-type BootSequenceProps = {
-  onComplete?: () => void;
-};
-
-export function BootSequence({ onComplete }: BootSequenceProps) {
-  const router = useRouter();
-  const { hasHydrated, user } = useAuth();
+function useBootAnimation() {
   const progress = useSharedValue(0);
   const scanOffset = useSharedValue(0);
-  const [minDurationDone, setMinDurationDone] = useState(false);
 
   useEffect(() => {
     progress.value = withTiming(1, {
@@ -107,23 +100,19 @@ export function BootSequence({ onComplete }: BootSequenceProps) {
     );
   }, [progress, scanOffset]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setMinDurationDone(true);
-    }, NAV_DELAY_MS);
+  return { progress, scanOffset };
+}
 
-    return () => clearTimeout(timeout);
-  }, []);
+type BootSequenceProps = {
+  onComplete?: () => void;
+};
 
-  const targetRoute = useMemo(() => (user ? "/(tabs)" : "/"), [user]);
+type BootSequenceViewProps = {
+  progress: SharedValue<number>;
+  scanOffset: SharedValue<number>;
+};
 
-  useEffect(() => {
-    if (hasHydrated && minDurationDone) {
-      router.replace(targetRoute);
-      onComplete?.();
-    }
-  }, [hasHydrated, minDurationDone, onComplete, router, targetRoute]);
-
+export function BootSequenceView({ progress, scanOffset }: BootSequenceViewProps) {
   const scanlineStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: scanOffset.value }],
     opacity: 0.25,
@@ -190,3 +179,35 @@ export function BootSequence({ onComplete }: BootSequenceProps) {
     </Container>
   );
 }
+
+export function BootSequence({ onComplete }: BootSequenceProps) {
+  const router = useRouter();
+  const { refreshSession, hasHydrated, user } = useAuth();
+  const { progress, scanOffset } = useBootAnimation();
+  const [minDurationDone, setMinDurationDone] = useState(false);
+
+  useEffect(() => {
+    void refreshSession();
+  }, [refreshSession]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setMinDurationDone(true);
+    }, BOOT_MIN_DURATION_MS);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const targetRoute = useMemo(() => (user ? "/(tabs)" : "/"), [user]);
+
+  useEffect(() => {
+    if (hasHydrated && minDurationDone) {
+      router.replace(targetRoute);
+      onComplete?.();
+    }
+  }, [hasHydrated, minDurationDone, onComplete, router, targetRoute]);
+
+  return <BootSequenceView progress={progress} scanOffset={scanOffset} />;
+}
+
+export { useBootAnimation };
