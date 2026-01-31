@@ -19,33 +19,49 @@ export type KernelCommand =
       cmd: "create_task";
       input: { title: string; estimateMin: number; priority?: 1 | 2 | 3; notes?: string };
       idempotencyKey: string;
+      tzOffsetMinutes?: number;
     }
-  | { cmd: "complete_task"; input: { taskId: string }; idempotencyKey: string }
-  | { cmd: "accept_rest"; input: { minutes: number; day: string }; idempotencyKey: string }
+  | {
+      cmd: "complete_task";
+      input: { taskId: string };
+      idempotencyKey: string;
+      tzOffsetMinutes?: number;
+    }
+  | {
+      cmd: "accept_rest";
+      input: { minutes: number; day: string };
+      idempotencyKey: string;
+      tzOffsetMinutes?: number;
+    }
   | {
       cmd: "apply_plan_reset";
       input: { day: string; keepCount?: 1 | 2 };
       idempotencyKey: string;
+      tzOffsetMinutes?: number;
     }
   | {
       cmd: "set_daily_plan";
       input: { day: string; focusItems: PlanFocusItem[]; reason?: PlanSetReason };
       idempotencyKey: string;
+      tzOffsetMinutes?: number;
     }
   | {
       cmd: "submit_feedback";
       input: { suggestionId: string; vote: "up" | "down" | "ignore" };
       idempotencyKey: string;
+      tzOffsetMinutes?: number;
     }
   | {
       cmd: "log_habit";
       input: { habitId: string; status: "done" | "missed"; note?: string };
       idempotencyKey: string;
+      tzOffsetMinutes?: number;
     }
   | {
       cmd: "add_expense";
       input: { amount: number; category: string; note?: string };
       idempotencyKey: string;
+      tzOffsetMinutes?: number;
     };
 
 export type KernelEvent =

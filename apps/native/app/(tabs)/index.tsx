@@ -15,6 +15,7 @@ import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { TodaySkeleton } from "@/components/skeletons/today-skeleton";
+import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 // We'll define a local component for the "Engineering Badge" for now to match the style
 function EngBadge({
@@ -108,7 +109,8 @@ function idem() {
 }
 
 export default function Today() {
-  const data = useQuery(api.kernel.commands.getToday);
+  const tzOffsetMinutes = getTimezoneOffsetMinutes();
+  const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
   const completeTaskMutation = useMutation(
@@ -152,6 +154,7 @@ export default function Today() {
     useState(false);
   const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
   const [isSkippingJournal, setIsSkippingJournal] = useState(false);
+  const [showAllEvents, setShowAllEvents] = useState(false);
 
   const createTask = async () => {
     const trimmedTitle = title.trim();
@@ -193,6 +196,7 @@ export default function Today() {
         cmd: "accept_rest",
         input: { minutes, day: data?.day ?? "" },
         idempotencyKey: idem(),
+        tzOffsetMinutes,
       },
     });
   };
@@ -299,7 +303,12 @@ export default function Today() {
     [data],
   );
   const todayEvents = useMemo(
-    () => (data?.dailyEvents ?? []) as Array<{ type: string; ts: number; meta?: Record<string, unknown> }>,
+    () =>
+      (data?.dailyEvents ?? []) as Array<{
+        type: string;
+        ts: number;
+        meta?: Record<string, unknown>;
+      }>,
     [data],
   );
 
@@ -386,7 +395,8 @@ export default function Today() {
 
           {todayEvents.length > 0 ? (
             <View className="gap-2 pt-2">
-              {todayEvents.slice(0, 3).map((event, index) => (
+              {(showAllEvents ? todayEvents : todayEvents.slice(0, 3)).map(
+                (event, index) => (
                 <View key={`${event.type}-${event.ts}-${index}`} className="flex-row justify-between">
                   <MachineText variant="label" className="text-[10px] text-foreground/70">
                     {formatEventLabel(event)}
@@ -395,7 +405,19 @@ export default function Today() {
                     {formatEventTime(event.ts)}
                   </MachineText>
                 </View>
-              ))}
+              ),
+              )}
+              {todayEvents.length > 3 ? (
+                <Button
+                  size="sm"
+                  className="self-start bg-surface border border-foreground rounded-none"
+                  onPress={() => setShowAllEvents((value) => !value)}
+                >
+                  <MachineText className="text-xs font-bold text-foreground">
+                    {showAllEvents ? "SHOW LESS" : "SHOW ALL"}
+                  </MachineText>
+                </Button>
+              ) : null}
             </View>
           ) : (
             <MachineText variant="label" className="pt-2 text-[10px] text-foreground/60">
@@ -498,6 +520,7 @@ export default function Today() {
                             day: data.day,
                             keepCount: suggestion.payload?.keepCount ?? 1,
                             idempotencyKey: idem(),
+                            tzOffsetMinutes,
                           })
                         }
                       >

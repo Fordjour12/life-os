@@ -8,6 +8,7 @@ import { ScrollView, View } from "react-native";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type BlockKind = "busy" | "rest";
 
@@ -33,7 +34,8 @@ export default function AddBusyTime() {
   const router = useRouter();
   const navigation = useNavigation();
   const params = useLocalSearchParams<{ day?: string }>();
-  const today = useQuery(api.kernel.commands.getToday);
+  const tzOffsetMinutes = getTimezoneOffsetMinutes();
+  const today = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const addBlockMutation = useMutation(api.calendar.addBlock);
 
   const [startTime, setStartTime] = useState("");

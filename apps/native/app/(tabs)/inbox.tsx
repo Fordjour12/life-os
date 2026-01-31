@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type SuggestionItem = {
   _id: string;
@@ -19,7 +20,8 @@ function idem() {
 }
 
 export default function Inbox() {
-  const data = useQuery(api.kernel.commands.getToday);
+  const tzOffsetMinutes = getTimezoneOffsetMinutes();
+  const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
 
   const vote = async (
@@ -31,6 +33,7 @@ export default function Inbox() {
         cmd: "submit_feedback",
         input: { suggestionId, vote: voteValue },
         idempotencyKey: idem(),
+        tzOffsetMinutes,
       },
     });
   };

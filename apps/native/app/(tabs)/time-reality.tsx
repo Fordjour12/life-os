@@ -12,6 +12,7 @@ import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { formatDayLabel, formatTime, shiftDay } from "@/lib/calendar-utils";
+import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 const StyledIonicons = withUniwind(Ionicons);
 
@@ -45,7 +46,8 @@ const kindStyles: Record<
 
 export default function TimeReality() {
   const router = useRouter();
-  const today = useQuery(api.kernel.commands.getToday, {});
+  const tzOffsetMinutes = getTimezoneOffsetMinutes();
+  const today = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const addBlockMutation = useMutation(api.calendar.addBlock);
   const removeBlockMutation = useMutation(api.calendar.removeBlock);
   const blocks = useQuery(

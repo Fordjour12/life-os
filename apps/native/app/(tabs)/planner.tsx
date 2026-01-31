@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type PlanItem = {
   id: string;
@@ -74,7 +75,8 @@ function toDraftItems(items: PlanItem[]): DraftItem[] {
 }
 
 export default function Planner() {
-  const data = useQuery(api.kernel.commands.getToday);
+  const tzOffsetMinutes = getTimezoneOffsetMinutes();
+  const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
   const [draftItems, setDraftItems] = useState<DraftItem[]>(() =>
     createEmptyDraft(),
@@ -96,6 +98,11 @@ export default function Planner() {
   const plan = (data.plan ?? null) as PlanData | null;
   const plannerState = (data.plannerState ?? "NO_PLAN") as PlannerState;
   const lifeState = data.state ?? null;
+  const eventSummary = data.eventSummary ?? {
+    habitDone: 0,
+    habitMissed: 0,
+    expenseAdded: 0,
+  };
   const totalMinutes = plan
     ? plan.focusItems.reduce((sum, item) => sum + item.estimatedMinutes, 0)
     : 0;
@@ -122,6 +129,7 @@ export default function Planner() {
           cmd: "set_daily_plan",
           input: { day: data.day, focusItems: items.slice(0, 3), reason },
           idempotencyKey: idem(),
+          tzOffsetMinutes,
         },
       });
       setIsEditing(false);
@@ -237,6 +245,35 @@ export default function Planner() {
           {subtitle}
         </MachineText>
       </View>
+
+      <HardCard className="mb-6" padding="sm" label="EVENT SUMMARY">
+        <View className="flex-row justify-between p-2">
+          <View className="items-start">
+            <MachineText variant="label" className="text-[10px]">
+              HABITS DONE
+            </MachineText>
+            <MachineText variant="value" className="text-sm">
+              {eventSummary.habitDone}
+            </MachineText>
+          </View>
+          <View className="items-start">
+            <MachineText variant="label" className="text-[10px]">
+              HABITS MISSED
+            </MachineText>
+            <MachineText variant="value" className="text-sm">
+              {eventSummary.habitMissed}
+            </MachineText>
+          </View>
+          <View className="items-start">
+            <MachineText variant="label" className="text-[10px]">
+              EXPENSES
+            </MachineText>
+            <MachineText variant="value" className="text-sm">
+              {eventSummary.expenseAdded}
+            </MachineText>
+          </View>
+        </View>
+      </HardCard>
 
       {showEditor ? (
         <HardCard label="EDIT_PLAN" className="gap-4 p-4">
