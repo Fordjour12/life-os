@@ -21,6 +21,7 @@
     "@life-os/env": "workspace:*",
     "@react-navigation/drawer": "^7.3.9",
     "@react-navigation/elements": "^2.8.1",
+    "@shopify/flash-list": "2.0.2",
     "better-auth": "catalog:",
     "convex": "catalog:",
     "dotenv": "catalog:",
