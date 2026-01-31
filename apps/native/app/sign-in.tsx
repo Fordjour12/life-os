@@ -110,9 +110,7 @@ export default function SignInScreen() {
 
           <Link href="/sign-up" asChild>
             <Button className="bg-foreground rounded-none shadow-[4px_4px_0px_var(--color-accent)] h-12">
-              <MachineText className="text-background font-bold">
-                CREATE_NEW_IDENTITY
-              </MachineText>
+              <MachineText className="text-background font-bold">CREATE_NEW_IDENTITY</MachineText>
             </Button>
           </Link>
         </View>

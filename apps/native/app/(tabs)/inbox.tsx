@@ -24,10 +24,7 @@ export default function Inbox() {
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
 
-  const vote = async (
-    suggestionId: string,
-    voteValue: "up" | "down" | "ignore",
-  ) => {
+  const vote = async (suggestionId: string, voteValue: "up" | "down" | "ignore") => {
     await execute({
       command: {
         cmd: "submit_feedback",
@@ -62,15 +59,9 @@ export default function Inbox() {
       {suggestions.length ? (
         <View className="gap-4">
           {suggestions.map((suggestion) => (
-            <HardCard
-              key={suggestion._id}
-              label="SIGNAL_DETECTED"
-              className="gap-3 p-4 bg-surface"
-            >
+            <HardCard key={suggestion._id} label="SIGNAL_DETECTED" className="gap-3 p-4 bg-surface">
               <View className="gap-1">
-                <MachineText className="font-bold text-lg">
-                  {suggestion.type}
-                </MachineText>
+                <MachineText className="font-bold text-lg">{suggestion.type}</MachineText>
                 <MachineText className="text-muted text-xs">
                   {suggestion.reason?.detail}
                 </MachineText>
@@ -109,10 +100,7 @@ export default function Inbox() {
           ))}
         </View>
       ) : (
-        <HardCard
-          variant="flat"
-          className="p-6 border-dashed items-center justify-center"
-        >
+        <HardCard variant="flat" className="p-6 border-dashed items-center justify-center">
           <MachineText className="text-muted">NO_SIGNALS_DETECTED</MachineText>
         </HardCard>
       )}

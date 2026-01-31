@@ -1,4 +1,3 @@
-
 import type {
   KernelEvent,
   LifeState,
@@ -66,9 +65,7 @@ function getDailyEvents(
   day: string,
   tzOffsetMinutes: number,
 ) {
-  return events.filter(
-    (event) => formatYYYYMMDDWithOffset(event.ts, tzOffsetMinutes) === day,
-  );
+  return events.filter((event) => formatYYYYMMDDWithOffset(event.ts, tzOffsetMinutes) === day);
 }
 
 function summarizeEvents(events: Array<{ type: string }>) {
@@ -88,7 +85,6 @@ const planReasons: PlanSetReason[] = ["initial", "adjust", "reset", "recovery", 
 function getUserId(): string {
   return "user_me";
 }
-
 
 export const executeCommand = mutation({
   args: {
@@ -426,10 +422,7 @@ export const executeCommand = mutation({
       }
     }
 
-    const remainingRoomMin = Math.max(
-      0,
-      (state.freeMinutes ?? 0) - (state.plannedMinutes ?? 0),
-    );
+    const remainingRoomMin = Math.max(0, (state.freeMinutes ?? 0) - (state.plannedMinutes ?? 0));
 
     const stateHistory = await ctx.db
       .query("stateDaily")
@@ -447,8 +440,7 @@ export const executeCommand = mutation({
     }
 
     const yesterdayState = stateByDay.get(shiftDay(day, -1));
-    const exitedRecoveryRecently =
-      yesterdayState?.mode === "recovery" && state.mode !== "recovery";
+    const exitedRecoveryRecently = yesterdayState?.mode === "recovery" && state.mode !== "recovery";
 
     const pausedTasks = await ctx.db
       .query("tasks")
@@ -473,13 +465,7 @@ export const executeCommand = mutation({
       ? String(prefs.lastGentleReturnTaskId)
       : null;
 
-    const suggestionStatuses = [
-      "new",
-      "accepted",
-      "downvoted",
-      "ignored",
-      "expired",
-    ] as const;
+    const suggestionStatuses = ["new", "accepted", "downvoted", "ignored", "expired"] as const;
     const suggestionBuckets = await Promise.all(
       suggestionStatuses.map((status) =>
         ctx.db
@@ -542,7 +528,9 @@ export const executeCommand = mutation({
         const penalty = isResistant ? 1000 : 0;
         return { task, score: (task.estimateMin ?? 0) + penalty };
       })
-      .sort((a, b) => (a.score !== b.score ? a.score - b.score : a.task.estimateMin - b.task.estimateMin));
+      .sort((a, b) =>
+        a.score !== b.score ? a.score - b.score : a.task.estimateMin - b.task.estimateMin,
+      );
 
     const rotated = scoredCandidates[0]?.task ?? null;
     const smallest =
@@ -578,7 +566,9 @@ export const executeCommand = mutation({
       .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
       .collect();
 
-    const existingNewCount = existingSugs.filter((suggestion) => suggestion.status === "new").length;
+    const existingNewCount = existingSugs.filter(
+      (suggestion) => suggestion.status === "new",
+    ).length;
     if (existingNewCount > 0) {
       return { ok: true, state, suggestionsCount: 0 };
     }
@@ -672,14 +662,12 @@ export const getToday = query({
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
       .collect();
 
-    let plan:
-      | {
-          day: string;
-          version: number;
-          reason: PlanSetReason;
-          focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
-        }
-      | null = null;
+    let plan: {
+      day: string;
+      version: number;
+      reason: PlanSetReason;
+      focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
+    } | null = null;
     let latestPlanVersion = -1;
     let latestPlanTs = 0;
     for (const event of events) {
@@ -719,9 +707,7 @@ export const getToday = query({
       .map((event) => formatYYYYMMDDWithOffset(event.ts, offset))
       .filter((eventDay) => eventDay < day)
       .sort();
-    const lastEventDayValue = lastEventDay.length
-      ? lastEventDay[lastEventDay.length - 1]
-      : null;
+    const lastEventDayValue = lastEventDay.length ? lastEventDay[lastEventDay.length - 1] : null;
     const returning =
       Boolean(lastEventDayValue) &&
       hasTodayEvents &&
@@ -791,5 +777,150 @@ export const getEventsForDay = query({
         ts: event.ts,
         meta: event.meta,
       }));
+  },
+});
+
+export const getStateHistory = query({
+  args: {
+    days: v.optional(v.number()),
+  },
+  handler: async (ctx, { days }) => {
+    const userId = getUserId();
+    const dayCount = Math.max(1, Math.min(30, days ?? 7));
+
+    const states = await ctx.db
+      .query("stateDaily")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId))
+      .collect();
+
+    return states
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, dayCount)
+      .map((entry) => ({
+        day: entry.day,
+        state: entry.state as LifeState,
+      }));
+  },
+});
+
+export const fetchAiSuggestions = mutation({
+  args: {
+    day: v.string(),
+    tzOffsetMinutes: v.optional(v.number()),
+  },
+  handler: async (ctx, { day, tzOffsetMinutes }) => {
+    const userId = getUserId();
+    const now = Date.now();
+    const offset = normalizeOffsetMinutes(tzOffsetMinutes);
+
+    const existingSugs = await ctx.db
+      .query("suggestions")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
+      .collect();
+
+    const existingNewCount = existingSugs.filter((s) => s.status === "new").length;
+    if (existingNewCount > 0) {
+      return { ok: true, suggestionsCount: 0, reason: "existing_new_present" };
+    }
+
+    const remainingSlots = Math.max(0, DAILY_SUGGESTION_CAP - existingSugs.length);
+    if (remainingSlots === 0) {
+      return { ok: true, suggestionsCount: 0, reason: "daily_cap_reached" };
+    }
+
+    // Try cached suggestions first
+    const cached = await ctx.runAction(api.kernel.aiSuggest.getCachedSuggestions, { day });
+
+    let suggestions: KernelSuggestion[] = [];
+    let fromCache = false;
+
+    if (cached && cached.suggestions.length > 0 && !cached.expired) {
+      suggestions = cached.suggestions;
+      fromCache = true;
+    } else {
+      // Generate new suggestions
+      const generated = await ctx.runAction(api.kernel.aiSuggest.generateSuggestions, {
+        day,
+        tzOffsetMinutes: offset,
+        source: "user_request",
+      });
+
+      if (generated.error) {
+        return { ok: false, error: generated.error, suggestionsCount: 0 };
+      }
+
+      suggestions = generated.suggestions;
+    }
+
+    // Cap suggestions
+    const cappedSuggestions = suggestions.slice(0, remainingSlots);
+
+    // Check cooldowns
+    const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+    const recentlySuggested = (cooldownKey?: string) => {
+      if (!cooldownKey) return false;
+      return existingSugs.some(
+        (suggestion) =>
+          suggestion.cooldownKey === cooldownKey && now - suggestion.createdAt < TWELVE_HOURS,
+      );
+    };
+
+    // Expire old suggestions
+    for (const suggestion of existingSugs) {
+      if (suggestion.status === "new") {
+        await ctx.db.patch(suggestion._id, { status: "expired", updatedAt: now });
+      }
+    }
+
+    // Insert new suggestions
+    for (const suggestion of cappedSuggestions) {
+      if (recentlySuggested(suggestion.cooldownKey)) {
+        continue;
+      }
+
+      const safeSuggestion = sanitizeSuggestionCopy(suggestion);
+
+      await ctx.db.insert("suggestions", {
+        userId,
+        day: safeSuggestion.day,
+        type: safeSuggestion.type,
+        priority: safeSuggestion.priority,
+        reason: safeSuggestion.reason,
+        payload: safeSuggestion.payload,
+        status: safeSuggestion.status,
+        cooldownKey: safeSuggestion.cooldownKey,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      if (safeSuggestion.type === "GENTLE_RETURN") {
+        const taskId = (safeSuggestion.payload as { taskId?: Id<"tasks"> })?.taskId;
+        if (taskId) {
+          const prefs = await ctx.db
+            .query("userKernelPrefs")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .first();
+
+          if (prefs) {
+            await ctx.db.patch(prefs._id, {
+              lastGentleReturnTaskId: taskId,
+              updatedAt: now,
+            });
+          } else {
+            await ctx.db.insert("userKernelPrefs", {
+              userId,
+              lastGentleReturnTaskId: taskId,
+              updatedAt: now,
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      ok: true,
+      suggestionsCount: cappedSuggestions.length,
+      fromCache,
+    };
   },
 });

@@ -48,12 +48,12 @@ export function DailyIntentCard({ plan, plannedMinutes, completedMinutes }: Prop
             TODAY_FOCUS
           </MachineText>
           <View className="flex-row items-center gap-2">
-            <MachineText className="text-[10px] text-muted">OPTIONAL, EDITABLE, DISPOSABLE</MachineText>
+            <MachineText className="text-[10px] text-muted">
+              OPTIONAL, EDITABLE, DISPOSABLE
+            </MachineText>
             {reasonLabel ? (
               <View className="border border-divider bg-surface px-2 py-0.5">
-                <MachineText className="text-[9px] font-bold text-muted">
-                  {reasonLabel}
-                </MachineText>
+                <MachineText className="text-[9px] font-bold text-muted">{reasonLabel}</MachineText>
               </View>
             ) : null}
           </View>

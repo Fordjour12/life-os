@@ -1,0 +1,12 @@
+{
+  "extends": "@life-os/config/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./dist",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["convex/**/*", "../../src/kernel/types.ts"],
+  "exclude": ["node_modules", "dist", "convex/_generated"]
+}

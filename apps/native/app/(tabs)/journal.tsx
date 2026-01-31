@@ -67,10 +67,11 @@ function loadSavedViews(): SavedView[] {
   try {
     const parsed = JSON.parse(raw) as SavedView[];
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((view) =>
-      typeof view?.id === "string" &&
-      typeof view?.name === "string" &&
-      typeof view?.query === "string",
+    return parsed.filter(
+      (view) =>
+        typeof view?.id === "string" &&
+        typeof view?.name === "string" &&
+        typeof view?.query === "string",
     );
   } catch {
     return [];
@@ -183,25 +184,21 @@ export default function JournalScreen() {
   }
 
   const confirmDelete = (entryId: Id<"journalEntries">) => {
-    Alert.alert(
-      "CONFIRM_DELETION",
-      "THIS_WILL_REMOVE_DATA_FROM_KERNEL.",
-      [
-        { text: "CANCEL", style: "cancel" },
-        {
-          text: "DELETE",
-          style: "destructive",
-          onPress: async () => {
-            setDeletingId(entryId);
-            try {
-              await deleteEntryMutation({ entryId });
-            } finally {
-              setDeletingId(null);
-            }
-          },
+    Alert.alert("CONFIRM_DELETION", "THIS_WILL_REMOVE_DATA_FROM_KERNEL.", [
+      { text: "CANCEL", style: "cancel" },
+      {
+        text: "DELETE",
+        style: "destructive",
+        onPress: async () => {
+          setDeletingId(entryId);
+          try {
+            await deleteEntryMutation({ entryId });
+          } finally {
+            setDeletingId(null);
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -211,8 +208,12 @@ export default function JournalScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-6 border-b-2 border-divider pb-2">
-          <MachineText variant="label" className="text-accent mb-1">SYSTEM://JOURNAL</MachineText>
-          <MachineText variant="header" size="2xl">LOGS</MachineText>
+          <MachineText variant="label" className="text-accent mb-1">
+            SYSTEM://JOURNAL
+          </MachineText>
+          <MachineText variant="header" size="2xl">
+            LOGS
+          </MachineText>
         </View>
 
         <View className="mb-6">
@@ -240,15 +241,21 @@ export default function JournalScreen() {
                       onPress={() => applyFilters(preset)}
                       className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
                     >
-                      <MachineText className="text-foreground font-bold text-[10px]">{preset.name}</MachineText>
+                      <MachineText className="text-foreground font-bold text-[10px]">
+                        {preset.name}
+                      </MachineText>
                     </Button>
                   ))}
                   <Button
                     size="sm"
-                    onPress={() => applyFilters({ moodFilter: "all", windowFilter: "30", query: "" })}
+                    onPress={() =>
+                      applyFilters({ moodFilter: "all", windowFilter: "30", query: "" })
+                    }
                     className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
                   >
-                    <MachineText className="text-foreground font-bold text-[10px]">RESET</MachineText>
+                    <MachineText className="text-foreground font-bold text-[10px]">
+                      RESET
+                    </MachineText>
                   </Button>
                 </View>
               </View>
@@ -263,7 +270,9 @@ export default function JournalScreen() {
                       onPress={() => setWindowFilter(value)}
                       className={`border-2 rounded-none ${windowFilter === value ? "bg-foreground border-foreground" : "bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"}`}
                     >
-                      <MachineText className={`${windowFilter === value ? "text-background" : "text-foreground"} font-bold text-[10px]`}>
+                      <MachineText
+                        className={`${windowFilter === value ? "text-background" : "text-foreground"} font-bold text-[10px]`}
+                      >
                         {value === "all" ? "ALL_TIME" : `${value}D`}
                       </MachineText>
                     </Button>
@@ -281,7 +290,9 @@ export default function JournalScreen() {
                       onPress={() => setMoodFilter(value)}
                       className={`border-2 rounded-none ${moodFilter === value ? "bg-foreground border-foreground" : "bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"}`}
                     >
-                      <MachineText className={`${moodFilter === value ? "text-background" : "text-foreground"} font-bold text-[10px]`}>
+                      <MachineText
+                        className={`${moodFilter === value ? "text-background" : "text-foreground"} font-bold text-[10px]`}
+                      >
                         {value.toUpperCase()}
                       </MachineText>
                     </Button>
@@ -317,14 +328,18 @@ export default function JournalScreen() {
                           onPress={() => applyFilters(view)}
                           className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
                         >
-                          <MachineText className="text-foreground font-bold text-[10px]">{view.name}</MachineText>
+                          <MachineText className="text-foreground font-bold text-[10px]">
+                            {view.name}
+                          </MachineText>
                         </Button>
                         <Button
                           size="sm"
                           onPress={() => deleteView(view.id)}
                           className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
                         >
-                          <MachineText className="text-foreground font-bold text-[10px]">DEL</MachineText>
+                          <MachineText className="text-foreground font-bold text-[10px]">
+                            DEL
+                          </MachineText>
                         </Button>
                       </View>
                     ))
@@ -347,7 +362,9 @@ export default function JournalScreen() {
                     onPress={saveView}
                     className="bg-foreground px-4 shadow-[2px_2px_0px_var(--color-accent)]"
                   >
-                    <MachineText className="text-background font-bold text-[10px]">SAVE</MachineText>
+                    <MachineText className="text-background font-bold text-[10px]">
+                      SAVE
+                    </MachineText>
                   </Button>
                 </View>
               </View>
@@ -358,12 +375,16 @@ export default function JournalScreen() {
         {entriesData.length === 0 ? (
           <HardCard variant="flat" className="p-8 items-center border-dashed">
             <MachineText className="text-muted">NO_REFLECTIONS_YET.</MachineText>
-            <MachineText className="text-muted text-[10px]">WRITE_WHEN_IT_FEELS_HELPFUL.</MachineText>
+            <MachineText className="text-muted text-[10px]">
+              WRITE_WHEN_IT_FEELS_HELPFUL.
+            </MachineText>
           </HardCard>
         ) : filteredEntries.length === 0 ? (
           <HardCard variant="flat" className="p-8 items-center border-dashed">
             <MachineText className="text-muted">NO_MATCHES_FOR_FILTERS.</MachineText>
-            <MachineText className="text-muted text-[10px]">TRY_WIDER_WINDOW_OR_ALL_MOODS.</MachineText>
+            <MachineText className="text-muted text-[10px]">
+              TRY_WIDER_WINDOW_OR_ALL_MOODS.
+            </MachineText>
           </HardCard>
         ) : (
           <View className="gap-6">
@@ -372,12 +393,17 @@ export default function JournalScreen() {
                 <View className="gap-3 p-2">
                   <View className="flex-row justify-between items-center opacity-50">
                     <MachineText className="text-[10px] font-bold">{day}</MachineText>
-                    <MachineText className="text-[10px] font-bold">LOGS: {groupedEntries[day]?.length ?? 0}</MachineText>
+                    <MachineText className="text-[10px] font-bold">
+                      LOGS: {groupedEntries[day]?.length ?? 0}
+                    </MachineText>
                   </View>
 
                   <View className="gap-3">
                     {groupedEntries[day]?.map((entry) => (
-                      <View key={entry._id} className="gap-3 bg-muted p-3 border-l-4 border-foreground">
+                      <View
+                        key={entry._id}
+                        className="gap-3 bg-muted p-3 border-l-4 border-foreground"
+                      >
                         <View className="flex-row justify-between items-center">
                           <MachineText className="text-[10px] font-bold">
                             {new Date(entry.createdAt).toLocaleTimeString("en-US", {

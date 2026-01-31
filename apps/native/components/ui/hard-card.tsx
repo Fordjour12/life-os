@@ -45,11 +45,7 @@ export function HardCard({
   ...props
 }: HardCardProps) {
   return (
-    <View
-      className={cardStyles({ variant, radius, padding, className })}
-      style={style}
-      {...props}
-    >
+    <View className={cardStyles({ variant, radius, padding, className })} style={style} {...props}>
       {label && (
         <View className="border-b border-divider px-2 py-1 bg-muted flex-row justify-between items-center">
           <Text className="text-[10px] font-mono uppercase text-muted tracking-widest">

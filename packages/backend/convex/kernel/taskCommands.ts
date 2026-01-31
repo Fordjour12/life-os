@@ -80,9 +80,7 @@ export const completeTask = mutation({
 
     const existing = await ctx.db
       .query("events")
-      .withIndex("by_user_idem", (q) =>
-        q.eq("userId", userId).eq("idempotencyKey", idempotencyKey),
-      )
+      .withIndex("by_user_idem", (q) => q.eq("userId", userId).eq("idempotencyKey", idempotencyKey))
       .first();
 
     if (existing) {

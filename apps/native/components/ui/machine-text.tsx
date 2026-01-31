@@ -40,11 +40,7 @@ export function MachineText({
   ...props
 }: MachineTextProps) {
   return (
-    <Text
-      className={textStyles({ variant, size, className })}
-      style={style}
-      {...props}
-    >
+    <Text className={textStyles({ variant, size, className })} style={style} {...props}>
       {children}
     </Text>
   );

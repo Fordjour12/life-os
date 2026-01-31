@@ -27,12 +27,7 @@ export const addBlock = mutation({
     day: v.string(),
     startMin: v.number(),
     endMin: v.number(),
-    kind: v.union(
-      v.literal("busy"),
-      v.literal("focus"),
-      v.literal("rest"),
-      v.literal("personal"),
-    ),
+    kind: v.union(v.literal("busy"), v.literal("focus"), v.literal("rest"), v.literal("personal")),
     source: v.union(v.literal("manual"), v.literal("imported")),
     title: v.optional(v.string()),
     notes: v.optional(v.string()),
@@ -147,12 +142,7 @@ export const updateBlock = mutation({
     day: v.string(),
     startMin: v.number(),
     endMin: v.number(),
-    kind: v.union(
-      v.literal("busy"),
-      v.literal("focus"),
-      v.literal("rest"),
-      v.literal("personal"),
-    ),
+    kind: v.union(v.literal("busy"), v.literal("focus"), v.literal("rest"), v.literal("personal")),
     title: v.optional(v.string()),
     notes: v.optional(v.string()),
     externalId: v.optional(v.string()),
@@ -242,9 +232,7 @@ export const importBlocks = mutation({
       if (externalId) {
         const existing = await ctx.db
           .query("calendarBlocks")
-          .withIndex("by_user_external", (q) =>
-            q.eq("userId", userId).eq("externalId", externalId),
-          )
+          .withIndex("by_user_external", (q) => q.eq("userId", userId).eq("externalId", externalId))
           .first();
         if (existing) {
           skipped += 1;
@@ -307,9 +295,7 @@ export const getFreeMinutesForDay = query({
     const freeMinutes = Math.max(0, DAILY_CAPACITY_MIN - busyMinutes);
     const focusWithinFree = Math.min(freeMinutes, focusMinutes);
     const nonFocusFree = Math.max(0, freeMinutes - focusWithinFree);
-    const effectiveFreeMinutes = Math.round(
-      focusWithinFree + nonFocusFree * NON_FOCUS_WEIGHT,
-    );
+    const effectiveFreeMinutes = Math.round(focusWithinFree + nonFocusFree * NON_FOCUS_WEIGHT);
 
     return {
       day: dayValue,

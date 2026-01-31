@@ -37,9 +37,7 @@ export function DriftSignalsCard({ signals, windowLabel }: Props) {
               <View key={item.id} className="gap-2 border border-divider bg-muted p-3">
                 <MachineText className="text-sm">{item.observation}</MachineText>
                 {item.suggestion ? (
-                  <MachineText className="text-[10px] text-muted">
-                    {item.suggestion}
-                  </MachineText>
+                  <MachineText className="text-[10px] text-muted">{item.suggestion}</MachineText>
                 ) : null}
               </View>
             ))}

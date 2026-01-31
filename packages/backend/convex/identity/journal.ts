@@ -63,7 +63,8 @@ export const getJournalPrompt = query({
     const hasReflectionSuggestion = suggestions.some(
       (suggestion) => suggestion.type === "DAILY_REVIEW_QUESTION" && suggestion.status === "new",
     );
-    const recoveryMode = stateDoc?.state && (stateDoc.state as { mode?: string }).mode === "recovery";
+    const recoveryMode =
+      stateDoc?.state && (stateDoc.state as { mode?: string }).mode === "recovery";
     const hadPlanReset = events.some((event) => {
       if (event.type === "PLAN_RESET_APPLIED") return true;
       if (event.type !== "PLAN_SET") return false;
@@ -114,7 +115,9 @@ export const createJournalEntry = mutation({
   args: {
     day: v.string(),
     text: v.optional(v.string()),
-    mood: v.optional(v.union(v.literal("low"), v.literal("neutral"), v.literal("ok"), v.literal("good"))),
+    mood: v.optional(
+      v.union(v.literal("low"), v.literal("neutral"), v.literal("ok"), v.literal("good")),
+    ),
   },
   handler: async (ctx, { day, text, mood }) => {
     const userId = getUserId();

@@ -153,6 +153,7 @@ const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.play
 ```
 
 VideoView options:
+
 - `allowsPictureInPicture`: boolean
 - `contentFit`: 'contain' | 'cover' | 'fill'
 - `nativeControls`: boolean

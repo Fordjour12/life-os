@@ -21,7 +21,9 @@ export function SignUp() {
 
   return (
     <View className="p-4 bg-surface border border-foreground shadow-[4px_4px_0px_var(--color-foreground)]">
-      <MachineText variant="header" className="mb-4">NEW_IDENTITY_PROVISIONING</MachineText>
+      <MachineText variant="header" className="mb-4">
+        NEW_IDENTITY_PROVISIONING
+      </MachineText>
 
       <ErrorView isInvalid={!!error} className="mb-3">
         {error}
@@ -29,7 +31,9 @@ export function SignUp() {
 
       <View className="gap-4">
         <View>
-          <MachineText variant="label" className="mb-1">NAME_ID</MachineText>
+          <MachineText variant="label" className="mb-1">
+            NAME_ID
+          </MachineText>
           <View className="bg-muted border border-divider p-1">
             <TextField>
               <TextField.Input
@@ -37,14 +41,16 @@ export function SignUp() {
                 onChangeText={setName}
                 placeholder="FIRST LAST"
                 className="font-mono text-sm h-10"
-                style={{ fontFamily: 'Menlo' }}
+                style={{ fontFamily: "Menlo" }}
               />
             </TextField>
           </View>
         </View>
 
         <View>
-          <MachineText variant="label" className="mb-1">EMAIL_UID</MachineText>
+          <MachineText variant="label" className="mb-1">
+            EMAIL_UID
+          </MachineText>
           <View className="bg-muted border border-divider p-1">
             <TextField>
               <TextField.Input
@@ -54,14 +60,16 @@ export function SignUp() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 className="font-mono text-sm h-10"
-                style={{ fontFamily: 'Menlo' }}
+                style={{ fontFamily: "Menlo" }}
               />
             </TextField>
           </View>
         </View>
 
         <View>
-          <MachineText variant="label" className="mb-1">KEY_PHRASE</MachineText>
+          <MachineText variant="label" className="mb-1">
+            KEY_PHRASE
+          </MachineText>
           <View className="bg-muted border border-divider p-1">
             <TextField>
               <TextField.Input
@@ -70,7 +78,7 @@ export function SignUp() {
                 placeholder="••••••••"
                 secureTextEntry
                 className="font-mono text-sm h-10"
-                style={{ fontFamily: 'Menlo' }}
+                style={{ fontFamily: "Menlo" }}
               />
             </TextField>
           </View>

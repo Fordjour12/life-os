@@ -9,3 +9,4 @@ export {
 } from "./identity/journal";
 export { getDriftSignals, getPatternInsights } from "./identity/patterns";
 export { generateWeeklyReview, getWeeklyReview } from "./identity/weeklyReview";
+export { getCurrentUserId } from "./identity/user";

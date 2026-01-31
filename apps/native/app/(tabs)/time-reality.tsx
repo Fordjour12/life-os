@@ -34,10 +34,7 @@ function formatMinutes(totalMinutes: number) {
   return `${hours}h ${remainder}m`;
 }
 
-const kindStyles: Record<
-  CalendarBlock["kind"],
-  { label: string; badge: string }
-> = {
+const kindStyles: Record<CalendarBlock["kind"], { label: string; badge: string }> = {
   busy: { label: "BUSY", badge: "bg-accent" },
   focus: { label: "FOCUS", badge: "bg-warning" },
   rest: { label: "REST", badge: "bg-success" },
@@ -50,28 +47,18 @@ export default function TimeReality() {
   const today = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const addBlockMutation = useMutation(api.calendar.addBlock);
   const removeBlockMutation = useMutation(api.calendar.removeBlock);
-  const blocks = useQuery(
-    api.calendar.listBlocksForDay,
-    today ? { day: today.day } : "skip",
-  );
+  const blocks = useQuery(api.calendar.listBlocksForDay, today ? { day: today.day } : "skip");
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const activeDay = selectedDay ?? today?.day ?? null;
   const calendarBlocks = useQuery(
     api.calendar.listBlocksForDay,
     activeDay ? { day: activeDay } : "skip",
   );
-  const freeData = useQuery(
-    api.calendar.getFreeMinutesForDay,
-    today ? { day: today.day } : "skip",
-  );
+  const freeData = useQuery(api.calendar.getFreeMinutesForDay, today ? { day: today.day } : "skip");
 
-  const [removingId, setRemovingId] = useState<Id<"calendarBlocks"> | null>(
-    null,
-  );
+  const [removingId, setRemovingId] = useState<Id<"calendarBlocks"> | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [expandedBlockId, setExpandedBlockId] = useState<Id<"calendarBlocks"> | null>(
-    null,
-  );
+  const [expandedBlockId, setExpandedBlockId] = useState<Id<"calendarBlocks"> | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -112,14 +99,10 @@ export default function TimeReality() {
   }, [blocks]);
 
   const dayLabel = today ? formatDayLabel(today.day).toUpperCase() : "";
-  const calendarDayLabel = activeDay
-    ? formatDayLabel(activeDay).toUpperCase()
-    : dayLabel;
+  const calendarDayLabel = activeDay ? formatDayLabel(activeDay).toUpperCase() : dayLabel;
   const sortedCalendarBlocks = useMemo(
     () =>
-      ((calendarBlocks ?? []) as CalendarBlock[])
-        .slice()
-        .sort((a, b) => a.startMin - b.startMin),
+      ((calendarBlocks ?? []) as CalendarBlock[]).slice().sort((a, b) => a.startMin - b.startMin),
     [calendarBlocks],
   );
   const calendarTotalMinutes = useMemo(
@@ -130,22 +113,18 @@ export default function TimeReality() {
       ),
     [calendarBlocks],
   );
-  const prevDay = activeDay ? shiftDay(activeDay, -1) : today?.day ?? "";
-  const nextDay = activeDay ? shiftDay(activeDay, 1) : today?.day ?? "";
+  const prevDay = activeDay ? shiftDay(activeDay, -1) : (today?.day ?? "");
+  const nextDay = activeDay ? shiftDay(activeDay, 1) : (today?.day ?? "");
   const weekDays = useMemo(() => {
     if (!activeDay) return [] as string[];
-    return [-3, -2, -1, 0, 1, 2, 3].map((offset) =>
-      shiftDay(activeDay, offset),
-    );
+    return [-3, -2, -1, 0, 1, 2, 3].map((offset) => shiftDay(activeDay, offset));
   }, [activeDay]);
   const freeMinutesLabel = formatMinutes(freeData?.freeMinutes ?? 0);
   const effectiveFreeLabel = formatMinutes(freeData?.effectiveFreeMinutes ?? 0);
   const focusMinutesLabel = formatMinutes(freeData?.focusMinutes ?? 0);
   const busyMinutesLabel = formatMinutes(freeData?.busyMinutes ?? 0);
   const capacityLabel = formatMinutes(freeData?.capacityMinutes ?? 0);
-  const otherMinutesLabel = formatMinutes(
-    totals.focus + totals.rest + totals.personal,
-  );
+  const otherMinutesLabel = formatMinutes(totals.focus + totals.rest + totals.personal);
   const totalLoggedLabel = formatMinutes(totals.total);
 
   if (!today || !freeData) {
@@ -187,9 +166,7 @@ export default function TimeReality() {
         title: block.title,
         notes: block.notes,
       });
-      setToastMessage(
-        dayOverride ? "Duplicated to tomorrow." : "Block duplicated.",
-      );
+      setToastMessage(dayOverride ? "Duplicated to tomorrow." : "Block duplicated.");
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
       toastTimeout.current = setTimeout(() => {
         setToastMessage(null);
@@ -265,9 +242,7 @@ export default function TimeReality() {
               </View>
               <View className="items-end">
                 <MachineText variant="label">TOTAL_LOGGED</MachineText>
-                <MachineText className="text-sm">
-                  {formatMinutes(calendarTotalMinutes)}
-                </MachineText>
+                <MachineText className="text-sm">{formatMinutes(calendarTotalMinutes)}</MachineText>
               </View>
             </View>
 
@@ -339,9 +314,7 @@ export default function TimeReality() {
                   <View className="gap-3 p-3">
                     {sortedCalendarBlocks.length === 0 ? (
                       <View className="items-center py-6">
-                        <MachineText className="opacity-50">
-                          NO_BLOCKS_YET
-                        </MachineText>
+                        <MachineText className="opacity-50">NO_BLOCKS_YET</MachineText>
                       </View>
                     ) : (
                       sortedCalendarBlocks.map((block) => (
@@ -349,16 +322,13 @@ export default function TimeReality() {
                           key={block._id}
                           className="flex-row items-start justify-between border border-divider bg-surface px-3 py-2"
                         >
-                          <View
-                            className={`w-1 self-stretch ${kindStyles[block.kind].badge}`}
-                          />
+                          <View className={`w-1 self-stretch ${kindStyles[block.kind].badge}`} />
                           <Pressable
                             className="flex-1 ml-3 mr-2"
                             onPress={() => editBlock(block._id)}
                           >
                             <MachineText className="font-bold text-sm">
-                              {formatTime(block.startMin)} -
-                              {formatTime(block.endMin)}
+                              {formatTime(block.startMin)} -{formatTime(block.endMin)}
                             </MachineText>
                             <MachineText className="text-xs text-foreground/60">
                               {block.title ? block.title : "Untitled block"}
@@ -374,9 +344,7 @@ export default function TimeReality() {
                           </Pressable>
                           <View className="items-end gap-2">
                             <View className="flex-row items-center gap-2">
-                              <View
-                                className={`w-2 h-2 ${kindStyles[block.kind].badge}`}
-                              />
+                              <View className={`w-2 h-2 ${kindStyles[block.kind].badge}`} />
                               <MachineText variant="label">
                                 {kindStyles[block.kind].label}
                               </MachineText>
@@ -385,9 +353,7 @@ export default function TimeReality() {
                               <Button
                                 size="sm"
                                 className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
-                                onPress={() =>
-                                  duplicateBlock(block, activeDay ?? today.day)
-                                }
+                                onPress={() => duplicateBlock(block, activeDay ?? today.day)}
                                 isDisabled={removingId === block._id}
                               >
                                 {removingId === block._id ? (
@@ -467,27 +433,19 @@ export default function TimeReality() {
                 <MachineText variant="label" className="mt-2">
                   EFFECTIVE_FREE
                 </MachineText>
-                <MachineText className="text-sm">
-                  {effectiveFreeLabel}
-                </MachineText>
+                <MachineText className="text-sm">{effectiveFreeLabel}</MachineText>
               </View>
               <View className="items-end">
                 <MachineText variant="label">BUSY_COUNTS</MachineText>
-                <MachineText className="text-sm">
-                  {busyMinutesLabel}
-                </MachineText>
+                <MachineText className="text-sm">{busyMinutesLabel}</MachineText>
                 <MachineText variant="label" className="mt-2">
                   OTHER_BLOCKS_NO_COUNT
                 </MachineText>
-                <MachineText className="text-sm">
-                  {otherMinutesLabel}
-                </MachineText>
+                <MachineText className="text-sm">{otherMinutesLabel}</MachineText>
                 <MachineText variant="label" className="mt-2">
                   FOCUS_BLOCKS
                 </MachineText>
-                <MachineText className="text-sm">
-                  {focusMinutesLabel}
-                </MachineText>
+                <MachineText className="text-sm">{focusMinutesLabel}</MachineText>
                 <MachineText variant="label" className="mt-2">
                   CAPACITY
                 </MachineText>
@@ -503,8 +461,7 @@ export default function TimeReality() {
               </MachineText>
             </View>
             <MachineText className="text-[10px] text-foreground/60">
-              BUSY reduces free time. FOCUS boosts effective free. Other kinds
-              are shown only.
+              BUSY reduces free time. FOCUS boosts effective free. Other kinds are shown only.
             </MachineText>
           </View>
         </HardCard>
@@ -521,13 +478,8 @@ export default function TimeReality() {
                   key={block._id}
                   className="flex-row items-start justify-between border border-divider bg-surface px-3 py-2"
                 >
-                  <View
-                    className={`w-1 self-stretch ${kindStyles[block.kind].badge}`}
-                  />
-                  <Pressable
-                    className="flex-1 ml-3 mr-2"
-                    onPress={() => toggleNotes(block._id)}
-                  >
+                  <View className={`w-1 self-stretch ${kindStyles[block.kind].badge}`} />
+                  <Pressable className="flex-1 ml-3 mr-2" onPress={() => toggleNotes(block._id)}>
                     <MachineText className="font-bold text-sm">
                       {formatTime(block.startMin)} - {formatTime(block.endMin)}
                     </MachineText>
@@ -547,12 +499,8 @@ export default function TimeReality() {
                   </Pressable>
                   <View className="items-end gap-2">
                     <View className="flex-row items-center gap-2">
-                      <View
-                        className={`w-2 h-2 ${kindStyles[block.kind].badge}`}
-                      />
-                      <MachineText variant="label">
-                        {kindStyles[block.kind].label}
-                      </MachineText>
+                      <View className={`w-2 h-2 ${kindStyles[block.kind].badge}`} />
+                      <MachineText variant="label">{kindStyles[block.kind].label}</MachineText>
                       {block.kind === "busy" ? (
                         <MachineText className="text-[9px] text-foreground/60">
                           COUNTS_FREE
@@ -586,9 +534,7 @@ export default function TimeReality() {
                       <Button
                         size="sm"
                         className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
-                        onPress={() =>
-                          duplicateBlock(block, shiftDay(today.day, 1))
-                        }
+                        onPress={() => duplicateBlock(block, shiftDay(today.day, 1))}
                         isDisabled={removingId === block._id}
                       >
                         {removingId === block._id ? (
@@ -627,9 +573,7 @@ export default function TimeReality() {
               className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
               onPress={() => router.push("/add-busy-time" as any)}
             >
-              <MachineText className="text-accent-foreground font-bold">
-                ADD BUSY TIME
-              </MachineText>
+              <MachineText className="text-accent-foreground font-bold">ADD BUSY TIME</MachineText>
             </Button>
             <MachineText className="text-xs text-foreground/70">
               Reason: protect what the day allows.
@@ -640,9 +584,7 @@ export default function TimeReality() {
       {toastMessage ? (
         <View className="absolute bottom-6 left-4 right-4">
           <View className="bg-foreground px-3 py-2 border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]">
-            <MachineText className="text-background text-xs">
-              {toastMessage}
-            </MachineText>
+            <MachineText className="text-background text-xs">{toastMessage}</MachineText>
           </View>
         </View>
       ) : null}

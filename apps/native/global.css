@@ -4,7 +4,6 @@
 
 @source './node_modules/heroui-native/lib';
 
-
 @layer theme {
   :root {
     @variant light {
@@ -34,7 +33,7 @@
       --warning: oklch(0.74 0.14 85);
       --warning-foreground: oklch(0.146 0.003 68.6);
 
-      --danger: oklch(0.62 0.20 29);
+      --danger: oklch(0.62 0.2 29);
       --danger-foreground: oklch(0.975 0.004 82);
 
       --segment: oklch(0.915 0.012 85);
@@ -70,7 +69,7 @@
       --overlay: oklch(0.195 0.006 70);
       --overlay-foreground: oklch(0.975 0.004 82);
 
-      --muted: oklch(0.275 0.010 70);
+      --muted: oklch(0.275 0.01 70);
       --muted-foreground: oklch(0.915 0.012 85);
 
       --accent: oklch(0.665 0.205 29);
@@ -89,7 +88,7 @@
       --danger: oklch(0.68 0.22 29);
       --danger-foreground: oklch(0.155 0.004 70);
 
-      --segment: oklch(0.275 0.010 70);
+      --segment: oklch(0.275 0.01 70);
       --segment-foreground: oklch(0.975 0.004 82);
 
       --field-background: oklch(0.195 0.006 70);

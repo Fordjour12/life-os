@@ -1,4 +1,3 @@
-
 **Micro-Recovery Protocol** is basically your “safe mode.” When you’re overloaded or energy is low, the OS switches to a tiny, gentle plan that prevents a spiral.
 
 Below is a **complete, buildable spec + exact kernel/policy changes** for React Native + Convex.
@@ -17,10 +16,10 @@ When the system detects **Recovery Mode**, it generates a small protocol with **
 
 And it keeps the UI calm:
 
-* no shame
-* no “behind”
-* no “you failed”
-* just “we’re protecting you today”
+- no shame
+- no “behind”
+- no “you failed”
+- just “we’re protecting you today”
 
 ---
 
@@ -48,15 +47,15 @@ You can implement it as **one suggestion** with 3 items, or as 3 suggestions.
 
 In your reducer, you already set mode to `"recovery"` when:
 
-* load is overloaded
-* focusCapacity low
+- load is overloaded
+- focusCapacity low
 
 That’s good. Add two more “recovery triggers” if you want:
 
 ### Optional recovery triggers
 
-* completedTasksCount = 0 AND plannedMinutes high
-* repeated plan resets today
+- completedTasksCount = 0 AND plannedMinutes high
+- repeated plan resets today
 
 But MVP is fine: overload + low capacity.
 
@@ -70,7 +69,7 @@ In `convex/kernel/policies.ts`, add:
 
 Only show if:
 
-* `state.mode === "recovery"`
+- `state.mode === "recovery"`
 
 ### Cooldown
 
@@ -78,9 +77,9 @@ Only once per day (or every 12 hours max)
 
 ### Payload contents
 
-* tiny win candidate (task or “micro action”)
-* rest block suggestion (10–30 min)
-* reflection question
+- tiny win candidate (task or “micro action”)
+- rest block suggestion (10–30 min)
+- reflection question
 
 ---
 
@@ -88,20 +87,20 @@ Only once per day (or every 12 hours max)
 
 Tiny win should be:
 
-* smallest active task (estimate ≤ 10)
-* if none exist, suggest an “internal win” (non-task action)
+- smallest active task (estimate ≤ 10)
+- if none exist, suggest an “internal win” (non-task action)
 
 ### Candidate selection
 
 Facts you need:
 
-* `smallestActiveTaskUnder10` (if exists)
+- `smallestActiveTaskUnder10` (if exists)
 
 If no tasks fit, fallback:
 
-* “Drink water”
-* “Clear one item”
-* “Open notes and brain-dump 3 lines”
+- “Drink water”
+- “Clear one item”
+- “Open notes and brain-dump 3 lines”
   (Keep it neutral + not preachy)
 
 ---
@@ -110,8 +109,8 @@ If no tasks fit, fallback:
 
 In your command handler (where you compute suggestions), gather:
 
-* smallest active task with estimate <= 10
-* else smallest active task overall (optional)
+- smallest active task with estimate <= 10
+- else smallest active task overall (optional)
 
 Example:
 
@@ -179,7 +178,7 @@ And you can downgrade other suggestions.
 
 A simple resolver rule:
 
-* If MICRO_RECOVERY_PROTOCOL exists, cap suggestions to 1–2 max.
+- If MICRO_RECOVERY_PROTOCOL exists, cap suggestions to 1–2 max.
 
 ---
 
@@ -189,18 +188,18 @@ We’ll add commands the user can tap:
 
 ### A) Apply Tiny Win
 
-* if it’s a task: “Start this task” or “Complete” (you likely only have complete for now)
-* if it’s an action: create a quick task like “Tiny reset” and mark done
+- if it’s a task: “Start this task” or “Complete” (you likely only have complete for now)
+- if it’s an action: create a quick task like “Tiny reset” and mark done
 
 ### B) Accept Rest Block
 
-This is *not* a calendar block yet (until calendar exists). For now:
+This is _not_ a calendar block yet (until calendar exists). For now:
 
-* create a `REST_ACCEPTED` event
+- create a `REST_ACCEPTED` event
 
 ### C) Answer Reflection
 
-* log a `REFLECTION_ANSWERED` event (optional later)
+- log a `REFLECTION_ANSWERED` event (optional later)
 
 ---
 
@@ -227,14 +226,13 @@ You can keep reflection purely local UI for now.
 
 In Today screen, when suggestion type is `MICRO_RECOVERY_PROTOCOL`, render a special card:
 
-* Title: “Recovery mode”
-* Buttons:
+- Title: “Recovery mode”
+- Buttons:
+  - “Do tiny win” (if task exists → navigate to it / complete)
+  - “Take 15 min rest”
+  - “Answer reflection” (opens a small modal)
 
-  * “Do tiny win” (if task exists → navigate to it / complete)
-  * “Take 15 min rest”
-  * “Answer reflection” (opens a small modal)
-
-This makes the OS *feel* different.
+This makes the OS _feel_ different.
 
 ---
 
@@ -244,9 +242,9 @@ This makes the OS *feel* different.
 ✅ Today shows **one Recovery Card**, not lots of suggestions
 ✅ You can tap:
 
-* tiny win
-* rest
-* reflection
+- tiny win
+- rest
+- reflection
   ✅ No guilt language anywhere
   ✅ After doing tiny win, momentum changes → policies change next
 
@@ -256,16 +254,16 @@ This makes the OS *feel* different.
 
 This directly solves what you said you’re building for:
 
-* “motivation fades”
-* “plan reset”
-* “addictions and sudden dirtiness”
-* “spiral prevention”
+- “motivation fades”
+- “plan reset”
+- “addictions and sudden dirtiness”
+- “spiral prevention”
 
 Micro-Recovery is literally a **spiral breaker**.
 
 ---
 
-If you want, I can give you the exact Convex functions + UI component as a single patch set, but before that: do you want Micro-Recovery to **auto-hide tasks** (pause them) when it activates, or only *suggest* Plan Reset?
+If you want, I can give you the exact Convex functions + UI component as a single patch set, but before that: do you want Micro-Recovery to **auto-hide tasks** (pause them) when it activates, or only _suggest_ Plan Reset?
 
 Answer:
 it should auto-hide
