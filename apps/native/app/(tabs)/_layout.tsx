@@ -57,6 +57,12 @@ export default function TabLayout() {
           title: "REVIEW",
         }}
       />
+      <Tabs.Screen
+        name="testing"
+        options={{
+          title: "TEST",
+        }}
+      />
     </Tabs>
   );
 }

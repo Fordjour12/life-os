@@ -26,6 +26,7 @@ import type * as kernel_resumeTasks from "../kernel/resumeTasks.js";
 import type * as kernel_stabilization from "../kernel/stabilization.js";
 import type * as kernel_taskCommands from "../kernel/taskCommands.js";
 import type * as kernel_taskQueries from "../kernel/taskQueries.js";
+import type * as kernel_testing from "../kernel/testing.js";
 import type * as privateData from "../privateData.js";
 import type * as tasks from "../tasks.js";
 
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   "kernel/stabilization": typeof kernel_stabilization;
   "kernel/taskCommands": typeof kernel_taskCommands;
   "kernel/taskQueries": typeof kernel_taskQueries;
+  "kernel/testing": typeof kernel_testing;
   privateData: typeof privateData;
   tasks: typeof tasks;
 }>;
