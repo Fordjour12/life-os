@@ -40,5 +40,8 @@
     "turbo": "^2.8.1",
     "typescript": "catalog:"
   },
+  "overrides": {
+    "ai": "^5.0.29"
+  },
   "packageManager": "bun@1.3.0"
 }

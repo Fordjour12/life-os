@@ -1,8 +1,12 @@
 import type { KernelSuggestion, LifeState } from "../../../../src/kernel/types";
 import type { Id } from "../_generated/dataModel";
-import { action } from "../_generated/server";
+import { Agent } from "@convex-dev/agent";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import type { ActionCtx } from "../_generated/server";
+import { internalAction, internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 
+import { components, internal } from "../_generated/api";
 import { sanitizeSuggestionCopy } from "../identity/guardrails";
 import {
   DAILY_SUGGESTION_CAP,
@@ -13,6 +17,43 @@ import {
 function getUserId(): string {
   return "user_me";
 }
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+const suggestionAgent = new Agent(components.agent, {
+  name: "LifeOS Suggestion Agent",
+  languageModel: openrouter.chat("anthropic/claude-3.5-sonnet"),
+  instructions:
+    "You are a gentle, recovery-first Life OS assistant. You propose supportive suggestions based on the user's current state, never to judge or shame. Always return a JSON array of suggestions with the required fields.",
+  callSettings: {
+    temperature: 0.7,
+  },
+  maxSteps: 1,
+});
+
+const weeklyReviewAgent = new Agent(components.agent, {
+  name: "LifeOS Weekly Review",
+  languageModel: openrouter.chat("openai/gpt-4o-mini"),
+  instructions:
+    "Analyze weekly data and generate insights. Output: { highlights: string[], frictionPoints: string[], reflectionQuestion: string }. Be supportive, never judgmental. Focus on patterns, not failures.",
+  callSettings: {
+    temperature: 0.6,
+  },
+  maxSteps: 1,
+});
+
+const journalAgent = new Agent(components.agent, {
+  name: "LifeOS Journal Assistant",
+  languageModel: openrouter.chat("anthropic/claude-3.5-sonnet"),
+  instructions:
+    "Generate gentle journal prompts based on user's state and recent activities. Keep prompts open-ended and non-judgmental.",
+  callSettings: {
+    temperature: 0.8,
+  },
+  maxSteps: 1,
+});
 
 type AiSuggestContext = {
   day: string;
@@ -41,6 +82,55 @@ type AiSuggestContext = {
     isRestWindow: boolean;
     isFocusProtection: boolean;
   };
+};
+
+type AiSuggestRawData = {
+  stateDoc: { state: LifeState } | null;
+  events: Array<{
+    _id: Id<"events">;
+    userId: string;
+    ts: number;
+    type: string;
+    meta: unknown;
+    idempotencyKey: string;
+  }>;
+  activeTasks: Array<{
+    _id: Id<"tasks">;
+    userId: string;
+    title: string;
+    estimateMin: number;
+    priority?: number;
+    status: string;
+  }>;
+  pausedTasks: Array<{
+    _id: Id<"tasks">;
+    userId: string;
+    title: string;
+    estimateMin: number;
+    priority?: number;
+    status: string;
+  }>;
+  calendarBlocks: Array<{
+    _id: Id<"calendarBlocks">;
+    userId: string;
+    day: string;
+    startMin: number;
+    endMin: number;
+    kind: string;
+  }>;
+  existingSuggestions: Array<{
+    _id: Id<"suggestions">;
+    userId: string;
+    day: string;
+    type: string;
+    priority: number;
+    reason: unknown;
+    payload: unknown;
+    status: string;
+    cooldownKey?: string;
+    createdAt: number;
+    updatedAt: number;
+  }>;
 };
 
 const DATA_LIMITS = {
@@ -136,60 +226,29 @@ function validateAiSuggestion(suggestion: unknown): KernelSuggestion | null {
   };
 }
 
-async function buildAiContext(
-  ctx: {
-    db: {
-      query: typeof import("../_generated/server").query;
-      run: (query: unknown) => Promise<unknown>;
-    };
-  },
+function buildAiContext(
+  raw: AiSuggestRawData,
   day: string,
   tzOffsetMinutes: number,
-): Promise<AiSuggestContext | null> {
-  const userId = getUserId();
+): AiSuggestContext | null {
   const now = Date.now();
   const offset = normalizeOffsetMinutes(tzOffsetMinutes);
 
-  const stateDoc = await ctx.db
-    .query("stateDaily")
-    .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
-    .first();
-
-  if (!stateDoc) {
+  if (!raw.stateDoc) {
     return null;
   }
 
-  const state = stateDoc.state as LifeState;
+  const state = raw.stateDoc.state as LifeState;
 
   const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-  const allEvents = (await ctx.db
-    .query("events")
-    .withIndex("by_user_ts", (q) => q.eq("userId", userId))
-    .collect()) as Array<{
-    _id: Id<"events">;
-    userId: string;
-    ts: number;
-    type: string;
-    meta: unknown;
-    idempotencyKey: string;
-  }>;
+  const allEvents = raw.events;
 
   const recentEvents = allEvents
     .filter((e) => now - e.ts < SEVEN_DAYS)
     .slice(0, DATA_LIMITS.maxEvents)
     .map((e) => truncate({ type: e.type, ts: e.ts, meta: e.meta }));
 
-  const activeTasksRaw = (await ctx.db
-    .query("tasks")
-    .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
-    .collect()) as Array<{
-    _id: Id<"tasks">;
-    userId: string;
-    title: string;
-    estimateMin: number;
-    priority?: number;
-    status: string;
-  }>;
+  const activeTasksRaw = raw.activeTasks;
 
   const activeTasks = activeTasksRaw
     .slice(0, DATA_LIMITS.maxActiveTasks)
@@ -197,17 +256,7 @@ async function buildAiContext(
       truncate({ _id: t._id, title: t.title, estimateMin: t.estimateMin, priority: t.priority }),
     );
 
-  const pausedTasksRaw = (await ctx.db
-    .query("tasks")
-    .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
-    .collect()) as Array<{
-    _id: Id<"tasks">;
-    userId: string;
-    title: string;
-    estimateMin: number;
-    priority?: number;
-    status: string;
-  }>;
+  const pausedTasksRaw = raw.pausedTasks;
 
   const pausedTasks = pausedTasksRaw
     .slice(0, DATA_LIMITS.maxPausedTasks)
@@ -215,17 +264,7 @@ async function buildAiContext(
       truncate({ _id: t._id, title: t.title, estimateMin: t.estimateMin, priority: t.priority }),
     );
 
-  const blocks = (await ctx.db
-    .query("calendarBlocks")
-    .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
-    .collect()) as Array<{
-    _id: Id<"calendarBlocks">;
-    userId: string;
-    day: string;
-    startMin: number;
-    endMin: number;
-    kind: string;
-  }>;
+  const blocks = raw.calendarBlocks;
 
   const calendarBlocks = blocks
     .slice(0, DATA_LIMITS.maxCalendarBlocks)
@@ -258,22 +297,7 @@ async function buildAiContext(
     }
   }
 
-  const existingSugs = (await ctx.db
-    .query("suggestions")
-    .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
-    .collect()) as Array<{
-    _id: Id<"suggestions">;
-    userId: string;
-    day: string;
-    type: string;
-    priority: number;
-    reason: unknown;
-    payload: unknown;
-    status: string;
-    cooldownKey?: string;
-    createdAt: number;
-    updatedAt: number;
-  }>;
+  const existingSugs = raw.existingSuggestions;
 
   const existingSuggestions = existingSugs.slice(0, DATA_LIMITS.maxExistingSuggestions).map((s) =>
     truncate({
@@ -300,16 +324,24 @@ async function buildAiContext(
   };
 }
 
-async function callAiModel(context: AiSuggestContext): Promise<KernelSuggestion[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
+async function callAiModel(
+  ctx: ActionCtx,
+  userId: string,
+  context: AiSuggestContext,
+): Promise<KernelSuggestion[]> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    console.log("[aiSuggest] No OPENAI_API_KEY configured, skipping AI call");
+    console.log("[vex-agents] No OPENROUTER_API_KEY configured, skipping AI call");
     return [];
   }
 
-  const systemPrompt = `You are a gentle, recovery-first Life OS assistant. Your role is to propose supportive suggestions based on the user's current state, never to judge or shame.
+  try {
+    const { threadId } = await suggestionAgent.createThread(ctx, {
+      userId,
+      title: `ai-suggest:${context.day}`,
+    });
 
-CONTEXT:
+    const prompt = `CONTEXT:
 - Day: ${context.day}
 - Current State: ${JSON.stringify(context.state, null, 2)}
 - Active Tasks: ${context.tasks.active.length}
@@ -334,59 +366,32 @@ ALLOWED SUGGESTION TYPES:
 - MICRO_RECOVERY_PROTOCOL: Full recovery mode suggestion
 - NEXT_STEP: Suggest next logical action
 
-OUTPUT FORMAT: JSON array of suggestions with fields: day, type, priority, reason {code, detail}, payload, cooldownKey`;
+OUTPUT FORMAT: JSON array of suggestions with fields: day, type, priority, reason {code, detail}, payload, cooldownKey. Return JSON only, no extra text.
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `Generate suggestions based on: ${JSON.stringify(context, null, 2)}`,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 1500,
-      }),
-    });
+Generate suggestions based on:
+${JSON.stringify(context, null, 2)}`;
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("[aiSuggest] OpenAI API error:", error);
+    const result = await suggestionAgent.generateText(ctx, { threadId, userId }, { prompt });
+
+    if (!result.text) {
+      console.log("[vex-agents] Empty response from AI");
       return [];
     }
 
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) {
-      console.log("[aiSuggest] Empty response from AI");
-      return [];
-    }
-
-    const suggestions = JSON.parse(content) as unknown[];
+    const suggestions = JSON.parse(result.text) as unknown[];
     if (!Array.isArray(suggestions)) {
-      console.log("[aiSuggest] AI response not an array");
+      console.log("[vex-agents] AI response not an array");
       return [];
     }
 
     return suggestions.map(validateAiSuggestion).filter((s): s is KernelSuggestion => s !== null);
   } catch (error) {
-    console.error("[aiSuggest] Error calling AI:", error);
+    console.error("[vex-agents] Error calling AI:", error);
     return [];
   }
 }
 
-export const generateAiSuggestions = action({
+export const generateAiSuggestions = internalAction({
   args: {
     day: v.string(),
     tzOffsetMinutes: v.optional(v.number()),
@@ -399,60 +404,50 @@ export const generateAiSuggestions = action({
     const isEnabled = process.env.AI_SUGGESTIONS_ENABLED === "true";
     if (!isEnabled) {
       console.log(
-        `[aiSuggest] AI_SUGGESTIONS_ENABLED=false, skipping for user=${userId}, day=${day}`,
+        `[vex-agents] AI_SUGGESTIONS_ENABLED=false, skipping for user=${userId}, day=${day}`,
       );
       return { status: "skipped", reason: "feature_disabled" };
     }
 
     console.log(
-      `[aiSuggest] Starting generation: user=${userId}, day=${day}, source=${source ?? "unknown"}`,
+      `[vex-agents] Starting generation: user=${userId}, day=${day}, source=${source ?? "unknown"}`,
     );
 
     try {
-      const context = await buildAiContext(ctx, day, tzOffsetMinutes ?? 0);
+      const raw = (await ctx.runQuery(internal.kernel.vexAgents.getAiSuggestRawData, {
+        day,
+      })) as AiSuggestRawData;
+      const context = buildAiContext(raw, day, tzOffsetMinutes ?? 0);
       if (!context) {
-        console.log(`[aiSuggest] No state found for day=${day}, skipping`);
+        console.log(`[vex-agents] No state found for day=${day}, skipping`);
         return { status: "skipped", reason: "no_state" };
       }
 
       const inputSize = JSON.stringify(context).length;
-      console.log(`[aiSuggest] Context built: input_size=${inputSize} chars`);
+      console.log(`[vex-agents] Context built: input_size=${inputSize} chars`);
 
-      const aiSuggestions = await callAiModel(context);
-      console.log(`[aiSuggest] AI returned ${aiSuggestions.length} suggestions`);
+      const aiSuggestions = await callAiModel(ctx, userId, context);
+      console.log(`[vex-agents] AI returned ${aiSuggestions.length} suggestions`);
 
       if (aiSuggestions.length === 0) {
         return { status: "success", count: 0 };
       }
 
-      const existingSugs = (await ctx.db
-        .query("suggestions")
-        .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
-        .collect()) as Array<{
-        _id: Id<"suggestions">;
-        userId: string;
-        day: string;
-        type: string;
-        priority: number;
-        reason: unknown;
-        payload: unknown;
-        status: string;
-        cooldownKey?: string;
-        createdAt: number;
-        updatedAt: number;
-      }>;
+      const existingSugs = (await ctx.runQuery(internal.kernel.vexAgents.getSuggestionsForDay, {
+        day,
+      })) as AiSuggestRawData["existingSuggestions"];
 
       const existingNewCount = existingSugs.filter((s) => s.status === "new").length;
       if (existingNewCount > 0) {
         console.log(
-          `[aiSuggest] Existing new suggestions found (${existingNewCount}), skipping insertion`,
+          `[vex-agents] Existing new suggestions found (${existingNewCount}), skipping insertion`,
         );
         return { status: "skipped", reason: "existing_new_suggestions" };
       }
 
       const remainingSlots = Math.max(0, DAILY_SUGGESTION_CAP - existingSugs.length);
       if (remainingSlots === 0) {
-        console.log(`[aiSuggest] Daily cap reached (${DAILY_SUGGESTION_CAP}), skipping insertion`);
+        console.log(`[vex-agents] Daily cap reached (${DAILY_SUGGESTION_CAP}), skipping insertion`);
         return { status: "skipped", reason: "daily_cap_reached" };
       }
 
@@ -469,38 +464,131 @@ export const generateAiSuggestions = action({
 
       for (const suggestion of cappedSuggestions) {
         if (recentlySuggested(suggestion.cooldownKey)) {
-          console.log(`[aiSuggest] Skipping suggestion with cooldownKey=${suggestion.cooldownKey}`);
+          console.log(
+            `[vex-agents] Skipping suggestion with cooldownKey=${suggestion.cooldownKey}`,
+          );
           continue;
         }
 
         const safeSuggestion = sanitizeSuggestionCopy(suggestion);
 
-        await ctx.db.insert("suggestions", {
-          userId,
-          day: safeSuggestion.day,
-          type: safeSuggestion.type,
-          priority: safeSuggestion.priority,
-          reason: safeSuggestion.reason,
-          payload: safeSuggestion.payload,
-          status: safeSuggestion.status,
-          cooldownKey: safeSuggestion.cooldownKey,
+        await ctx.runMutation(internal.kernel.vexAgents.insertSuggestion, {
+          suggestion: safeSuggestion,
           createdAt: now,
           updatedAt: now,
         });
 
         insertedCount++;
         console.log(
-          `[aiSuggest] Inserted suggestion: type=${safeSuggestion.type}, priority=${safeSuggestion.priority}`,
+          `[vex-agents] Inserted suggestion: type=${safeSuggestion.type}, priority=${safeSuggestion.priority}`,
         );
       }
 
       console.log(
-        `[aiSuggest] Completed: inserted=${insertedCount}, total_new=${existingSugs.length + insertedCount}`,
+        `[vex-agents] Completed: inserted=${insertedCount}, total_new=${existingSugs.length + insertedCount}`,
       );
       return { status: "success", count: insertedCount };
     } catch (error) {
-      console.error(`[aiSuggest] Error in generateAiSuggestions:`, error);
+      console.error(`[vex-agents] Error in generateAiSuggestions:`, error);
       return { status: "error", error: String(error) };
     }
+  },
+});
+
+const suggestionValidator = v.object({
+  day: v.string(),
+  type: v.string(),
+  priority: v.number(),
+  reason: v.object({
+    code: v.string(),
+    detail: v.string(),
+  }),
+  payload: v.any(),
+  status: v.string(),
+  cooldownKey: v.optional(v.string()),
+});
+
+export const getAiSuggestRawData = internalQuery({
+  args: {
+    day: v.string(),
+  },
+  handler: async (ctx, { day }) => {
+    const userId = getUserId();
+
+    const stateDoc = await ctx.db
+      .query("stateDaily")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
+      .first();
+
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_user_ts", (q) => q.eq("userId", userId))
+      .collect();
+
+    const activeTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
+      .collect();
+
+    const pausedTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
+      .collect();
+
+    const calendarBlocks = await ctx.db
+      .query("calendarBlocks")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
+      .collect();
+
+    const existingSuggestions = await ctx.db
+      .query("suggestions")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
+      .collect();
+
+    return {
+      stateDoc,
+      events,
+      activeTasks,
+      pausedTasks,
+      calendarBlocks,
+      existingSuggestions,
+    };
+  },
+});
+
+export const getSuggestionsForDay = internalQuery({
+  args: {
+    day: v.string(),
+  },
+  handler: async (ctx, { day }) => {
+    const userId = getUserId();
+
+    return ctx.db
+      .query("suggestions")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
+      .collect();
+  },
+});
+
+export const insertSuggestion = internalMutation({
+  args: {
+    suggestion: suggestionValidator,
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  },
+  handler: async (ctx, { suggestion, createdAt, updatedAt }) => {
+    const userId = getUserId();
+    await ctx.db.insert("suggestions", {
+      userId,
+      day: suggestion.day,
+      type: suggestion.type,
+      priority: suggestion.priority,
+      reason: suggestion.reason,
+      payload: suggestion.payload,
+      status: suggestion.status,
+      cooldownKey: suggestion.cooldownKey,
+      createdAt,
+      updatedAt,
+    });
   },
 });

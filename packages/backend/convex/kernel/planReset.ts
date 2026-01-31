@@ -375,7 +375,7 @@ export const applyPlanReset = mutation({
       }
     }
 
-    await ctx.scheduler.runAfter(0, internal.kernel.aiSuggest.generateAiSuggestions, {
+    await ctx.scheduler.runAfter(0, internal.kernel.vexAgents.generateAiSuggestions, {
       day,
       tzOffsetMinutes: offset,
       source: "applyPlanReset",
