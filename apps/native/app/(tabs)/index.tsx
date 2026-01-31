@@ -148,13 +148,19 @@ export default function Today() {
 
   const [title, setTitle] = useState("");
   const [estimate, setEstimate] = useState("25");
+  const [habitId, setHabitId] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseCategory, setExpenseCategory] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoggingHabit, setIsLoggingHabit] = useState(false);
+  const [isLoggingExpense, setIsLoggingExpense] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
   const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] =
     useState(false);
   const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
   const [isSkippingJournal, setIsSkippingJournal] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [eventFilter, setEventFilter] = useState<"all" | "habits" | "expenses">("all");
 
   const createTask = async () => {
     const trimmedTitle = title.trim();
@@ -199,6 +205,46 @@ export default function Today() {
         tzOffsetMinutes,
       },
     });
+  };
+
+  const logHabit = async (status: "done" | "missed") => {
+    const trimmedHabitId = habitId.trim();
+    if (!trimmedHabitId) return;
+    setIsLoggingHabit(true);
+    try {
+      await executeCommandMutation({
+        command: {
+          cmd: "log_habit",
+          input: { habitId: trimmedHabitId, status },
+          idempotencyKey: idem(),
+          tzOffsetMinutes,
+        },
+      });
+      setHabitId("");
+    } finally {
+      setIsLoggingHabit(false);
+    }
+  };
+
+  const logExpense = async () => {
+    const amount = Number(expenseAmount);
+    const category = expenseCategory.trim();
+    if (!Number.isFinite(amount) || amount <= 0 || !category) return;
+    setIsLoggingExpense(true);
+    try {
+      await executeCommandMutation({
+        command: {
+          cmd: "add_expense",
+          input: { amount, category },
+          idempotencyKey: idem(),
+          tzOffsetMinutes,
+        },
+      });
+      setExpenseAmount("");
+      setExpenseCategory("");
+    } finally {
+      setIsLoggingExpense(false);
+    }
   };
 
   const doTinyWin = async (tinyWin?: TinyWinPayload) => {
@@ -311,6 +357,17 @@ export default function Today() {
       }>,
     [data],
   );
+  const filteredEvents = useMemo(() => {
+    if (eventFilter === "habits") {
+      return todayEvents.filter(
+        (event) => event.type === "HABIT_DONE" || event.type === "HABIT_MISSED",
+      );
+    }
+    if (eventFilter === "expenses") {
+      return todayEvents.filter((event) => event.type === "EXPENSE_ADDED");
+    }
+    return todayEvents;
+  }, [eventFilter, todayEvents]);
 
   if (!data) {
     return <TodaySkeleton />;
@@ -393,9 +450,57 @@ export default function Today() {
             </MachineText>
           </View>
 
-          {todayEvents.length > 0 ? (
+          <View className="flex-row gap-2 pt-1">
+            <Button
+              size="sm"
+              className={`border border-foreground rounded-none ${
+                eventFilter === "all" ? "bg-accent" : "bg-surface"
+              }`}
+              onPress={() => setEventFilter("all")}
+            >
+              <MachineText
+                className={`text-xs font-bold ${
+                  eventFilter === "all" ? "text-accent-foreground" : "text-foreground"
+                }`}
+              >
+                ALL
+              </MachineText>
+            </Button>
+            <Button
+              size="sm"
+              className={`border border-foreground rounded-none ${
+                eventFilter === "habits" ? "bg-accent" : "bg-surface"
+              }`}
+              onPress={() => setEventFilter("habits")}
+            >
+              <MachineText
+                className={`text-xs font-bold ${
+                  eventFilter === "habits" ? "text-accent-foreground" : "text-foreground"
+                }`}
+              >
+                HABITS
+              </MachineText>
+            </Button>
+            <Button
+              size="sm"
+              className={`border border-foreground rounded-none ${
+                eventFilter === "expenses" ? "bg-accent" : "bg-surface"
+              }`}
+              onPress={() => setEventFilter("expenses")}
+            >
+              <MachineText
+                className={`text-xs font-bold ${
+                  eventFilter === "expenses" ? "text-accent-foreground" : "text-foreground"
+                }`}
+              >
+                EXPENSES
+              </MachineText>
+            </Button>
+          </View>
+
+          {filteredEvents.length > 0 ? (
             <View className="gap-2 pt-2">
-              {(showAllEvents ? todayEvents : todayEvents.slice(0, 3)).map(
+              {(showAllEvents ? filteredEvents : filteredEvents.slice(0, 3)).map(
                 (event, index) => (
                 <View key={`${event.type}-${event.ts}-${index}`} className="flex-row justify-between">
                   <MachineText variant="label" className="text-[10px] text-foreground/70">
@@ -407,7 +512,7 @@ export default function Today() {
                 </View>
               ),
               )}
-              {todayEvents.length > 3 ? (
+              {filteredEvents.length > 3 ? (
                 <Button
                   size="sm"
                   className="self-start bg-surface border border-foreground rounded-none"
@@ -421,9 +526,92 @@ export default function Today() {
             </View>
           ) : (
             <MachineText variant="label" className="pt-2 text-[10px] text-foreground/60">
-              No habit or expense events yet today.
+              No events in this filter yet today.
             </MachineText>
           )}
+        </View>
+      </HardCard>
+
+      <HardCard className="mb-8" padding="sm" label="QUICK LOG">
+        <View className="gap-4 p-2">
+          <View className="gap-2">
+            <MachineText variant="label" className="text-[10px]">
+              HABIT ID
+            </MachineText>
+            <TextField>
+              <TextField.Input
+                value={habitId}
+                onChangeText={setHabitId}
+                placeholder="habit-id"
+                className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
+                style={{ fontFamily: "Menlo" }}
+              />
+            </TextField>
+            <View className="flex-row gap-2">
+              <Button
+                size="sm"
+                className="bg-accent border border-foreground rounded-none"
+                onPress={() => logHabit("done")}
+                isDisabled={isLoggingHabit || !habitId.trim()}
+              >
+                <MachineText className="text-xs font-bold text-accent-foreground">
+                  DONE
+                </MachineText>
+              </Button>
+              <Button
+                size="sm"
+                className="bg-surface border border-foreground rounded-none"
+                onPress={() => logHabit("missed")}
+                isDisabled={isLoggingHabit || !habitId.trim()}
+              >
+                <MachineText className="text-xs font-bold text-foreground">
+                  MISSED
+                </MachineText>
+              </Button>
+            </View>
+          </View>
+
+          <View className="gap-2">
+            <MachineText variant="label" className="text-[10px]">
+              EXPENSE
+            </MachineText>
+            <View className="flex-row gap-2">
+              <TextField className="flex-1">
+                <TextField.Input
+                  value={expenseAmount}
+                  onChangeText={setExpenseAmount}
+                  placeholder="$"
+                  keyboardType="numeric"
+                  className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
+                  style={{ fontFamily: "Menlo" }}
+                />
+              </TextField>
+              <TextField className="flex-[2]">
+                <TextField.Input
+                  value={expenseCategory}
+                  onChangeText={setExpenseCategory}
+                  placeholder="category"
+                  className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
+                  style={{ fontFamily: "Menlo" }}
+                />
+              </TextField>
+            </View>
+            <Button
+              size="sm"
+              className="bg-accent border border-foreground rounded-none self-start"
+              onPress={logExpense}
+              isDisabled={
+                isLoggingExpense ||
+                !expenseCategory.trim() ||
+                !Number.isFinite(Number(expenseAmount)) ||
+                Number(expenseAmount) <= 0
+              }
+            >
+              <MachineText className="text-xs font-bold text-accent-foreground">
+                ADD EXPENSE
+              </MachineText>
+            </Button>
+          </View>
         </View>
       </HardCard>
 
