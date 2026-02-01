@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 1,
   "workspaces": {
     "": {
       "name": "life-os",
@@ -22,6 +21,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@better-auth/expo": "catalog:",
+        "@convex-dev/agent": "^0.3.2",
         "@convex-dev/better-auth": "catalog:",
         "@expo/metro-runtime": "55.0.4-canary-20260128-67ce8d5",
         "@expo/vector-icons": "^15.0.3",

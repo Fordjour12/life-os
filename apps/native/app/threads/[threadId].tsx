@@ -1,6 +1,8 @@
+import { useUIMessages } from "@convex-dev/agent/react";
+import type { UIMessage } from "@convex-dev/agent";
 import { useLocalSearchParams } from "expo-router";
 import { api } from "@life-os/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 
@@ -8,22 +10,20 @@ import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { ChatMessageItem } from "@/components/threads/chat-message";
 import { ChatInput } from "@/components/threads/chat-input";
-import type { ChatMessage } from "@/components/threads/thread-types";
-
-function idem() {
-  return `device:${Date.now()}:${Math.random().toString(16).slice(2)}`;
-}
 
 export default function ThreadDetail() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
-  const messagesData = useQuery(api.threads.getConversationMessages, { threadId });
+  const { results: messages, status } = useUIMessages(
+    api.threads.getConversationMessages,
+    { threadId },
+    { initialNumItems: 50 },
+  );
   const sendMessage = useMutation(api.threads.addMessage);
 
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  const messages = messagesData?.messages ?? [];
-  const isLoading = messagesData === undefined;
+  const isLoading = status === "LoadingFirstPage";
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -89,8 +89,8 @@ export default function ThreadDetail() {
               </MachineText>
             </View>
           ) : (
-            messages.map((message: ChatMessage) => (
-              <ChatMessageItem key={message.id} message={message} />
+            messages.map((message: UIMessage) => (
+              <ChatMessageItem key={message.key} message={message} />
             ))
           )}
         </ScrollView>

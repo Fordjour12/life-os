@@ -3,7 +3,7 @@ import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Button, TextField } from "heroui-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, SafeAreaView, View } from "react-native";
+import { Alert, SafeAreaView, ScrollView, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
 import { HardCard } from "@/components/ui/hard-card";
@@ -137,10 +137,34 @@ export default function JournalScreen() {
   }, [entriesData, moodFilter, searchQuery, windowFilter]);
 
   const presets = [
-    { id: "all", name: "ALL_TIME", windowFilter: "all", moodFilter: "all", query: "" },
-    { id: "last7", name: "LAST_7D", windowFilter: "7", moodFilter: "all", query: "" },
-    { id: "low7", name: "LOW_7D", windowFilter: "7", moodFilter: "low", query: "" },
-    { id: "good30", name: "GOOD_30D", windowFilter: "30", moodFilter: "good", query: "" },
+    {
+      id: "all",
+      name: "ALL_TIME",
+      windowFilter: "all",
+      moodFilter: "all",
+      query: "",
+    },
+    {
+      id: "last7",
+      name: "LAST_7D",
+      windowFilter: "7",
+      moodFilter: "all",
+      query: "",
+    },
+    {
+      id: "low7",
+      name: "LOW_7D",
+      windowFilter: "7",
+      moodFilter: "low",
+      query: "",
+    },
+    {
+      id: "good30",
+      name: "GOOD_30D",
+      windowFilter: "30",
+      moodFilter: "good",
+      query: "",
+    },
   ] as const;
 
   const applyFilters = useCallback((next: JournalFilters) => {
@@ -187,7 +211,11 @@ export default function JournalScreen() {
       count?: number;
     }> = [];
     groupedDays.forEach((day) => {
-      result.push({ type: "header", day, count: groupedEntries[day]?.length ?? 0 });
+      result.push({
+        type: "header",
+        day,
+        count: groupedEntries[day]?.length ?? 0,
+      });
       groupedEntries[day]?.forEach((entry) => {
         result.push({ type: "entry", day, entry });
       });
@@ -262,7 +290,11 @@ export default function JournalScreen() {
                     label="RESET"
                     isSelected={false}
                     onPress={() =>
-                      applyFilters({ moodFilter: "all", windowFilter: "30", query: "" })
+                      applyFilters({
+                        moodFilter: "all",
+                        windowFilter: "30",
+                        query: "",
+                      })
                     }
                   />
                 </View>
@@ -375,7 +407,7 @@ export default function JournalScreen() {
             </MachineText>
           </HardCard>
         ) : (
-          <View className="gap-4 min-h-[200px]">
+          <View className="gap-4 min-h-50">
             <FlashList
               data={flatEntryList}
               renderItem={({ item }) => {

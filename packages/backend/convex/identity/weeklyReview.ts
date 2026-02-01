@@ -1,14 +1,11 @@
 import { v } from "convex/values";
 
 import type { LifeState } from "../../../../src/kernel/types";
+import { api } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
 import { filterSafeStrings, isSafeCopy } from "./guardrails";
 
 const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
-
-function getUserId(): string {
-  return "user_me";
-}
 
 function formatYYYYMMDD(date: Date) {
   const yyyy = date.getUTCFullYear();
@@ -70,7 +67,9 @@ export const generateWeeklyReview = mutation({
     week: v.optional(v.string()),
   },
   handler: async (ctx, { week }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const weekId = week ?? getDefaultWeekId();
     if (!/^\d{4}-\d{2}$/.test(weekId)) {
       throw new Error("Week must be YYYY-WW");
@@ -230,7 +229,9 @@ export const getWeeklyReview = query({
     week: v.optional(v.string()),
   },
   handler: async (ctx, { week }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     if (week) {
       return ctx.db
         .query("weeklyReviews")

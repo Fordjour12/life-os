@@ -1,19 +1,19 @@
-import { createThread as createAgentThread, listMessages, saveMessage } from "@convex-dev/agent";
+import { createThread as createAgentThread, listUIMessages, saveMessage } from "@convex-dev/agent";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
+import { api } from "./_generated/api";
 import { components } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
-
-function getUserId(): string {
-  return "user_me";
-}
 
 export const createConversation = mutation({
   args: {
     title: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const threadId = await createAgentThread(ctx, components.agent, {
       userId,
       title: args.title,
@@ -28,7 +28,9 @@ export const listConversations = query({
     numItems: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const result = await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
       userId,
       order: "desc",
@@ -54,32 +56,13 @@ export const listConversations = query({
 export const getConversationMessages = query({
   args: {
     threadId: v.string(),
-    cursor: v.optional(v.string()),
-    numItems: v.optional(v.number()),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    const result = await listMessages(ctx, components.agent, {
+    return listUIMessages(ctx, components.agent, {
       threadId: args.threadId,
-      excludeToolMessages: true,
-      paginationOpts: {
-        cursor: args.cursor ?? null,
-        numItems: args.numItems ?? 50,
-      },
+      paginationOpts: args.paginationOpts,
     });
-
-    return {
-      messages: result.page.map((msg) => {
-        const content = msg.message?.content;
-        const role = msg.message?.role ?? "user";
-        return {
-          id: msg._id,
-          role: role === "tool" ? "assistant" : role,
-          content: typeof content === "string" ? content : "",
-          timestamp: msg._creationTime,
-        };
-      }),
-      cursor: result.continueCursor,
-    };
   },
 });
 
@@ -89,7 +72,9 @@ export const addMessage = mutation({
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const { messageId } = await saveMessage(ctx, components.agent, {
       threadId: args.threadId,
       userId,

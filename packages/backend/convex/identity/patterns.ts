@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import { api } from "../_generated/api";
 import { query } from "../_generated/server";
 import { isSafeCopy } from "./guardrails";
 
@@ -28,10 +29,6 @@ type LifeStateLike = {
   load?: string;
   momentum?: string;
 };
-
-function getUserId(): string {
-  return "user_me";
-}
 
 function formatYYYYMMDD(date: Date) {
   const yyyy = date.getUTCFullYear();
@@ -92,7 +89,9 @@ export const getPatternInsights = query({
     window: v.optional(v.union(v.literal("week"), v.literal("month"))),
   },
   handler: async (ctx, { window }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const windowKey = window ?? "week";
     const { startDay, endDay, startTs, endTs } = getWindowRange(windowKey);
 
@@ -213,7 +212,9 @@ export const getDriftSignals = query({
     window: v.optional(v.union(v.literal("week"), v.literal("month"))),
   },
   handler: async (ctx, { window }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const windowKey = window ?? "month";
     const { startDay, endDay, startTs, endTs } = getWindowRange(windowKey);
 

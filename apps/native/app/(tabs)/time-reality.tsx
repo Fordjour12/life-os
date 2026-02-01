@@ -3,8 +3,8 @@ import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useRouter } from "expo-router";
-import { Button, Spinner } from "heroui-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "heroui-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { withUniwind } from "uniwind";
 
@@ -14,6 +14,7 @@ import { Container } from "@/components/container";
 import { TimeRealitySkeleton } from "@/components/skeletons/time-reality-skeleton";
 import { formatDayLabel, formatTime, shiftDay } from "@/lib/calendar-utils";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
+import { CalendarBlockCard } from "@/components/calendar-block-card";
 
 const StyledIonicons = withUniwind(Ionicons);
 
@@ -34,13 +35,6 @@ function formatMinutes(totalMinutes: number) {
   if (remainder === 0) return `${hours}h`;
   return `${hours}h ${remainder}m`;
 }
-
-const kindStyles: Record<CalendarBlock["kind"], { label: string; badge: string }> = {
-  busy: { label: "BUSY", badge: "bg-accent" },
-  focus: { label: "FOCUS", badge: "bg-warning" },
-  rest: { label: "REST", badge: "bg-success" },
-  personal: { label: "PERSONAL", badge: "bg-foreground" },
-};
 
 export default function TimeReality() {
   const router = useRouter();
@@ -132,69 +126,102 @@ export default function TimeReality() {
     return <TimeRealitySkeleton />;
   }
 
-  const toggleNotes = (blockId: Id<"calendarBlocks">) => {
+  const toggleNotes = useCallback((blockId: Id<"calendarBlocks">) => {
     setExpandedBlockId((current) => (current === blockId ? null : blockId));
-  };
+  }, []);
 
-  const removeBlock = async (blockId: Id<"calendarBlocks">) => {
-    setRemovingId(blockId);
-    try {
-      await removeBlockMutation({ blockId });
-      setToastMessage("Block removed.");
-      if (toastTimeout.current) clearTimeout(toastTimeout.current);
-      toastTimeout.current = setTimeout(() => {
-        setToastMessage(null);
-      }, 900);
-    } finally {
-      setRemovingId(null);
-    }
-  };
+  const removeBlock = useCallback(
+    async (blockId: Id<"calendarBlocks">) => {
+      setRemovingId(blockId);
+      try {
+        await removeBlockMutation({ blockId });
+        setToastMessage("Block removed.");
+        if (toastTimeout.current) clearTimeout(toastTimeout.current);
+        toastTimeout.current = setTimeout(() => {
+          setToastMessage(null);
+        }, 900);
+      } finally {
+        setRemovingId(null);
+      }
+    },
+    [removeBlockMutation],
+  );
 
-  const duplicateBlock = async (block: CalendarBlock, dayOverride?: string) => {
-    if (!today) return;
-    setRemovingId(block._id);
-    try {
-      await addBlockMutation({
-        day: dayOverride ?? today.day,
-        startMin: block.startMin,
-        endMin: block.endMin,
-        kind: block.kind,
-        source: "manual",
-        title: block.title,
-        notes: block.notes,
+  const duplicateBlock = useCallback(
+    async (block: CalendarBlock, dayOverride?: string) => {
+      if (!today) return;
+      setRemovingId(block._id);
+      try {
+        await addBlockMutation({
+          day: dayOverride ?? today.day,
+          startMin: block.startMin,
+          endMin: block.endMin,
+          kind: block.kind,
+          source: "manual",
+          title: block.title,
+          notes: block.notes,
+        });
+        setToastMessage(dayOverride ? "Duplicated to tomorrow." : "Block duplicated.");
+        if (toastTimeout.current) clearTimeout(toastTimeout.current);
+        toastTimeout.current = setTimeout(() => {
+          setToastMessage(null);
+        }, 900);
+      } finally {
+        setRemovingId(null);
+      }
+    },
+    [today, addBlockMutation],
+  );
+
+  const duplicateBlockTomorrow = useCallback(
+    (block: CalendarBlock) => duplicateBlock(block, shiftDay(activeDay ?? today.day, 1)),
+    [duplicateBlock, activeDay, today],
+  );
+
+  const duplicateBlockToday = useCallback(
+    (block: CalendarBlock) => duplicateBlock(block, activeDay ?? today.day),
+    [duplicateBlock, activeDay, today],
+  );
+
+  const confirmRemove = useCallback(
+    (block: CalendarBlock) => {
+      if (removingId) return;
+      Alert.alert(
+        "Remove block?",
+        "Reason: this protects what the day allows. Removing reduces the system's reality signal.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: () => removeBlock(block._id),
+          },
+        ],
+      );
+    },
+    [removingId, removeBlock],
+  );
+
+  const editBlock = useCallback(
+    (blockId: Id<"calendarBlocks">) => {
+      router.push({
+        pathname: "/edit-busy-time" as any,
+        params: { blockId },
       });
-      setToastMessage(dayOverride ? "Duplicated to tomorrow." : "Block duplicated.");
-      if (toastTimeout.current) clearTimeout(toastTimeout.current);
-      toastTimeout.current = setTimeout(() => {
-        setToastMessage(null);
-      }, 900);
-    } finally {
-      setRemovingId(null);
-    }
-  };
+    },
+    [router],
+  );
 
-  const confirmRemove = (block: CalendarBlock) => {
-    if (removingId) return;
-    Alert.alert(
-      "Remove block?",
-      "Reason: this protects what the day allows. Removing reduces the system’s reality signal.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => removeBlock(block._id),
-        },
-      ],
-    );
-  };
-
-  const editBlock = (blockId: Id<"calendarBlocks">) => {
+  const handleAddBusyTime = useCallback(() => {
     router.push({
-      pathname: "/edit-busy-time" as any,
-      params: { blockId },
+      pathname: "/add-busy-time" as any,
+      params: { day: activeDay ?? today.day },
     });
-  };
+  }, [router, activeDay, today]);
+
+  const handleAddBusyTimeToday = useCallback(() => {
+    router.push("/add-busy-time" as any);
+  }, [router]);
 
   return (
     <Container className="flex-1 bg-background">
@@ -315,97 +342,24 @@ export default function TimeReality() {
                       </View>
                     ) : (
                       sortedCalendarBlocks.map((block) => (
-                        <View
+                        <CalendarBlockCard
                           key={block._id}
-                          className="flex-row items-start justify-between border border-divider bg-surface px-3 py-2"
-                        >
-                          <View className={`w-1 self-stretch ${kindStyles[block.kind].badge}`} />
-                          <Pressable
-                            className="flex-1 ml-3 mr-2"
-                            onPress={() => editBlock(block._id)}
-                          >
-                            <MachineText className="font-bold text-sm">
-                              {formatTime(block.startMin)} -{formatTime(block.endMin)}
-                            </MachineText>
-                            <MachineText className="text-xs text-foreground/60">
-                              {block.title ? block.title : "Untitled block"}
-                            </MachineText>
-                            {block.notes ? (
-                              <MachineText className="text-[10px] text-foreground/50 mt-1">
-                                NOTES: {block.notes}
-                              </MachineText>
-                            ) : null}
-                            <MachineText className="text-[9px] text-foreground/40 mt-1">
-                              TAP_TO_EDIT
-                            </MachineText>
-                          </Pressable>
-                          <View className="items-end gap-2">
-                            <View className="flex-row items-center gap-2">
-                              <View className={`w-2 h-2 ${kindStyles[block.kind].badge}`} />
-                              <MachineText variant="label">
-                                {kindStyles[block.kind].label}
-                              </MachineText>
-                            </View>
-                            <View className="flex-row flex-wrap justify-end gap-2">
-                              <Button
-                                size="sm"
-                                className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
-                                onPress={() => duplicateBlock(block, activeDay ?? today.day)}
-                                isDisabled={removingId === block._id}
-                              >
-                                {removingId === block._id ? (
-                                  <Spinner size="sm" color="black" />
-                                ) : (
-                                  <MachineText className="text-[9px] font-bold text-foreground">
-                                    DUPLICATE
-                                  </MachineText>
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
-                                onPress={() =>
-                                  duplicateBlock(block, shiftDay(activeDay ?? today.day, 1))
-                                }
-                                isDisabled={removingId === block._id}
-                              >
-                                {removingId === block._id ? (
-                                  <Spinner size="sm" color="black" />
-                                ) : (
-                                  <MachineText className="text-[9px] font-bold text-foreground">
-                                    TOMORROW
-                                  </MachineText>
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
-                                onPress={() => confirmRemove(block)}
-                                isDisabled={removingId === block._id}
-                              >
-                                {removingId === block._id ? (
-                                  <Spinner size="sm" color="black" />
-                                ) : (
-                                  <MachineText className="text-[9px] font-bold text-foreground">
-                                    REMOVE
-                                  </MachineText>
-                                )}
-                              </Button>
-                            </View>
-                          </View>
-                        </View>
+                          block={block}
+                          expandedBlockId={expandedBlockId}
+                          onToggleNotes={toggleNotes}
+                          onEdit={editBlock}
+                          onDuplicate={duplicateBlockToday}
+                          onDuplicateTomorrow={duplicateBlockTomorrow}
+                          onRemove={confirmRemove}
+                          isRemoving={removingId === block._id}
+                        />
                       ))
                     )}
                   </View>
                 </HardCard>
                 <Button
                   className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/add-busy-time" as any,
-                      params: { day: activeDay ?? today.day },
-                    })
-                  }
+                  onPress={handleAddBusyTime}
                 >
                   <MachineText className="text-accent-foreground font-bold">
                     ADD_BUSY_TIME
@@ -471,94 +425,18 @@ export default function TimeReality() {
               </View>
             ) : (
               sortedBlocks.map((block) => (
-                <View
+                <CalendarBlockCard
                   key={block._id}
-                  className="flex-row items-start justify-between border border-divider bg-surface px-3 py-2"
-                >
-                  <View className={`w-1 self-stretch ${kindStyles[block.kind].badge}`} />
-                  <Pressable className="flex-1 ml-3 mr-2" onPress={() => toggleNotes(block._id)}>
-                    <MachineText className="font-bold text-sm">
-                      {formatTime(block.startMin)} - {formatTime(block.endMin)}
-                    </MachineText>
-                    <MachineText className="text-xs text-foreground/60">
-                      {block.title ? block.title : "Untitled block"}
-                    </MachineText>
-                    {block.notes && expandedBlockId === block._id ? (
-                      <MachineText className="text-[10px] text-foreground/50 mt-1">
-                        NOTES: {block.notes}
-                      </MachineText>
-                    ) : null}
-                    {block.notes && expandedBlockId !== block._id ? (
-                      <MachineText className="text-[9px] text-foreground/40 mt-1">
-                        TAP_TO_VIEW_NOTES
-                      </MachineText>
-                    ) : null}
-                  </Pressable>
-                  <View className="items-end gap-2">
-                    <View className="flex-row items-center gap-2">
-                      <View className={`w-2 h-2 ${kindStyles[block.kind].badge}`} />
-                      <MachineText variant="label">{kindStyles[block.kind].label}</MachineText>
-                      {block.kind === "busy" ? (
-                        <MachineText className="text-[9px] text-foreground/60">
-                          COUNTS_FREE
-                        </MachineText>
-                      ) : null}
-                    </View>
-                    <View className="flex-row flex-wrap justify-end gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
-                        onPress={() => editBlock(block._id)}
-                      >
-                        <MachineText className="text-[10px] font-bold text-foreground">
-                          EDIT
-                        </MachineText>
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
-                        onPress={() => duplicateBlock(block)}
-                        isDisabled={removingId === block._id}
-                      >
-                        {removingId === block._id ? (
-                          <Spinner size="sm" color="black" />
-                        ) : (
-                          <MachineText className="text-[9px] font-bold text-foreground">
-                            DUPLICATE
-                          </MachineText>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
-                        onPress={() => duplicateBlock(block, shiftDay(today.day, 1))}
-                        isDisabled={removingId === block._id}
-                      >
-                        {removingId === block._id ? (
-                          <Spinner size="sm" color="black" />
-                        ) : (
-                          <MachineText className="text-[9px] font-bold text-foreground">
-                            TOMORROW
-                          </MachineText>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)] px-2"
-                        onPress={() => confirmRemove(block)}
-                        isDisabled={removingId === block._id}
-                      >
-                        {removingId === block._id ? (
-                          <Spinner size="sm" color="black" />
-                        ) : (
-                          <MachineText className="text-[9px] font-bold text-foreground">
-                            REMOVE
-                          </MachineText>
-                        )}
-                      </Button>
-                    </View>
-                  </View>
-                </View>
+                  block={block}
+                  expandedBlockId={expandedBlockId}
+                  onToggleNotes={toggleNotes}
+                  onEdit={editBlock}
+                  onDuplicate={duplicateBlockToday}
+                  onDuplicateTomorrow={(b) => duplicateBlock(b, shiftDay(today.day, 1))}
+                  onRemove={confirmRemove}
+                  isRemoving={removingId === block._id}
+                  showEdit
+                />
               ))
             )}
           </View>
@@ -568,7 +446,7 @@ export default function TimeReality() {
           <View className="gap-3 p-4">
             <Button
               className="bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
-              onPress={() => router.push("/add-busy-time" as any)}
+              onPress={handleAddBusyTimeToday}
             >
               <MachineText className="text-accent-foreground font-bold">ADD BUSY TIME</MachineText>
             </Button>

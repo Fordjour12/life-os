@@ -1,10 +1,7 @@
 import { v } from "convex/values";
 
+import { api } from "../_generated/api";
 import { mutation } from "../_generated/server";
-
-function getUserId(): string {
-  return "user_me";
-}
 
 export const resumeTask = mutation({
   args: {
@@ -13,7 +10,9 @@ export const resumeTask = mutation({
     idempotencyKey: v.string(),
   },
   handler: async (ctx, { taskId, reason, idempotencyKey }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const now = Date.now();
     const why = reason ?? "manual";
 

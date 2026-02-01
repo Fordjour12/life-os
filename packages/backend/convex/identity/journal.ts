@@ -1,11 +1,8 @@
 import { v } from "convex/values";
 
+import { api } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
 import { isSafeCopy } from "./guardrails";
-
-function getUserId(): string {
-  return "user_me";
-}
 
 function getTodayYYYYMMDD() {
   const date = new Date();
@@ -33,7 +30,9 @@ export const getJournalPrompt = query({
     day: v.optional(v.string()),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
     const skip = await ctx.db
@@ -101,7 +100,9 @@ export const getJournalSkipForDay = query({
     day: v.optional(v.string()),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
     return ctx.db
@@ -120,7 +121,9 @@ export const createJournalEntry = mutation({
     ),
   },
   handler: async (ctx, { day, text, mood }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const trimmed = text?.trim();
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
@@ -149,7 +152,9 @@ export const createJournalSkip = mutation({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
       throw new Error("Day must be YYYY-MM-DD");
@@ -180,7 +185,9 @@ export const getJournalEntriesForDay = query({
     day: v.optional(v.string()),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
     const entries = await ctx.db
@@ -197,7 +204,9 @@ export const getRecentJournalEntries = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, { limit }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const cap = Math.max(1, Math.min(50, Math.floor(limit ?? 20)));
 
     const entries = await ctx.db
@@ -214,7 +223,9 @@ export const deleteJournalEntry = mutation({
     entryId: v.id("journalEntries"),
   },
   handler: async (ctx, { entryId }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const entry = await ctx.db.get(entryId);
 
     if (!entry || entry.userId !== userId) {

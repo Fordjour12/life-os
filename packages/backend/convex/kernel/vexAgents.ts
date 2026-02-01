@@ -6,7 +6,7 @@ import type { ActionCtx } from "../_generated/server";
 import { action, internalAction, internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 
-import { components, internal } from "../_generated/api";
+import { api, components, internal } from "../_generated/api";
 import {
   filterSafeStrings,
   isSafeCopy,
@@ -18,10 +18,6 @@ import {
   getBoundaryFlagsFromBlocks,
   normalizeOffsetMinutes,
 } from "./stabilization";
-
-function getUserId(): string {
-  return "user_me";
-}
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -528,7 +524,9 @@ export const generateAiSuggestions = internalAction({
     source: v.optional(v.string()),
   },
   handler: async (ctx, { day, tzOffsetMinutes, source }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const now = Date.now();
 
     const isEnabled = process.env.AI_SUGGESTIONS_ENABLED === "true";
@@ -676,7 +674,9 @@ export const generateWeeklyReviewDraft = action({
     week: v.optional(v.string()),
   },
   handler: async (ctx, { week }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const weekId = week ?? getDefaultWeekId();
     if (!/^\d{4}-\d{2}$/.test(weekId)) {
       throw new Error("Week must be YYYY-WW");
@@ -859,7 +859,9 @@ export const generateWeeklyPlanDraft = action({
     week: v.optional(v.string()),
   },
   handler: async (ctx, { week }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const weekId = week ?? getDefaultWeekId();
     if (!/^\d{4}-\d{2}$/.test(weekId)) {
       throw new Error("Week must be YYYY-WW");
@@ -1189,7 +1191,9 @@ export const generateJournalPromptDraft = action({
     day: v.optional(v.string()),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
     const raw = (await ctx.runQuery(internal.kernel.vexAgents.getJournalPromptRawData, {
@@ -1318,7 +1322,9 @@ export const generateNextStepDraft = action({
     day: v.optional(v.string()),
   },
   handler: async (ctx, { taskId, day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
     const raw = (await ctx.runQuery(internal.kernel.vexAgents.getNextStepRawData, {
@@ -1400,7 +1406,9 @@ export const generateRecoveryProtocolDraft = action({
     tzOffsetMinutes: v.optional(v.number()),
   },
   handler: async (ctx, { day, tzOffsetMinutes }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
     const offset = normalizeOffsetMinutes(tzOffsetMinutes ?? 0);
 
@@ -1489,7 +1497,9 @@ export const getWeeklyReviewRawData = internalQuery({
     weekEndMs: v.number(),
   },
   handler: async (ctx, { startDay, endDay, weekStartMs, weekEndMs }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     const stateDocs = await ctx.db
       .query("stateDaily")
@@ -1521,7 +1531,9 @@ export const getJournalPromptRawData = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     const skip = await ctx.db
       .query("journalSkips")
@@ -1561,7 +1573,9 @@ export const getNextStepRawData = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { taskId, day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     const task = await ctx.db.get(taskId);
     const safeTask =
@@ -1605,7 +1619,9 @@ export const getRecoveryProtocolRawData = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     const stateDoc = await ctx.db
       .query("stateDaily")
@@ -1647,7 +1663,9 @@ export const getWeeklyPlanRawData = internalQuery({
     endDay: v.string(),
   },
   handler: async (ctx, { startDay, endDay }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     const activeTasks = await ctx.db
       .query("tasks")
@@ -1700,7 +1718,9 @@ export const getAiSuggestRawData = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     const stateDoc = await ctx.db
       .query("stateDaily")
@@ -1748,7 +1768,9 @@ export const getSuggestionsForDay = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     return ctx.db
       .query("suggestions")
@@ -1764,7 +1786,9 @@ export const insertSuggestion = internalMutation({
     updatedAt: v.number(),
   },
   handler: async (ctx, { suggestion, createdAt, updatedAt }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     await ctx.db.insert("suggestions", {
       userId,
       day: suggestion.day,

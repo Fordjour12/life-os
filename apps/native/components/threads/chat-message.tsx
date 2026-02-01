@@ -1,9 +1,9 @@
 import { View, Text, StyleSheet } from "react-native";
 import { useAppTheme } from "@/contexts/app-theme-context";
-import type { ChatMessage } from "./thread-types";
+import type { UIMessage } from "@convex-dev/agent";
 
 interface ChatMessageProps {
-  message: ChatMessage;
+  message: UIMessage;
 }
 
 function formatTime(timestamp: number): string {
@@ -19,6 +19,7 @@ function formatTime(timestamp: number): string {
 export function ChatMessageItem({ message }: ChatMessageProps) {
   const { currentTheme } = useAppTheme();
   const isUser = message.role === "user";
+  const timestamp = message._creationTime ?? Date.now();
   const colors =
     currentTheme === "dark"
       ? {
@@ -47,12 +48,10 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
         ]}
       >
         <Text style={[styles.content, { color: isUser ? "#FFFFFF" : colors.text }]}>
-          {message.content}
+          {message.text}
         </Text>
       </View>
-      <Text style={[styles.timestamp, { color: colors.textMuted }]}>
-        {formatTime(message.timestamp)}
-      </Text>
+      <Text style={[styles.timestamp, { color: colors.textMuted }]}>{formatTime(timestamp)}</Text>
     </View>
   );
 }

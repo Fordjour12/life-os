@@ -1,14 +1,11 @@
 import { v } from "convex/values";
 
+import { api } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 
 const DAILY_CAPACITY_MIN = 480;
 const NON_FOCUS_WEIGHT = 0.6;
 const MINUTES_PER_DAY = 24 * 60;
-
-function getUserId(): string {
-  return "user_me";
-}
 
 function assertDay(day: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
@@ -34,7 +31,9 @@ export const addBlock = mutation({
     externalId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const now = Date.now();
 
     const day = String(args.day).trim();
@@ -82,7 +81,9 @@ export const removeBlock = mutation({
     blockId: v.id("calendarBlocks"),
   },
   handler: async (ctx, { blockId }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const now = Date.now();
 
     const block = await ctx.db.get(blockId);
@@ -109,7 +110,9 @@ export const listBlocksForDay = query({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const dayValue = String(day).trim();
     assertDay(dayValue);
 
@@ -127,7 +130,9 @@ export const getBlockById = query({
     blockId: v.id("calendarBlocks"),
   },
   handler: async (ctx, { blockId }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const block = await ctx.db.get(blockId);
     if (!block || block.userId !== userId) {
       throw new Error("Calendar block not found");
@@ -148,7 +153,9 @@ export const updateBlock = mutation({
     externalId: v.optional(v.string()),
   },
   handler: async (ctx, { blockId, day, startMin, endMin, kind, title, notes, externalId }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const now = Date.now();
 
     const block = await ctx.db.get(blockId);
@@ -211,7 +218,9 @@ export const importBlocks = mutation({
     ),
   },
   handler: async (ctx, { blocks }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const now = Date.now();
 
     let inserted = 0;
@@ -275,7 +284,9 @@ export const getFreeMinutesForDay = query({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const dayValue = String(day).trim();
     assertDay(dayValue);
 

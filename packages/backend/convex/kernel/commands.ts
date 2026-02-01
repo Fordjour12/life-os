@@ -5,6 +5,7 @@ import type {
   PlanSetReason,
 } from "../../../../src/kernel/types";
 import type { Id } from "../_generated/dataModel";
+import { api } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 
@@ -83,16 +84,14 @@ function summarizeEvents(events: Array<{ type: string }>) {
 
 const planReasons: PlanSetReason[] = ["initial", "adjust", "reset", "recovery", "return"];
 
-function getUserId(): string {
-  return "user_me";
-}
-
 export const executeCommand = mutation({
   args: {
     command: v.any(),
   },
   handler: async (ctx, { command }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const now = Date.now();
     const tzOffsetMinutes = normalizeOffsetMinutes(command?.tzOffsetMinutes);
 
@@ -650,7 +649,9 @@ export const getToday = query({
     tzOffsetMinutes: v.optional(v.number()),
   },
   handler: async (ctx, { tzOffsetMinutes }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const offset = normalizeOffsetMinutes(tzOffsetMinutes);
     const day = getTodayYYYYMMDDWithOffset(offset);
 
@@ -765,7 +766,9 @@ export const getEventsForDay = query({
     tzOffsetMinutes: v.optional(v.number()),
   },
   handler: async (ctx, { day, types, tzOffsetMinutes }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
     const offset = normalizeOffsetMinutes(tzOffsetMinutes);
     const targetDay = day ?? getTodayYYYYMMDDWithOffset(offset);
     const typeFilter = new Set(types ?? []);

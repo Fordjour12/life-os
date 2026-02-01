@@ -115,8 +115,13 @@ export default function Inbox() {
         <MachineText variant="label" className="mb-4">
           CONVERSATION
         </MachineText>
-        <Button className="bg-primary rounded-none" onPress={startConversation}>
-          <MachineText className="text-primary-foreground font-bold text-[10px]">
+
+        <Button
+          className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]"
+          onPress={startConversation}
+          size="sm"
+        >
+          <MachineText className="text-background font-bold text-[10px]">
             START_CONVERSATION
           </MachineText>
         </Button>

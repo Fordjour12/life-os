@@ -18,6 +18,7 @@ import { Container } from "@/components/container";
 import { TodaySkeleton } from "@/components/skeletons/today-skeleton";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 import { TaskCard } from "@/components/task-card";
+import { Link } from "expo-router";
 
 // We'll define a local component for the "Engineering Badge" for now to match the style
 function EngBadge({
@@ -651,7 +652,7 @@ export default function Today() {
                   style={{ fontFamily: "Menlo" }}
                 />
               </TextField>
-              <TextField className="flex-[2]">
+              <TextField className="flex-2">
                 <TextField.Input
                   value={expenseCategory}
                   onChangeText={setExpenseCategory}
@@ -911,7 +912,7 @@ export default function Today() {
           <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
         </View>
 
-        <View className="gap-2 mb-6 min-h-[100px]">
+        <View className="gap-2 mb-6 min-h-25">
           {tasks.length > 0 ? (
             <FlashList
               data={tasks}

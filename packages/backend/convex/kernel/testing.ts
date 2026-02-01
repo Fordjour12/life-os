@@ -1,9 +1,6 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-
-function getUserId(): string {
-  return "user_me";
-}
+import { api } from "../_generated/api";
 
 function isTestTitle(title?: string) {
   return Boolean(title && title.startsWith("[TEST]"));
@@ -14,7 +11,9 @@ export const clearTestData = mutation({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     const blocks = await ctx.db
       .query("calendarBlocks")
@@ -123,7 +122,9 @@ export const clearTestBlocks = mutation({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     const blocks = await ctx.db
       .query("calendarBlocks")
@@ -169,7 +170,9 @@ export const clearTestJournalEntries = mutation({
     day: v.optional(v.string()),
   },
   handler: async (ctx, { day }) => {
-    const userId = getUserId();
+    const user = await ctx.runQuery(api.auth.getCurrentUser);
+    if (!user) throw new Error("Not authenticated");
+    const userId = user._id;
 
     const entries = await ctx.db
       .query("journalEntries")
