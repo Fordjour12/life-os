@@ -1,12 +1,18 @@
 import { query } from "./_generated/server";
 import { api } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
+
+type AuthUser = {
+  _id: { tableName: "user"; id: string };
+  _creationTime: number;
+};
 
 export const listOpen = query({
   args: {},
-  handler: async (ctx) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
+  handler: async (ctx): Promise<Doc<"tasks">[]> => {
+    const user = await ctx.runQuery(api.auth.getCurrentUser) as AuthUser | null;
     if (!user) throw new Error("Not authenticated");
-    const userId = user._id;
+    const userId: string = user._id.id;
 
     return ctx.db
       .query("tasks")

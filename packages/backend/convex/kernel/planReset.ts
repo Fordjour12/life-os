@@ -2,9 +2,10 @@ import { v } from "convex/values";
 
 import type { KernelEvent } from "../../../../src/kernel/types";
 import type { Id } from "../_generated/dataModel";
-import { api } from "../_generated/api";
+import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { mutation } from "../_generated/server";
+import { requireAuthUser } from "../auth";
 
 import { sanitizeSuggestionCopy } from "../identity/guardrails";
 import { runPolicies } from "./policies";
@@ -32,16 +33,23 @@ function shiftDay(day: string, deltaDays: number) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export const applyPlanReset = mutation({
+export const applyPlanReset: ReturnType<typeof mutation> = mutation({
   args: {
     day: v.string(),
     keepCount: v.optional(v.union(v.literal(1), v.literal(2))),
     idempotencyKey: v.string(),
     tzOffsetMinutes: v.optional(v.number()),
   },
-  handler: async (ctx, { day, keepCount, idempotencyKey, tzOffsetMinutes }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+  handler: async (
+    ctx: MutationCtx,
+    {
+      day,
+      keepCount,
+      idempotencyKey,
+      tzOffsetMinutes,
+    }: { day: string; keepCount?: 1 | 2; idempotencyKey: string; tzOffsetMinutes?: number },
+  ) => {
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const now = Date.now();
     const keepN = keepCount ?? 1;

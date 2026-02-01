@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { api } from "../_generated/api";
 import { mutation } from "../_generated/server";
+import { requireAuthUser } from "../auth";
 
 export const createTask = mutation({
   args: {
@@ -13,8 +14,7 @@ export const createTask = mutation({
     idempotencyKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const now = Date.now();
     const title = args.title.trim();
@@ -81,7 +81,9 @@ export const completeTask = mutation({
 
     const existing = await ctx.db
       .query("events")
-      .withIndex("by_user_idem", (q) => q.eq("userId", userId).eq("idempotencyKey", idempotencyKey))
+      .withIndex("by_user_idem", (q) =>
+        q.eq("userId", userId).eq("idempotencyKey", idempotencyKey),
+      )
       .first();
 
     if (existing) {

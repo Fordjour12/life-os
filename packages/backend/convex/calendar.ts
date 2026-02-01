@@ -2,6 +2,8 @@ import { v } from "convex/values";
 
 import { api } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
+import { requireAuthUser } from "./auth";
 
 const DAILY_CAPACITY_MIN = 480;
 const NON_FOCUS_WEIGHT = 0.6;
@@ -24,15 +26,19 @@ export const addBlock = mutation({
     day: v.string(),
     startMin: v.number(),
     endMin: v.number(),
-    kind: v.union(v.literal("busy"), v.literal("focus"), v.literal("rest"), v.literal("personal")),
+    kind: v.union(
+      v.literal("busy"),
+      v.literal("focus"),
+      v.literal("rest"),
+      v.literal("personal"),
+    ),
     source: v.union(v.literal("manual"), v.literal("imported")),
     title: v.optional(v.string()),
     notes: v.optional(v.string()),
     externalId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const now = Date.now();
 
@@ -49,7 +55,9 @@ export const addBlock = mutation({
 
     const title = args.title ? String(args.title).trim() : undefined;
     const notes = args.notes ? String(args.notes).trim() : undefined;
-    const externalId = args.externalId ? String(args.externalId).trim() : undefined;
+    const externalId = args.externalId
+      ? String(args.externalId).trim()
+      : undefined;
 
     const blockId = await ctx.db.insert("calendarBlocks", {
       userId,
@@ -81,8 +89,7 @@ export const removeBlock = mutation({
     blockId: v.id("calendarBlocks"),
   },
   handler: async (ctx, { blockId }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const now = Date.now();
 
@@ -109,16 +116,17 @@ export const listBlocksForDay = query({
   args: {
     day: v.string(),
   },
-  handler: async (ctx, { day }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+  handler: async (ctx, { day }): Promise<Doc<"calendarBlocks">[]> => {
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const dayValue = String(day).trim();
     assertDay(dayValue);
 
     const blocks = await ctx.db
       .query("calendarBlocks")
-      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", dayValue))
+      .withIndex("by_user_day", (q) =>
+        q.eq("userId", userId).eq("day", dayValue),
+      )
       .collect();
 
     return blocks.sort((a, b) => a.startMin - b.startMin);
@@ -130,8 +138,7 @@ export const getBlockById = query({
     blockId: v.id("calendarBlocks"),
   },
   handler: async (ctx, { blockId }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const block = await ctx.db.get(blockId);
     if (!block || block.userId !== userId) {
@@ -147,15 +154,22 @@ export const updateBlock = mutation({
     day: v.string(),
     startMin: v.number(),
     endMin: v.number(),
-    kind: v.union(v.literal("busy"), v.literal("focus"), v.literal("rest"), v.literal("personal")),
+    kind: v.union(
+      v.literal("busy"),
+      v.literal("focus"),
+      v.literal("rest"),
+      v.literal("personal"),
+    ),
     title: v.optional(v.string()),
     notes: v.optional(v.string()),
     externalId: v.optional(v.string()),
   },
-  handler: async (ctx, { blockId, day, startMin, endMin, kind, title, notes, externalId }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
-    const userId = user._id;
+  handler: async (
+    ctx,
+    { blockId, day, startMin, endMin, kind, title, notes, externalId },
+  ) => {
+    const user = await requireAuthUser(ctx);
+    const userId: string = user._id;
     const now = Date.now();
 
     const block = await ctx.db.get(blockId);
@@ -174,7 +188,9 @@ export const updateBlock = mutation({
 
     const trimmedTitle = title ? String(title).trim() : undefined;
     const trimmedNotes = notes ? String(notes).trim() : undefined;
-    const trimmedExternalId = externalId ? String(externalId).trim() : undefined;
+    const trimmedExternalId = externalId
+      ? String(externalId).trim()
+      : undefined;
 
     await ctx.db.patch(blockId, {
       day: dayValue,
@@ -218,8 +234,7 @@ export const importBlocks = mutation({
     ),
   },
   handler: async (ctx, { blocks }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const now = Date.now();
 
@@ -237,11 +252,15 @@ export const importBlocks = mutation({
         continue;
       }
 
-      const externalId = block.externalId ? String(block.externalId).trim() : undefined;
+      const externalId = block.externalId
+        ? String(block.externalId).trim()
+        : undefined;
       if (externalId) {
         const existing = await ctx.db
           .query("calendarBlocks")
-          .withIndex("by_user_external", (q) => q.eq("userId", userId).eq("externalId", externalId))
+          .withIndex("by_user_external", (q) =>
+            q.eq("userId", userId).eq("externalId", externalId),
+          )
           .first();
         if (existing) {
           skipped += 1;
@@ -266,7 +285,13 @@ export const importBlocks = mutation({
         userId,
         ts: now,
         type: "CAL_BLOCK_ADDED",
-        meta: { blockId, day, startMin: block.startMin, endMin: block.endMin, kind: block.kind },
+        meta: {
+          blockId,
+          day,
+          startMin: block.startMin,
+          endMin: block.endMin,
+          kind: block.kind,
+        },
         idempotencyKey: externalId
           ? `cal_block_imported:${externalId}`
           : `cal_block_imported:${blockId}`,
@@ -284,15 +309,16 @@ export const getFreeMinutesForDay = query({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
-    const userId = user._id;
+    const user = await requireAuthUser(ctx);
+    const userId: string = user._id;
     const dayValue = String(day).trim();
     assertDay(dayValue);
 
     const blocks = await ctx.db
       .query("calendarBlocks")
-      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", dayValue))
+      .withIndex("by_user_day", (q) =>
+        q.eq("userId", userId).eq("day", dayValue),
+      )
       .collect();
 
     const busyMinutes = blocks
@@ -306,7 +332,9 @@ export const getFreeMinutesForDay = query({
     const freeMinutes = Math.max(0, DAILY_CAPACITY_MIN - busyMinutes);
     const focusWithinFree = Math.min(freeMinutes, focusMinutes);
     const nonFocusFree = Math.max(0, freeMinutes - focusWithinFree);
-    const effectiveFreeMinutes = Math.round(focusWithinFree + nonFocusFree * NON_FOCUS_WEIGHT);
+    const effectiveFreeMinutes = Math.round(
+      focusWithinFree + nonFocusFree * NON_FOCUS_WEIGHT,
+    );
 
     return {
       day: dayValue,

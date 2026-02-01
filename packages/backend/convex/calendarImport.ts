@@ -16,7 +16,10 @@ function unfoldLines(text: string) {
   const lines = text.split(/\r?\n/);
   const unfolded: string[] = [];
   for (const line of lines) {
-    if ((line.startsWith(" ") || line.startsWith("\t")) && unfolded.length > 0) {
+    if (
+      (line.startsWith(" ") || line.startsWith("\t")) &&
+      unfolded.length > 0
+    ) {
       unfolded[unfolded.length - 1] += line.slice(1);
     } else {
       unfolded.push(line.trim());
@@ -154,9 +157,6 @@ export const importFromIcsUrl = action({
     url: v.string(),
   },
   handler: async (ctx, { url }) => {
-    const calendarApi = api as unknown as {
-      calendar: { importBlocks: any };
-    };
     const trimmed = String(url).trim();
     if (!/^https?:\/\//.test(trimmed)) {
       throw new Error("ICS URL must start with http(s)");
@@ -169,7 +169,7 @@ export const importFromIcsUrl = action({
 
     const text = await response.text();
     const { blocks, skipped } = parseIcs(text);
-    const result = await ctx.runMutation(calendarApi.calendar.importBlocks, { blocks });
+    const result = await ctx.runMutation(api.calendar.importBlocks, { blocks });
 
     return {
       imported: result.inserted,

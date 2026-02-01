@@ -2,8 +2,13 @@ import type { KernelSuggestion, LifeState } from "../../../../src/kernel/types";
 import type { Id } from "../_generated/dataModel";
 import { Agent } from "@convex-dev/agent";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import type { ActionCtx } from "../_generated/server";
-import { action, internalAction, internalMutation, internalQuery } from "../_generated/server";
+import type { ActionCtx, QueryCtx } from "../_generated/server";
+import {
+  action,
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "../_generated/server";
 import { v } from "convex/values";
 
 import { api, components, internal } from "../_generated/api";
@@ -18,6 +23,7 @@ import {
   getBoundaryFlagsFromBlocks,
   normalizeOffsetMinutes,
 } from "./stabilization";
+import { requireAuthUser } from "../auth";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -66,12 +72,16 @@ function formatYYYYMMDD(date: Date) {
 }
 
 function getISOWeekIdFromDate(date: Date): string {
-  const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const target = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
   const day = target.getUTCDay() || 7;
   target.setUTCDate(target.getUTCDate() + 4 - day);
   const year = target.getUTCFullYear();
   const yearStart = new Date(Date.UTC(year, 0, 1));
-  const week = Math.ceil(((target.getTime() - yearStart.getTime()) / MILLISECONDS_IN_DAY + 1) / 7);
+  const week = Math.ceil(
+    ((target.getTime() - yearStart.getTime()) / MILLISECONDS_IN_DAY + 1) / 7,
+  );
   return `${year}-${String(week).padStart(2, "0")}`;
 }
 
@@ -130,16 +140,22 @@ const journalReasonDetails: Record<string, string> = {
   micro_recovery: "You used a recovery protocol, so a soft prompt can help.",
 };
 
-function getMomentum(state: LifeState | null | undefined): LifeState["momentum"] | null {
+function getMomentum(
+  state: LifeState | null | undefined,
+): LifeState["momentum"] | null {
   if (!state || typeof state !== "object") return null;
   const momentum = (state as LifeState).momentum;
   return allowedMomenta.has(momentum) ? momentum : null;
 }
 
-function getLoad(state: LifeState | null | undefined): LifeState["load"] | null {
+function getLoad(
+  state: LifeState | null | undefined,
+): LifeState["load"] | null {
   if (!state || typeof state !== "object") return null;
   const load = (state as LifeState).load;
-  return load === "balanced" || load === "overloaded" || load === "underloaded" ? load : null;
+  return load === "balanced" || load === "overloaded" || load === "underloaded"
+    ? load
+    : null;
 }
 
 type AiSuggestContext = {
@@ -148,8 +164,18 @@ type AiSuggestContext = {
   state: LifeState;
   events: Array<{ type: string; ts: number; meta?: unknown }>;
   tasks: {
-    active: Array<{ _id: string; title: string; estimateMin: number; priority?: number }>;
-    paused: Array<{ _id: string; title: string; estimateMin: number; priority?: number }>;
+    active: Array<{
+      _id: string;
+      title: string;
+      estimateMin: number;
+      priority?: number;
+    }>;
+    paused: Array<{
+      _id: string;
+      title: string;
+      estimateMin: number;
+      priority?: number;
+    }>;
   };
   calendarBlocks: Array<{ startMin: number; endMin: number; kind: string }>;
   plan: {
@@ -254,7 +280,12 @@ type WeeklyPlanRawData = {
   activeTasks: Array<{ title: string; estimateMin: number; priority?: number }>;
   pausedTasks: Array<{ title: string; estimateMin: number; priority?: number }>;
   stateDocs: Array<{ day: string; state: LifeState }>;
-  calendarBlocks: Array<{ day: string; startMin: number; endMin: number; kind: string }>;
+  calendarBlocks: Array<{
+    day: string;
+    startMin: number;
+    endMin: number;
+    kind: string;
+  }>;
 };
 
 const DATA_LIMITS = {
@@ -291,7 +322,9 @@ function truncate<T extends Record<string, unknown>>(obj: T, maxDepth = 3): T {
       result[key] = value
         .slice(0, 50)
         .map((item) =>
-          typeof item === "object" && item !== null ? truncate(item, maxDepth - 1) : item,
+          typeof item === "object" && item !== null
+            ? truncate(item, maxDepth - 1)
+            : item,
         );
     } else if (typeof value === "object" && value !== null) {
       result[key] = truncate(value as Record<string, unknown>, maxDepth - 1);
@@ -301,10 +334,14 @@ function truncate<T extends Record<string, unknown>>(obj: T, maxDepth = 3): T {
 }
 
 function isValidSuggestionType(type: string): type is KernelSuggestion["type"] {
-  return AI_SUGGESTION_TYPES.includes(type as (typeof AI_SUGGESTION_TYPES)[number]);
+  return AI_SUGGESTION_TYPES.includes(
+    type as (typeof AI_SUGGESTION_TYPES)[number],
+  );
 }
 
-function isValidPriority(priority: number): priority is KernelSuggestion["priority"] {
+function isValidPriority(
+  priority: number,
+): priority is KernelSuggestion["priority"] {
   return Number.isInteger(priority) && priority >= 1 && priority <= 5;
 }
 
@@ -313,8 +350,10 @@ function validateAiSuggestion(suggestion: unknown): KernelSuggestion | null {
   const s = suggestion as Record<string, unknown>;
 
   if (!s.day || typeof s.day !== "string") return null;
-  if (!s.type || typeof s.type !== "string" || !isValidSuggestionType(s.type)) return null;
-  if (typeof s.priority !== "number" || !isValidPriority(s.priority)) return null;
+  if (!s.type || typeof s.type !== "string" || !isValidSuggestionType(s.type))
+    return null;
+  if (typeof s.priority !== "number" || !isValidPriority(s.priority))
+    return null;
 
   const reason = s.reason as { code?: string; detail?: string } | undefined;
   if (!reason || typeof reason !== "object") return null;
@@ -377,7 +416,12 @@ function buildAiContext(
   const activeTasks = activeTasksRaw
     .slice(0, DATA_LIMITS.maxActiveTasks)
     .map((t) =>
-      truncate({ _id: t._id, title: t.title, estimateMin: t.estimateMin, priority: t.priority }),
+      truncate({
+        _id: t._id,
+        title: t.title,
+        estimateMin: t.estimateMin,
+        priority: t.priority,
+      }),
     );
 
   const pausedTasksRaw = raw.pausedTasks;
@@ -385,14 +429,21 @@ function buildAiContext(
   const pausedTasks = pausedTasksRaw
     .slice(0, DATA_LIMITS.maxPausedTasks)
     .map((t) =>
-      truncate({ _id: t._id, title: t.title, estimateMin: t.estimateMin, priority: t.priority }),
+      truncate({
+        _id: t._id,
+        title: t.title,
+        estimateMin: t.estimateMin,
+        priority: t.priority,
+      }),
     );
 
   const blocks = raw.calendarBlocks;
 
   const calendarBlocks = blocks
     .slice(0, DATA_LIMITS.maxCalendarBlocks)
-    .map((b) => truncate({ startMin: b.startMin, endMin: b.endMin, kind: b.kind }));
+    .map((b) =>
+      truncate({ startMin: b.startMin, endMin: b.endMin, kind: b.kind }),
+    );
 
   const planEvents = allEvents.filter((e) => e.type === "PLAN_SET");
   let plan: AiSuggestContext["plan"] = null;
@@ -401,7 +452,11 @@ function buildAiContext(
     const meta = event.meta as {
       day?: string;
       version?: number;
-      focusItems?: Array<{ id?: string; label?: string; estimatedMinutes?: number }>;
+      focusItems?: Array<{
+        id?: string;
+        label?: string;
+        estimatedMinutes?: number;
+      }>;
     };
     if (meta?.day !== day || !Array.isArray(meta.focusItems)) continue;
     const version = Number(meta.version ?? 0);
@@ -416,22 +471,27 @@ function buildAiContext(
             label: String(item?.label ?? "").trim(),
             estimatedMinutes: Number(item?.estimatedMinutes ?? 0),
           }))
-          .filter((item) => item.id && item.label && Number.isFinite(item.estimatedMinutes)),
+          .filter(
+            (item) =>
+              item.id && item.label && Number.isFinite(item.estimatedMinutes),
+          ),
       };
     }
   }
 
   const existingSugs = raw.existingSuggestions;
 
-  const existingSuggestions = existingSugs.slice(0, DATA_LIMITS.maxExistingSuggestions).map((s) =>
-    truncate({
-      type: s.type,
-      priority: s.priority,
-      cooldownKey: s.cooldownKey,
-      createdAt: s.createdAt,
-      status: s.status,
-    }),
-  );
+  const existingSuggestions = existingSugs
+    .slice(0, DATA_LIMITS.maxExistingSuggestions)
+    .map((s) =>
+      truncate({
+        type: s.type,
+        priority: s.priority,
+        cooldownKey: s.cooldownKey,
+        createdAt: s.createdAt,
+        status: s.status,
+      }),
+    );
 
   const boundaries = getBoundaryFlagsFromBlocks(blocks, now, offset);
 
@@ -455,7 +515,9 @@ async function callAiModel(
 ): Promise<KernelSuggestion[]> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    console.log("[vex-agents] No OPENROUTER_API_KEY configured, skipping AI call");
+    console.log(
+      "[vex-agents] No OPENROUTER_API_KEY configured, skipping AI call",
+    );
     return [];
   }
 
@@ -495,9 +557,13 @@ OUTPUT FORMAT: JSON array of suggestions with fields: day, type, priority, reaso
 Generate suggestions based on:
 ${JSON.stringify(context, null, 2)}`;
 
-    const result = await suggestionAgent.generateText(ctx, { threadId, userId }, {
-      prompt,
-    } as Parameters<typeof suggestionAgent.generateText>[2]);
+    const result = await suggestionAgent.generateText(
+      ctx,
+      { threadId, userId },
+      {
+        prompt,
+      } as Parameters<typeof suggestionAgent.generateText>[2],
+    );
 
     if (!result.text) {
       console.log("[vex-agents] Empty response from AI");
@@ -510,7 +576,9 @@ ${JSON.stringify(context, null, 2)}`;
       return [];
     }
 
-    return suggestions.map(validateAiSuggestion).filter((s): s is KernelSuggestion => s !== null);
+    return suggestions
+      .map(validateAiSuggestion)
+      .filter((s): s is KernelSuggestion => s !== null);
   } catch (error) {
     console.error("[vex-agents] Error calling AI:", error);
     return [];
@@ -542,9 +610,12 @@ export const generateAiSuggestions = internalAction({
     );
 
     try {
-      const raw = (await ctx.runQuery(internal.kernel.vexAgents.getAiSuggestRawData, {
-        day,
-      })) as AiSuggestRawData;
+      const raw = (await ctx.runQuery(
+        internal.kernel.vexAgents.getAiSuggestRawData,
+        {
+          day,
+        },
+      )) as AiSuggestRawData;
       const context = buildAiContext(raw, day, tzOffsetMinutes ?? 0);
       if (!context) {
         console.log(`[vex-agents] No state found for day=${day}, skipping`);
@@ -555,17 +626,24 @@ export const generateAiSuggestions = internalAction({
       console.log(`[vex-agents] Context built: input_size=${inputSize} chars`);
 
       const aiSuggestions = await callAiModel(ctx, userId, context);
-      console.log(`[vex-agents] AI returned ${aiSuggestions.length} suggestions`);
+      console.log(
+        `[vex-agents] AI returned ${aiSuggestions.length} suggestions`,
+      );
 
       if (aiSuggestions.length === 0) {
         return { status: "success", count: 0 };
       }
 
-      const existingSugs = (await ctx.runQuery(internal.kernel.vexAgents.getSuggestionsForDay, {
-        day,
-      })) as AiSuggestRawData["existingSuggestions"];
+      const existingSugs = (await ctx.runQuery(
+        internal.kernel.vexAgents.getSuggestionsForDay,
+        {
+          day,
+        },
+      )) as AiSuggestRawData["existingSuggestions"];
 
-      const existingNewCount = existingSugs.filter((s) => s.status === "new").length;
+      const existingNewCount = existingSugs.filter(
+        (s) => s.status === "new",
+      ).length;
       if (existingNewCount > 0) {
         console.log(
           `[vex-agents] Existing new suggestions found (${existingNewCount}), skipping insertion`,
@@ -573,9 +651,14 @@ export const generateAiSuggestions = internalAction({
         return { status: "skipped", reason: "existing_new_suggestions" };
       }
 
-      const remainingSlots = Math.max(0, DAILY_SUGGESTION_CAP - existingSugs.length);
+      const remainingSlots = Math.max(
+        0,
+        DAILY_SUGGESTION_CAP - existingSugs.length,
+      );
       if (remainingSlots === 0) {
-        console.log(`[vex-agents] Daily cap reached (${DAILY_SUGGESTION_CAP}), skipping insertion`);
+        console.log(
+          `[vex-agents] Daily cap reached (${DAILY_SUGGESTION_CAP}), skipping insertion`,
+        );
         return { status: "skipped", reason: "daily_cap_reached" };
       }
 
@@ -583,7 +666,8 @@ export const generateAiSuggestions = internalAction({
       const recentlySuggested = (cooldownKey?: string) => {
         if (!cooldownKey) return false;
         return existingSugs.some(
-          (s) => s.cooldownKey === cooldownKey && now - s.createdAt < TWELVE_HOURS,
+          (s) =>
+            s.cooldownKey === cooldownKey && now - s.createdAt < TWELVE_HOURS,
         );
       };
 
@@ -631,7 +715,10 @@ type WeeklyReviewDraft = {
   reason: { code: string; detail: string };
 };
 
-function normalizeWeeklyReviewDraft(raw: unknown, fallback: WeeklyReviewDraft): WeeklyReviewDraft {
+function normalizeWeeklyReviewDraft(
+  raw: unknown,
+  fallback: WeeklyReviewDraft,
+): WeeklyReviewDraft {
   if (!raw || typeof raw !== "object") return fallback;
   const candidate = raw as Record<string, unknown>;
   const highlightsRaw = Array.isArray(candidate.highlights)
@@ -648,13 +735,17 @@ function normalizeWeeklyReviewDraft(raw: unknown, fallback: WeeklyReviewDraft): 
     typeof candidate.narrative === "string"
       ? safeCopy(candidate.narrative, fallback.narrative)
       : fallback.narrative;
-  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
+  const reasonRaw = candidate.reason as
+    | { code?: string; detail?: string }
+    | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
           code: reasonRaw.code,
           detail: safeCopy(
-            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
+            typeof reasonRaw.detail === "string"
+              ? reasonRaw.detail
+              : fallback.reason.detail,
             fallback.reason.detail,
           ),
         }
@@ -687,28 +778,39 @@ export const generateWeeklyReviewDraft = action({
     weekEndExclusive.setUTCDate(weekStart.getUTCDate() + 7);
 
     const startDay = formatYYYYMMDD(weekStart);
-    const endDay = formatYYYYMMDD(new Date(weekEndExclusive.getTime() - MILLISECONDS_IN_DAY));
+    const endDay = formatYYYYMMDD(
+      new Date(weekEndExclusive.getTime() - MILLISECONDS_IN_DAY),
+    );
 
-    const raw = (await ctx.runQuery(internal.kernel.vexAgents.getWeeklyReviewRawData, {
-      startDay,
-      endDay,
-      weekStartMs: weekStart.getTime(),
-      weekEndMs: weekEndExclusive.getTime(),
-    })) as WeeklyReviewRawData;
+    const raw = (await ctx.runQuery(
+      internal.kernel.vexAgents.getWeeklyReviewRawData,
+      {
+        startDay,
+        endDay,
+        weekStartMs: weekStart.getTime(),
+        weekEndMs: weekEndExclusive.getTime(),
+      },
+    )) as WeeklyReviewRawData;
 
     const weekStates = raw.stateDocs.map((entry) => ({
       day: entry.day,
       state: entry.state as LifeState,
     }));
 
-    const recoveryDays = weekStates.filter((entry) => entry.state?.mode === "recovery").length;
-    const balancedDays = weekStates.filter((entry) => getLoad(entry.state) === "balanced").length;
+    const recoveryDays = weekStates.filter(
+      (entry) => entry.state?.mode === "recovery",
+    ).length;
+    const balancedDays = weekStates.filter(
+      (entry) => getLoad(entry.state) === "balanced",
+    ).length;
 
     const weekEvents = raw.events;
 
     const tinyWins = weekEvents.filter((event) => {
       if (event.type !== "TASK_COMPLETED") return false;
-      const estimateMin = Number((event.meta as { estimateMin?: number })?.estimateMin ?? 0);
+      const estimateMin = Number(
+        (event.meta as { estimateMin?: number })?.estimateMin ?? 0,
+      );
       return Number.isFinite(estimateMin) && estimateMin <= 10;
     }).length;
 
@@ -719,7 +821,9 @@ export const generateWeeklyReviewDraft = action({
       return reason === "reset" || reason === "recovery";
     }).length;
 
-    const plannedDays = weekStates.filter((entry) => (entry.state?.plannedMinutes ?? 0) > 0);
+    const plannedDays = weekStates.filter(
+      (entry) => (entry.state?.plannedMinutes ?? 0) > 0,
+    );
     const onTrackDays = plannedDays.filter((entry) => {
       const planned = entry.state?.plannedMinutes ?? 0;
       const completed = entry.state?.completedMinutes ?? 0;
@@ -727,15 +831,22 @@ export const generateWeeklyReviewDraft = action({
       return completed >= planned * 0.8;
     }).length;
     const plannedDaysCount = plannedDays.length;
-    const onTrackRatio = plannedDaysCount > 0 ? onTrackDays / plannedDaysCount : 0;
+    const onTrackRatio =
+      plannedDaysCount > 0 ? onTrackDays / plannedDaysCount : 0;
 
     const highlights: string[] = [];
-    const sortedStates = [...weekStates].sort((a, b) => a.day.localeCompare(b.day));
+    const sortedStates = [...weekStates].sort((a, b) =>
+      a.day.localeCompare(b.day),
+    );
     let momentumLift = 0;
     for (let index = 1; index < sortedStates.length; index += 1) {
       const prev = sortedStates[index - 1]?.state;
       const next = sortedStates[index]?.state;
-      if (getMomentum(prev) === "stalled" && getMomentum(next) && getMomentum(next) !== "stalled") {
+      if (
+        getMomentum(prev) === "stalled" &&
+        getMomentum(next) &&
+        getMomentum(next) !== "stalled"
+      ) {
         momentumLift += 1;
       }
     }
@@ -804,7 +915,12 @@ export const generateWeeklyReviewDraft = action({
 
     const aiEnabled = process.env.AI_SUGGESTIONS_ENABLED === "true";
     if (!aiEnabled || !process.env.OPENROUTER_API_KEY) {
-      return { status: "success", source: "fallback", draft: fallback, week: weekId } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+        week: weekId,
+      } as const;
     }
 
     try {
@@ -836,12 +952,21 @@ RULES:
 OUTPUT FORMAT:
 { "highlights": string[], "frictionPoints": string[], "reflectionQuestion": string, "narrative": string, "reason": { "code": string, "detail": string } }`;
 
-      const result = await weeklyReviewAgent.generateText(ctx, { threadId, userId }, {
-        prompt,
-      } as Parameters<typeof weeklyReviewAgent.generateText>[2]);
+      const result = await weeklyReviewAgent.generateText(
+        ctx,
+        { threadId, userId },
+        {
+          prompt,
+        } as Parameters<typeof weeklyReviewAgent.generateText>[2],
+      );
 
       if (!result.text) {
-        return { status: "success", source: "fallback", draft: fallback, week: weekId } as const;
+        return {
+          status: "success",
+          source: "fallback",
+          draft: fallback,
+          week: weekId,
+        } as const;
       }
 
       const parsed = JSON.parse(result.text) as unknown;
@@ -849,7 +974,12 @@ OUTPUT FORMAT:
       return { status: "success", source: "ai", draft, week: weekId } as const;
     } catch (error) {
       console.error("[vex-agents] Weekly review AI error:", error);
-      return { status: "success", source: "fallback", draft: fallback, week: weekId } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+        week: weekId,
+      } as const;
     }
   },
 });
@@ -872,12 +1002,17 @@ export const generateWeeklyPlanDraft = action({
     weekEndExclusive.setUTCDate(weekStart.getUTCDate() + 7);
 
     const startDay = formatYYYYMMDD(weekStart);
-    const endDay = formatYYYYMMDD(new Date(weekEndExclusive.getTime() - MILLISECONDS_IN_DAY));
+    const endDay = formatYYYYMMDD(
+      new Date(weekEndExclusive.getTime() - MILLISECONDS_IN_DAY),
+    );
 
-    const raw = (await ctx.runQuery(internal.kernel.vexAgents.getWeeklyPlanRawData, {
-      startDay,
-      endDay,
-    })) as WeeklyPlanRawData;
+    const raw = (await ctx.runQuery(
+      internal.kernel.vexAgents.getWeeklyPlanRawData,
+      {
+        startDay,
+        endDay,
+      },
+    )) as WeeklyPlanRawData;
 
     const days = Array.from({ length: 7 }, (_, index) => {
       const date = new Date(weekStart);
@@ -919,7 +1054,11 @@ export const generateWeeklyPlanDraft = action({
 
     const aiEnabled = process.env.AI_SUGGESTIONS_ENABLED === "true";
     if (!aiEnabled || !process.env.OPENROUTER_API_KEY) {
-      return { status: "success", source: "fallback", draft: fallback } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+      } as const;
     }
 
     try {
@@ -955,12 +1094,20 @@ RULES:
 OUTPUT FORMAT:
 { "week": "${weekId}", "days": [{ "day": "YYYY-MM-DD", "focusItems": [{ "id": string, "label": string, "estimatedMinutes": number }], "reason": { "code": string, "detail": string } }], "reason": { "code": string, "detail": string } }`;
 
-      const result = await suggestionAgent.generateText(ctx, { threadId, userId }, {
-        prompt,
-      } as Parameters<typeof suggestionAgent.generateText>[2]);
+      const result = await suggestionAgent.generateText(
+        ctx,
+        { threadId, userId },
+        {
+          prompt,
+        } as Parameters<typeof suggestionAgent.generateText>[2],
+      );
 
       if (!result.text) {
-        return { status: "success", source: "fallback", draft: fallback } as const;
+        return {
+          status: "success",
+          source: "fallback",
+          draft: fallback,
+        } as const;
       }
 
       const parsed = JSON.parse(result.text) as unknown;
@@ -968,7 +1115,11 @@ OUTPUT FORMAT:
       return { status: "success", source: "ai", draft } as const;
     } catch (error) {
       console.error("[vex-agents] Weekly plan AI error:", error);
-      return { status: "success", source: "fallback", draft: fallback } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+      } as const;
     }
   },
 });
@@ -992,7 +1143,9 @@ function normalizeJournalPromptDraft(
       : typeof candidate.prompt === "string"
         ? safeCopy(candidate.prompt, fallback.prompt ?? "")
         : fallback.prompt;
-  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
+  const reasonRaw = candidate.reason as
+    | { code?: string; detail?: string }
+    | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
@@ -1005,11 +1158,13 @@ function normalizeJournalPromptDraft(
           ),
         }
       : fallback.reason;
-  const quiet = typeof candidate.quiet === "boolean" ? candidate.quiet : fallback.quiet;
+  const quiet =
+    typeof candidate.quiet === "boolean" ? candidate.quiet : fallback.quiet;
 
   return {
     day: fallback.day,
-    prompt: promptValue && isSafeCopy(promptValue) ? promptValue : fallback.prompt,
+    prompt:
+      promptValue && isSafeCopy(promptValue) ? promptValue : fallback.prompt,
     reason,
     quiet,
   };
@@ -1022,21 +1177,30 @@ type NextStepDraft = {
   reason: { code: string; detail: string };
 };
 
-function normalizeNextStepDraft(raw: unknown, fallback: NextStepDraft): NextStepDraft {
+function normalizeNextStepDraft(
+  raw: unknown,
+  fallback: NextStepDraft,
+): NextStepDraft {
   if (!raw || typeof raw !== "object") return fallback;
   const candidate = raw as Record<string, unknown>;
   const step =
-    typeof candidate.step === "string" ? safeCopy(candidate.step, fallback.step) : fallback.step;
+    typeof candidate.step === "string"
+      ? safeCopy(candidate.step, fallback.step)
+      : fallback.step;
   const estimateMin = Number.isFinite(Number(candidate.estimateMin))
     ? Math.max(1, Math.round(Number(candidate.estimateMin)))
     : fallback.estimateMin;
-  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
+  const reasonRaw = candidate.reason as
+    | { code?: string; detail?: string }
+    | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
           code: reasonRaw.code,
           detail: safeCopy(
-            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
+            typeof reasonRaw.detail === "string"
+              ? reasonRaw.detail
+              : fallback.reason.detail,
             fallback.reason.detail,
           ),
         }
@@ -1077,13 +1241,17 @@ function normalizeRecoveryProtocolDraft(
   const minutes = Number.isFinite(Number(candidate.minutes))
     ? Math.max(5, Math.round(Number(candidate.minutes)))
     : fallback.minutes;
-  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
+  const reasonRaw = candidate.reason as
+    | { code?: string; detail?: string }
+    | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
           code: reasonRaw.code,
           detail: safeCopy(
-            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
+            typeof reasonRaw.detail === "string"
+              ? reasonRaw.detail
+              : fallback.reason.detail,
             fallback.reason.detail,
           ),
         }
@@ -1117,17 +1285,26 @@ function normalizePlanEstimate(value: number) {
   );
 }
 
-function normalizeWeeklyPlanDraft(raw: unknown, fallback: WeeklyPlanDraft): WeeklyPlanDraft {
+function normalizeWeeklyPlanDraft(
+  raw: unknown,
+  fallback: WeeklyPlanDraft,
+): WeeklyPlanDraft {
   if (!raw || typeof raw !== "object") return fallback;
   const candidate = raw as Record<string, unknown>;
-  const daysRaw = Array.isArray(candidate.days) ? candidate.days : fallback.days;
-  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
+  const daysRaw = Array.isArray(candidate.days)
+    ? candidate.days
+    : fallback.days;
+  const reasonRaw = candidate.reason as
+    | { code?: string; detail?: string }
+    | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
           code: reasonRaw.code,
           detail: safeCopy(
-            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
+            typeof reasonRaw.detail === "string"
+              ? reasonRaw.detail
+              : fallback.reason.detail,
             fallback.reason.detail,
           ),
         }
@@ -1138,24 +1315,38 @@ function normalizeWeeklyPlanDraft(raw: unknown, fallback: WeeklyPlanDraft): Week
       if (!entry || typeof entry !== "object") return null;
       const item = entry as Record<string, unknown>;
       const day = typeof item.day === "string" ? item.day : "";
-      const focusItemsRaw = Array.isArray(item.focusItems) ? item.focusItems : [];
+      const focusItemsRaw = Array.isArray(item.focusItems)
+        ? item.focusItems
+        : [];
       const focusItems = focusItemsRaw
         .slice(0, 3)
         .map((focus, index) => {
           if (!focus || typeof focus !== "object") return null;
           const data = focus as Record<string, unknown>;
-          const label = safeCopy(String(data.label ?? "").trim(), "Focus block");
+          const label = safeCopy(
+            String(data.label ?? "").trim(),
+            "Focus block",
+          );
           if (!label) return null;
           return {
-            id: String(data.id ?? `focus-${day}-${index}`).trim() || `focus-${day}-${index}`,
+            id:
+              String(data.id ?? `focus-${day}-${index}`).trim() ||
+              `focus-${day}-${index}`,
             label,
-            estimatedMinutes: normalizePlanEstimate(Number(data.estimatedMinutes ?? 25)),
+            estimatedMinutes: normalizePlanEstimate(
+              Number(data.estimatedMinutes ?? 25),
+            ),
           };
         })
-        .filter((focus): focus is { id: string; label: string; estimatedMinutes: number } =>
-          Boolean(focus),
+        .filter(
+          (
+            focus,
+          ): focus is { id: string; label: string; estimatedMinutes: number } =>
+            Boolean(focus),
         );
-      const reasonValue = item.reason as { code?: string; detail?: string } | undefined;
+      const reasonValue = item.reason as
+        | { code?: string; detail?: string }
+        | undefined;
       const reason =
         reasonValue?.code && typeof reasonValue.code === "string"
           ? {
@@ -1167,9 +1358,13 @@ function normalizeWeeklyPlanDraft(raw: unknown, fallback: WeeklyPlanDraft): Week
                 "Reason provided for this plan day.",
               ),
             }
-          : { code: "draft", detail: "Drafted to fit your capacity for the day." };
+          : {
+              code: "draft",
+              detail: "Drafted to fit your capacity for the day.",
+            };
 
-      if (!/\d{4}-\d{2}-\d{2}/.test(day) || focusItems.length === 0) return null;
+      if (!/\d{4}-\d{2}-\d{2}/.test(day) || focusItems.length === 0)
+        return null;
 
       return {
         day,
@@ -1177,7 +1372,9 @@ function normalizeWeeklyPlanDraft(raw: unknown, fallback: WeeklyPlanDraft): Week
         reason,
       };
     })
-    .filter((entry): entry is WeeklyPlanDraft["days"][number] => Boolean(entry));
+    .filter((entry): entry is WeeklyPlanDraft["days"][number] =>
+      Boolean(entry),
+    );
 
   return {
     week: fallback.week,
@@ -1196,9 +1393,12 @@ export const generateJournalPromptDraft = action({
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
-    const raw = (await ctx.runQuery(internal.kernel.vexAgents.getJournalPromptRawData, {
-      day: targetDay,
-    })) as JournalPromptRawData;
+    const raw = (await ctx.runQuery(
+      internal.kernel.vexAgents.getJournalPromptRawData,
+      {
+        day: targetDay,
+      },
+    )) as JournalPromptRawData;
 
     if (raw.skip) {
       return {
@@ -1221,20 +1421,28 @@ export const generateJournalPromptDraft = action({
     const events = raw.events;
 
     const hasReflectionSuggestion = suggestions.some(
-      (suggestion) => suggestion.type === "DAILY_REVIEW_QUESTION" && suggestion.status === "new",
+      (suggestion) =>
+        suggestion.type === "DAILY_REVIEW_QUESTION" &&
+        suggestion.status === "new",
     );
     const recoveryMode =
-      stateDoc?.state && (stateDoc.state as { mode?: string }).mode === "recovery";
+      stateDoc?.state &&
+      (stateDoc.state as { mode?: string }).mode === "recovery";
     const hadPlanReset = events.some((event) => {
       if (event.type === "PLAN_RESET_APPLIED") return true;
       if (event.type !== "PLAN_SET") return false;
       const reason = (event.meta as { reason?: string })?.reason;
       return reason === "reset" || reason === "recovery";
     });
-    const usedMicroRecovery = events.some((event) => event.type === "RECOVERY_PROTOCOL_USED");
+    const usedMicroRecovery = events.some(
+      (event) => event.type === "RECOVERY_PROTOCOL_USED",
+    );
 
     const shouldPrompt = Boolean(
-      hasReflectionSuggestion || recoveryMode || hadPlanReset || usedMicroRecovery,
+      hasReflectionSuggestion ||
+        recoveryMode ||
+        hadPlanReset ||
+        usedMicroRecovery,
     );
 
     if (!shouldPrompt) {
@@ -1262,14 +1470,20 @@ export const generateJournalPromptDraft = action({
       prompt: pickPrompt(targetDay),
       reason: {
         code: reasonCode,
-        detail: journalReasonDetails[reasonCode] ?? "A gentle check-in can help today.",
+        detail:
+          journalReasonDetails[reasonCode] ??
+          "A gentle check-in can help today.",
       },
       quiet: false,
     };
 
     const aiEnabled = process.env.AI_SUGGESTIONS_ENABLED === "true";
     if (!aiEnabled || !process.env.OPENROUTER_API_KEY) {
-      return { status: "success", source: "fallback", draft: fallback } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+      } as const;
     }
 
     try {
@@ -1280,7 +1494,9 @@ export const generateJournalPromptDraft = action({
 
       const recentEvents = events
         .slice(-25)
-        .map((event) => truncate({ type: event.type, ts: event.ts, meta: event.meta }));
+        .map((event) =>
+          truncate({ type: event.type, ts: event.ts, meta: event.meta }),
+        );
       const prompt = `You are generating a single gentle journal prompt.
 
 CONTEXT:
@@ -1299,11 +1515,19 @@ RULES:
 OUTPUT FORMAT:
 { "prompt": string, "reason": { "code": string, "detail": string }, "quiet": false }`;
 
-      const result = await journalAgent.generateText(ctx, { threadId, userId }, {
-        prompt,
-      } as Parameters<typeof journalAgent.generateText>[2]);
+      const result = await journalAgent.generateText(
+        ctx,
+        { threadId, userId },
+        {
+          prompt,
+        } as Parameters<typeof journalAgent.generateText>[2],
+      );
       if (!result.text) {
-        return { status: "success", source: "fallback", draft: fallback } as const;
+        return {
+          status: "success",
+          source: "fallback",
+          draft: fallback,
+        } as const;
       }
 
       const parsed = JSON.parse(result.text) as unknown;
@@ -1311,7 +1535,11 @@ OUTPUT FORMAT:
       return { status: "success", source: "ai", draft } as const;
     } catch (error) {
       console.error("[vex-agents] Journal AI error:", error);
-      return { status: "success", source: "fallback", draft: fallback } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+      } as const;
     }
   },
 });
@@ -1327,10 +1555,13 @@ export const generateNextStepDraft = action({
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
-    const raw = (await ctx.runQuery(internal.kernel.vexAgents.getNextStepRawData, {
-      taskId,
-      day: targetDay,
-    })) as NextStepRawData;
+    const raw = (await ctx.runQuery(
+      internal.kernel.vexAgents.getNextStepRawData,
+      {
+        taskId,
+        day: targetDay,
+      },
+    )) as NextStepRawData;
 
     if (!raw.task) {
       return { status: "error", reason: "task_not_found" } as const;
@@ -1339,7 +1570,10 @@ export const generateNextStepDraft = action({
     const fallback: NextStepDraft = {
       taskId: raw.task._id,
       step: "Open the task and write the very next physical action.",
-      estimateMin: Math.max(5, Math.min(10, Math.round(raw.task.estimateMin / 2 || 10))),
+      estimateMin: Math.max(
+        5,
+        Math.min(10, Math.round(raw.task.estimateMin / 2 || 10)),
+      ),
       reason: {
         code: "micro_step",
         detail: "Small steps reduce decision load and build momentum.",
@@ -1348,7 +1582,11 @@ export const generateNextStepDraft = action({
 
     const aiEnabled = process.env.AI_SUGGESTIONS_ENABLED === "true";
     if (!aiEnabled || !process.env.OPENROUTER_API_KEY) {
-      return { status: "success", source: "fallback", draft: fallback } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+      } as const;
     }
 
     try {
@@ -1382,12 +1620,20 @@ RULES:
 OUTPUT FORMAT:
 { "step": string, "estimateMin": number, "reason": { "code": string, "detail": string } }`;
 
-      const result = await suggestionAgent.generateText(ctx, { threadId, userId }, {
-        prompt,
-      } as Parameters<typeof suggestionAgent.generateText>[2]);
+      const result = await suggestionAgent.generateText(
+        ctx,
+        { threadId, userId },
+        {
+          prompt,
+        } as Parameters<typeof suggestionAgent.generateText>[2],
+      );
 
       if (!result.text) {
-        return { status: "success", source: "fallback", draft: fallback } as const;
+        return {
+          status: "success",
+          source: "fallback",
+          draft: fallback,
+        } as const;
       }
 
       const parsed = JSON.parse(result.text) as unknown;
@@ -1395,7 +1641,11 @@ OUTPUT FORMAT:
       return { status: "success", source: "ai", draft } as const;
     } catch (error) {
       console.error("[vex-agents] Next step AI error:", error);
-      return { status: "success", source: "fallback", draft: fallback } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+      } as const;
     }
   },
 });
@@ -1412,16 +1662,27 @@ export const generateRecoveryProtocolDraft = action({
     const targetDay = day ?? getTodayYYYYMMDD();
     const offset = normalizeOffsetMinutes(tzOffsetMinutes ?? 0);
 
-    const raw = (await ctx.runQuery(internal.kernel.vexAgents.getRecoveryProtocolRawData, {
-      day: targetDay,
-    })) as RecoveryProtocolRawData;
+    const raw = (await ctx.runQuery(
+      internal.kernel.vexAgents.getRecoveryProtocolRawData,
+      {
+        day: targetDay,
+      },
+    )) as RecoveryProtocolRawData;
 
-    const boundaries = getBoundaryFlagsFromBlocks(raw.calendarBlocks, Date.now(), offset);
+    const boundaries = getBoundaryFlagsFromBlocks(
+      raw.calendarBlocks,
+      Date.now(),
+      offset,
+    );
 
     const fallback: RecoveryProtocolDraft = {
       day: targetDay,
       title: "Recovery protocol",
-      steps: ["Drink water.", "Slow breath for 2 minutes.", "Take 10 minutes of rest."],
+      steps: [
+        "Drink water.",
+        "Slow breath for 2 minutes.",
+        "Take 10 minutes of rest.",
+      ],
       minutes: 15,
       reason: {
         code: "recovery",
@@ -1431,7 +1692,11 @@ export const generateRecoveryProtocolDraft = action({
 
     const aiEnabled = process.env.AI_SUGGESTIONS_ENABLED === "true";
     if (!aiEnabled || !process.env.OPENROUTER_API_KEY) {
-      return { status: "success", source: "fallback", draft: fallback } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+      } as const;
     }
 
     try {
@@ -1458,12 +1723,20 @@ RULES:
 OUTPUT FORMAT:
 { "title": string, "steps": string[], "minutes": number, "reason": { "code": string, "detail": string } }`;
 
-      const result = await journalAgent.generateText(ctx, { threadId, userId }, {
-        prompt,
-      } as Parameters<typeof journalAgent.generateText>[2]);
+      const result = await journalAgent.generateText(
+        ctx,
+        { threadId, userId },
+        {
+          prompt,
+        } as Parameters<typeof journalAgent.generateText>[2],
+      );
 
       if (!result.text) {
-        return { status: "success", source: "fallback", draft: fallback } as const;
+        return {
+          status: "success",
+          source: "fallback",
+          draft: fallback,
+        } as const;
       }
 
       const parsed = JSON.parse(result.text) as unknown;
@@ -1471,7 +1744,11 @@ OUTPUT FORMAT:
       return { status: "success", source: "ai", draft } as const;
     } catch (error) {
       console.error("[vex-agents] Recovery AI error:", error);
-      return { status: "success", source: "fallback", draft: fallback } as const;
+      return {
+        status: "success",
+        source: "fallback",
+        draft: fallback,
+      } as const;
     }
   },
 });
@@ -1496,9 +1773,9 @@ export const getWeeklyReviewRawData = internalQuery({
     weekStartMs: v.number(),
     weekEndMs: v.number(),
   },
-  handler: async (ctx, { startDay, endDay, weekStartMs, weekEndMs }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+  handler: async (ctx, args) => {
+    const { startDay, endDay, weekStartMs, weekEndMs } = args;
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
 
     const stateDocs = await ctx.db
@@ -1522,7 +1799,7 @@ export const getWeeklyReviewRawData = internalQuery({
     return {
       stateDocs: filteredStates,
       events: filteredEvents,
-    } satisfies WeeklyReviewRawData;
+    } as WeeklyReviewRawData;
   },
 });
 
@@ -1531,8 +1808,7 @@ export const getJournalPromptRawData = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
 
     const skip = await ctx.db
@@ -1562,8 +1838,12 @@ export const getJournalPromptRawData = internalQuery({
         type: suggestion.type,
         status: suggestion.status,
       })),
-      events: events.map((event) => ({ ts: event.ts, type: event.type, meta: event.meta })),
-    } satisfies JournalPromptRawData;
+      events: events.map((event) => ({
+        ts: event.ts,
+        type: event.type,
+        meta: event.meta,
+      })),
+    } as JournalPromptRawData;
   },
 });
 
@@ -1573,8 +1853,7 @@ export const getNextStepRawData = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { taskId, day }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
 
     const task = await ctx.db.get(taskId);
@@ -1610,7 +1889,7 @@ export const getNextStepRawData = internalQuery({
       task: safeTask,
       stateDoc: stateDoc ? { state: stateDoc.state as LifeState } : null,
       events: recentEvents,
-    } satisfies NextStepRawData;
+    } as NextStepRawData;
   },
 });
 
@@ -1619,8 +1898,7 @@ export const getRecoveryProtocolRawData = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
 
     const stateDoc = await ctx.db
@@ -1653,7 +1931,7 @@ export const getRecoveryProtocolRawData = internalQuery({
         kind: block.kind,
       })),
       events: recentEvents,
-    } satisfies RecoveryProtocolRawData;
+    } as RecoveryProtocolRawData;
   },
 });
 
@@ -1663,18 +1941,21 @@ export const getWeeklyPlanRawData = internalQuery({
     endDay: v.string(),
   },
   handler: async (ctx, { startDay, endDay }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
 
     const activeTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
+      .withIndex("by_user_status", (q) =>
+        q.eq("userId", userId).eq("status", "active"),
+      )
       .collect();
 
     const pausedTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
+      .withIndex("by_user_status", (q) =>
+        q.eq("userId", userId).eq("status", "paused"),
+      )
       .collect();
 
     const stateDocs = await ctx.db
@@ -1709,7 +1990,7 @@ export const getWeeklyPlanRawData = internalQuery({
           endMin: block.endMin,
           kind: block.kind,
         })),
-    } satisfies WeeklyPlanRawData;
+    } as WeeklyPlanRawData;
   },
 });
 
@@ -1718,8 +1999,7 @@ export const getAiSuggestRawData = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
 
     const stateDoc = await ctx.db
@@ -1734,12 +2014,16 @@ export const getAiSuggestRawData = internalQuery({
 
     const activeTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
+      .withIndex("by_user_status", (q) =>
+        q.eq("userId", userId).eq("status", "active"),
+      )
       .collect();
 
     const pausedTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
+      .withIndex("by_user_status", (q) =>
+        q.eq("userId", userId).eq("status", "paused"),
+      )
       .collect();
 
     const calendarBlocks = await ctx.db
@@ -1768,8 +2052,7 @@ export const getSuggestionsForDay = internalQuery({
     day: v.string(),
   },
   handler: async (ctx, { day }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
 
     return ctx.db
@@ -1786,8 +2069,7 @@ export const insertSuggestion = internalMutation({
     updatedAt: v.number(),
   },
   handler: async (ctx, { suggestion, createdAt, updatedAt }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     await ctx.db.insert("suggestions", {
       userId,

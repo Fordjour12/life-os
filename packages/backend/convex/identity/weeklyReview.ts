@@ -1,8 +1,9 @@
 import { v } from "convex/values";
 
 import type { LifeState } from "../../../../src/kernel/types";
-import { api } from "../_generated/api";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { mutation, query } from "../_generated/server";
+import { requireAuthUser } from "../auth";
 import { filterSafeStrings, isSafeCopy } from "./guardrails";
 
 const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -66,9 +67,8 @@ export const generateWeeklyReview = mutation({
   args: {
     week: v.optional(v.string()),
   },
-  handler: async (ctx, { week }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+  handler: async (ctx: MutationCtx, { week }: { week?: string }) => {
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const weekId = week ?? getDefaultWeekId();
     if (!/^\d{4}-\d{2}$/.test(weekId)) {
@@ -224,13 +224,12 @@ export const generateWeeklyReview = mutation({
   },
 });
 
-export const getWeeklyReview = query({
+export const getWeeklyReview: ReturnType<typeof query> = query({
   args: {
     week: v.optional(v.string()),
   },
-  handler: async (ctx, { week }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+  handler: async (ctx: QueryCtx, { week }: { week?: string }) => {
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     if (week) {
       return ctx.db
