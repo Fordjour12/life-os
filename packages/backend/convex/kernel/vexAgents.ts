@@ -609,12 +609,10 @@ export const generateAiSuggestions = internalAction({
     );
 
     try {
-      const raw = (await ctx.runQuery(
-        internal.kernel.vexAgents.getAiSuggestRawData,
-        {
-          day,
-        },
-      )) as AiSuggestRawData;
+      const raw = await (ctx.runQuery as any)(
+        "kernel/vexAgents/getAiSuggestRawData",
+        { day }
+      ) as AiSuggestRawData;
       const context = buildAiContext(raw, day, tzOffsetMinutes ?? 0);
       if (!context) {
         console.log(`[vex-agents] No state found for day=${day}, skipping`);
@@ -633,12 +631,10 @@ export const generateAiSuggestions = internalAction({
         return { status: "success", count: 0 };
       }
 
-      const existingSugs = (await ctx.runQuery(
-        internal.kernel.vexAgents.getSuggestionsForDay,
-        {
-          day,
-        },
-      )) as AiSuggestRawData["existingSuggestions"];
+      const existingSugs = await (ctx.runQuery as any)(
+        "kernel/vexAgents/getSuggestionsForDay",
+        { day }
+      ) as AiSuggestRawData["existingSuggestions"];
 
       const existingNewCount = existingSugs.filter(
         (s) => s.status === "new",
@@ -683,7 +679,7 @@ export const generateAiSuggestions = internalAction({
 
         const safeSuggestion = sanitizeSuggestionCopy(suggestion);
 
-        await ctx.runMutation(internal.kernel.vexAgents.insertSuggestion, {
+        await (ctx.runMutation as any)("kernel/vexAgents/insertSuggestion", {
           suggestion: safeSuggestion,
           createdAt: now,
           updatedAt: now,
@@ -780,15 +776,15 @@ export const generateWeeklyReviewDraft = action({
       new Date(weekEndExclusive.getTime() - MILLISECONDS_IN_DAY),
     );
 
-    const raw = (await ctx.runQuery(
-      internal.kernel.vexAgents.getWeeklyReviewRawData,
+    const raw = await (ctx.runQuery as any)(
+      "kernel/vexAgents/getWeeklyReviewRawData",
       {
         startDay,
         endDay,
         weekStartMs: weekStart.getTime(),
         weekEndMs: weekEndExclusive.getTime(),
-      },
-    )) as WeeklyReviewRawData;
+      }
+    ) as WeeklyReviewRawData;
 
     const weekStates = raw.stateDocs.map((entry) => ({
       day: entry.day,
@@ -1003,13 +999,10 @@ export const generateWeeklyPlanDraft = action({
       new Date(weekEndExclusive.getTime() - MILLISECONDS_IN_DAY),
     );
 
-    const raw = (await ctx.runQuery(
-      internal.kernel.vexAgents.getWeeklyPlanRawData,
-      {
-        startDay,
-        endDay,
-      },
-    )) as WeeklyPlanRawData;
+    const raw = await (ctx.runQuery as any)(
+      "kernel/vexAgents/getWeeklyPlanRawData",
+      { startDay, endDay }
+    ) as WeeklyPlanRawData;
 
     const days = Array.from({ length: 7 }, (_, index) => {
       const date = new Date(weekStart);
@@ -1389,12 +1382,10 @@ export const generateJournalPromptDraft = action({
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
-    const raw = (await ctx.runQuery(
-      internal.kernel.vexAgents.getJournalPromptRawData,
-      {
-        day: targetDay,
-      },
-    )) as JournalPromptRawData;
+    const raw = await (ctx.runQuery as any)(
+      "kernel/vexAgents/getJournalPromptRawData",
+      { day: targetDay }
+    ) as JournalPromptRawData;
 
     if (raw.skip) {
       return {
@@ -1550,13 +1541,10 @@ export const generateNextStepDraft = action({
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
-    const raw = (await ctx.runQuery(
-      internal.kernel.vexAgents.getNextStepRawData,
-      {
-        taskId,
-        day: targetDay,
-      },
-    )) as NextStepRawData;
+    const raw = await (ctx.runQuery as any)(
+      "kernel/vexAgents/getNextStepRawData",
+      { taskId, day: targetDay }
+    ) as NextStepRawData;
 
     if (!raw.task) {
       return { status: "error", reason: "task_not_found" } as const;
@@ -1656,12 +1644,10 @@ export const generateRecoveryProtocolDraft = action({
     const targetDay = day ?? getTodayYYYYMMDD();
     const offset = normalizeOffsetMinutes(tzOffsetMinutes ?? 0);
 
-    const raw = (await ctx.runQuery(
-      internal.kernel.vexAgents.getRecoveryProtocolRawData,
-      {
-        day: targetDay,
-      },
-    )) as RecoveryProtocolRawData;
+    const raw = await (ctx.runQuery as any)(
+      "kernel/vexAgents/getRecoveryProtocolRawData",
+      { day: targetDay }
+    ) as RecoveryProtocolRawData;
 
     const boundaries = getBoundaryFlagsFromBlocks(
       raw.calendarBlocks,

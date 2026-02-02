@@ -713,15 +713,12 @@ export const executeCommand = mutation({
       }
     }
 
-    await ctx.scheduler.runAfter(
-      0,
-      internal.kernel.vexAgents.generateAiSuggestions,
-      {
-        day,
-        tzOffsetMinutes,
-        source: "executeCommand",
-      },
-    );
+    const scheduleAction: any = "generateAiSuggestions";
+    await ctx.scheduler.runAfter(0, scheduleAction, {
+      day,
+      tzOffsetMinutes,
+      source: "executeCommand",
+    });
 
     return { ok: true, state, suggestionsCount: cappedSuggestions.length };
   },
