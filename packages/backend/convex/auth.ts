@@ -14,8 +14,6 @@ const nativeAppUrl = process.env.NATIVE_APP_URL;
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
-type AuthCtx = QueryCtx | MutationCtx;
-
 function createAuth(ctx: GenericCtx<DataModel>) {
   return betterAuth({
     trustedOrigins: [nativeAppUrl!],
@@ -36,12 +34,12 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 
 export { createAuth };
 
-export async function requireAuthUser(ctx: AuthCtx) {
-  const user = await authComponent.safeGetAuthUser(
+export async function requireAuthUser(ctx: any) {
+  const authUser = await authComponent.safeGetAuthUser(
     ctx as unknown as Parameters<typeof authComponent.safeGetAuthUser>[0],
   );
-  if (!user) throw new Error("Not authenticated");
-  return user;
+  if (!authUser) throw new Error("Not authenticated");
+  return authUser;
 }
 
 export const getCurrentUser = query({

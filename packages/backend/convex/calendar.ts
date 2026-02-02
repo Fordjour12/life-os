@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { requireAuthUser } from "./auth";
+import { authComponent, requireAuthUser } from "./auth";
 
 const DAILY_CAPACITY_MIN = 480;
 const NON_FOCUS_WEIGHT = 0.6;
@@ -38,8 +38,13 @@ export const addBlock = mutation({
     externalId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuthUser(ctx);
-    const userId = user._id;
+    const authUser = await authComponent.safeGetAuthUser(
+      ctx as unknown as Parameters<typeof authComponent.safeGetAuthUser>[0],
+    );
+    if (!authUser) throw new Error("Not authenticated");
+
+    const userId = authUser._id;
+
     const now = Date.now();
 
     const day = String(args.day).trim();
