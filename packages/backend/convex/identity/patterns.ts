@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
-import { api } from "../_generated/api";
 import { query } from "../_generated/server";
+import { requireAuthUser } from "../auth";
 import { isSafeCopy } from "./guardrails";
 
 const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -89,8 +89,7 @@ export const getPatternInsights = query({
     window: v.optional(v.union(v.literal("week"), v.literal("month"))),
   },
   handler: async (ctx, { window }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const windowKey = window ?? "week";
     const { startDay, endDay, startTs, endTs } = getWindowRange(windowKey);
@@ -212,8 +211,7 @@ export const getDriftSignals = query({
     window: v.optional(v.union(v.literal("week"), v.literal("month"))),
   },
   handler: async (ctx, { window }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const windowKey = window ?? "month";
     const { startDay, endDay, startTs, endTs } = getWindowRange(windowKey);

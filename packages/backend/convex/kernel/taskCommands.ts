@@ -74,8 +74,7 @@ export const completeTask = mutation({
     idempotencyKey: v.string(),
   },
   handler: async (ctx, { taskId, idempotencyKey }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const now = Date.now();
 

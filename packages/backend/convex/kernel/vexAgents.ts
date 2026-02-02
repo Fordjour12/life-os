@@ -12,6 +12,7 @@ import {
 import { v } from "convex/values";
 
 import { api, components, internal } from "../_generated/api";
+import { requireAuthUser } from "../auth";
 import {
   filterSafeStrings,
   isSafeCopy,
@@ -23,7 +24,6 @@ import {
   getBoundaryFlagsFromBlocks,
   normalizeOffsetMinutes,
 } from "./stabilization";
-import { requireAuthUser } from "../auth";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -592,8 +592,7 @@ export const generateAiSuggestions = internalAction({
     source: v.optional(v.string()),
   },
   handler: async (ctx, { day, tzOffsetMinutes, source }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const now = Date.now();
 
@@ -765,8 +764,7 @@ export const generateWeeklyReviewDraft = action({
     week: v.optional(v.string()),
   },
   handler: async (ctx, { week }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const weekId = week ?? getDefaultWeekId();
     if (!/^\d{4}-\d{2}$/.test(weekId)) {
@@ -989,8 +987,7 @@ export const generateWeeklyPlanDraft = action({
     week: v.optional(v.string()),
   },
   handler: async (ctx, { week }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const weekId = week ?? getDefaultWeekId();
     if (!/^\d{4}-\d{2}$/.test(weekId)) {
@@ -1388,8 +1385,7 @@ export const generateJournalPromptDraft = action({
     day: v.optional(v.string()),
   },
   handler: async (ctx, { day }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
@@ -1550,8 +1546,7 @@ export const generateNextStepDraft = action({
     day: v.optional(v.string()),
   },
   handler: async (ctx, { taskId, day }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
@@ -1656,8 +1651,7 @@ export const generateRecoveryProtocolDraft = action({
     tzOffsetMinutes: v.optional(v.number()),
   },
   handler: async (ctx, { day, tzOffsetMinutes }) => {
-    const user = await ctx.runQuery(api.auth.getCurrentUser);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuthUser(ctx);
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
     const offset = normalizeOffsetMinutes(tzOffsetMinutes ?? 0);

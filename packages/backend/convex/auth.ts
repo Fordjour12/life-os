@@ -4,7 +4,7 @@ import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
 
 import type { DataModel } from "./_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 
 import { components } from "./_generated/api";
 import { query } from "./_generated/server";
@@ -34,7 +34,9 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 
 export { createAuth };
 
-export async function requireAuthUser(ctx: any) {
+export async function requireAuthUser(
+  ctx: QueryCtx | MutationCtx | ActionCtx
+) {
   const authUser = await authComponent.safeGetAuthUser(
     ctx as unknown as Parameters<typeof authComponent.safeGetAuthUser>[0],
   );

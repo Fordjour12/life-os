@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { action } from "./_generated/server";
+import { action, type ActionCtx } from "./_generated/server";
 import { api } from "./_generated/api";
 
 type ParsedBlock = {
@@ -152,12 +152,17 @@ function parseIcs(text: string) {
   return { blocks, skipped };
 }
 
+type ImportResult = {
+  inserted: number;
+  skipped: number;
+};
+
 export const importFromIcsUrl = action({
   args: {
     url: v.string(),
   },
-  handler: async (ctx, { url }) => {
-    const trimmed = String(url).trim();
+  handler: async (ctx: ActionCtx, args: { url: string }): Promise<ImportResult> => {
+    const trimmed = String(args.url).trim();
     if (!/^https?:\/\//.test(trimmed)) {
       throw new Error("ICS URL must start with http(s)");
     }
@@ -169,10 +174,14 @@ export const importFromIcsUrl = action({
 
     const text = await response.text();
     const { blocks, skipped } = parseIcs(text);
-    const result = await ctx.runMutation(api.calendar.importBlocks, { blocks });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: { inserted: number; skipped: number } = await (ctx as any).runMutation(
+      "calendar/importBlocks",
+      { blocks }
+    );
 
     return {
-      imported: result.inserted,
+      inserted: result.inserted,
       skipped: result.skipped + skipped,
     };
   },
