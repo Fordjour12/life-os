@@ -81,19 +81,13 @@ export default function Home() {
                 </MachineText>
                 <View className="flex-row flex-wrap gap-2">
                   <View className="border border-foreground px-2 py-1">
-                    <MachineText className="text-[10px]">
-                      GENTLE_BY_DEFAULT
-                    </MachineText>
+                    <MachineText className="text-[10px]">GENTLE_BY_DEFAULT</MachineText>
                   </View>
                   <View className="border border-foreground px-2 py-1">
-                    <MachineText className="text-[10px]">
-                      EVENTS_AS_TRUTH
-                    </MachineText>
+                    <MachineText className="text-[10px]">EVENTS_AS_TRUTH</MachineText>
                   </View>
                   <View className="border border-foreground px-2 py-1">
-                    <MachineText className="text-[10px]">
-                      REST_IS_VALID
-                    </MachineText>
+                    <MachineText className="text-[10px]">REST_IS_VALID</MachineText>
                   </View>
                 </View>
               </View>
@@ -128,12 +122,8 @@ export default function Home() {
                     <MachineText variant="label" className="mb-1">
                       USER_ID
                     </MachineText>
-                    <MachineText className="text-xl font-bold">
-                      {user.name}
-                    </MachineText>
-                    <MachineText className="text-xs text-muted">
-                      {user.email}
-                    </MachineText>
+                    <MachineText className="text-xl font-bold">{user.name}</MachineText>
+                    <MachineText className="text-xs text-muted">{user.email}</MachineText>
                   </View>
 
                   <Button
@@ -152,9 +142,7 @@ export default function Home() {
               <HardCard label="ACCESS_CONTROL" className="bg-surface">
                 <View className="gap-4 p-3">
                   <View>
-                    <MachineText variant="header">
-                      AUTHENTICATION_REQUIRED
-                    </MachineText>
+                    <MachineText variant="header">AUTHENTICATION_REQUIRED</MachineText>
                     <MachineText className="text-xs text-muted-foreground mt-1">
                       IDENTIFY TO ACCESS KERNEL DATA.
                     </MachineText>
@@ -171,12 +159,9 @@ export default function Home() {
 
                     <Link href="/sign-up" asChild>
                       <Button className="bg-surface border border-foreground rounded-none shadow-[4px_4px_0px_var(--color-foreground)] h-12">
-                        <MachineText className="font-bold">
-                          CREATE_IDENTITY
-                        </MachineText>
+                        <MachineText className="font-bold">CREATE_IDENTITY</MachineText>
                       </Button>
                     </Link>
-
                   </View>
                 </View>
               </HardCard>

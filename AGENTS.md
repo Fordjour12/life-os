@@ -50,6 +50,7 @@ These rules come from `.ruler/bts.md`:
 - Turborepo with Bun workspaces; run root scripts from repo root
 - Auth uses Better Auth; config in `packages/backend/convex/auth.config.ts`
 - Native auth client in `apps/native/lib/auth-client.ts`
+- Design language for application in `apps/native/globals.css` (Note: All use the same design language when creating uis and components)
 
 Cursor/Copilot instructions: none found in `.cursor/rules/`, `.cursorrules`, or `.github/copilot-instructions.md`.
 

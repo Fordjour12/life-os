@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { query } from "../_generated/server";
+import { requireAuthUser } from "../auth";
 import { isSafeCopy } from "./guardrails";
 
 const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -28,10 +29,6 @@ type LifeStateLike = {
   load?: string;
   momentum?: string;
 };
-
-function getUserId(): string {
-  return "user_me";
-}
 
 function formatYYYYMMDD(date: Date) {
   const yyyy = date.getUTCFullYear();
@@ -92,7 +89,8 @@ export const getPatternInsights = query({
     window: v.optional(v.union(v.literal("week"), v.literal("month"))),
   },
   handler: async (ctx, { window }) => {
-    const userId = getUserId();
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const windowKey = window ?? "week";
     const { startDay, endDay, startTs, endTs } = getWindowRange(windowKey);
 
@@ -110,9 +108,7 @@ export const getPatternInsights = query({
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
       .collect();
 
-    const windowEvents = events.filter(
-      (event) => event.ts >= startTs && event.ts < endTs,
-    );
+    const windowEvents = events.filter((event) => event.ts >= startTs && event.ts < endTs);
 
     const completionsByDay = new Map<string, number>();
     const tinyWinsByDay = new Map<string, number>();
@@ -187,7 +183,9 @@ export const getPatternInsights = query({
     const tinyWinDays = [...tinyWinsByDay.keys()].sort();
     let tinyWinLift = 0;
     for (const day of tinyWinDays) {
-      const nextDay = formatYYYYMMDD(new Date(new Date(`${day}T00:00:00Z`).getTime() + MILLISECONDS_IN_DAY));
+      const nextDay = formatYYYYMMDD(
+        new Date(new Date(`${day}T00:00:00Z`).getTime() + MILLISECONDS_IN_DAY),
+      );
       const nextState = stateByDay.get(nextDay);
       if (nextState && getMomentum(nextState) && getMomentum(nextState) !== "stalled") {
         tinyWinLift += 1;
@@ -213,7 +211,8 @@ export const getDriftSignals = query({
     window: v.optional(v.union(v.literal("week"), v.literal("month"))),
   },
   handler: async (ctx, { window }) => {
-    const userId = getUserId();
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const windowKey = window ?? "month";
     const { startDay, endDay, startTs, endTs } = getWindowRange(windowKey);
 
@@ -222,9 +221,7 @@ export const getDriftSignals = query({
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
       .collect();
 
-    const windowEvents = events.filter(
-      (event) => event.ts >= startTs && event.ts < endTs,
-    );
+    const windowEvents = events.filter((event) => event.ts >= startTs && event.ts < endTs);
 
     const lateNightDays = new Set<string>();
     for (const event of windowEvents) {
@@ -315,7 +312,8 @@ export const getDriftSignals = query({
       const prev = completionDays[index - 1];
       const next = completionDays[index];
       if (!prev || !next) continue;
-      const gapMs = new Date(`${next}T00:00:00Z`).getTime() - new Date(`${prev}T00:00:00Z`).getTime();
+      const gapMs =
+        new Date(`${next}T00:00:00Z`).getTime() - new Date(`${prev}T00:00:00Z`).getTime();
       const gapDays = Math.floor(gapMs / MILLISECONDS_IN_DAY);
       if (gapDays >= 3) {
         const nextState = stateByDay.get(next);

@@ -1,20 +1,36 @@
 # Convex Agents Implementation Plan
 
 ## Goal
+
 - Add an AI policy layer that runs inside Convex and emits `KernelSuggestion` entries.
 - Preserve two-phase commit: propose -> human approve -> command -> event.
 
 ## Scope
+
 - New Convex agent/action to generate suggestions.
 - Reuse existing kernel data: events, state, suggestions, tasks, calendar blocks.
 - No direct data mutation from AI; only suggestions persisted.
 
 ## Architecture
+
 - Execution host: Convex Actions (or Agents) in `packages/backend/convex/kernel/`.
 - AI output format: `KernelSuggestion[]` (same as `runPolicies`).
 - Storage: `suggestions` table with cap, cooldown, and status handling.
 
+## Implementation Notes (Decisions + Clarifications)
+
+- Execution host: **Convex Action** in `packages/backend/convex/kernel/aiSuggest.ts`.
+- Invocation: schedule from mutations (`executeCommand`, `applyPlanReset`) to keep non-blocking; action failures must not bubble.
+- Feature flag: `AI_SUGGESTIONS_ENABLED` (Convex env). Disabled = log + return `skipped`.
+- State source: use `stateDaily` for target day; if missing, compute from events + calendar blocks via `computeDailyState`.
+- Data limits (prompt safety): events last 7 days (cap 200), active tasks (cap 50), paused tasks (cap 50), calendar blocks for day (cap 50), suggestions for day (cap 20).
+- Context contract: `AiSuggestContext` = { day, tzOffsetMinutes, state, events, tasks, calendarBlocks, plan, existingSuggestions } with normalized/trimmed fields only.
+- Output validation: allowed `type` = KernelSuggestion union; `priority` 1-5; `reason.detail` <= 240 chars; `payload` keys whitelisted per type; default `status = "new"`; `cooldownKey` <= 64 chars.
+- Cap/cooldown: reuse existing logic in `packages/backend/convex/kernel/commands.ts` / `planReset.ts` (DAILY_SUGGESTION_CAP + 12h cooldown); extract helper to avoid divergence.
+- Guardrails: run `sanitizeSuggestionCopy` on every AI suggestion; drop invalid/unsafe entries.
+
 ## Data Contracts
+
 - Inputs:
   - `LifeState` from `stateDaily` (or computed on demand).
   - Recent `events` for last N days (default 7).
@@ -25,11 +41,13 @@
   - `KernelSuggestion` items with `type`, `priority`, `reason`, `payload`, `status`, `cooldownKey`.
 
 ## Trigger Points
+
 - On command execution: after `executeCommand` recomputes state.
 - On plan reset: after `applyPlanReset` recomputes state.
 - Optional: scheduled daily run for stale days.
 
 ## Implementation Steps
+
 1. Create a new agent/action module
    - `packages/backend/convex/kernel/aiSuggest.ts` (action entrypoint).
    - Accept inputs: `day`, `tzOffsetMinutes`, and optional `source`.
@@ -53,16 +71,19 @@
    - Add structured logs for AI input size, output count, and errors.
 
 ## Guardrails
+
 - AI never writes to `events` or `tasks`.
 - All user actions go through command validation.
 - Copy must pass `guardrails.ts` checks.
 
 ## Rollout
+
 - Start with feature flag in Convex env (e.g. `AI_SUGGESTIONS_ENABLED`).
 - Enable for a single test user first.
 - Gradually expand once telemetry is stable.
 
 ## Acceptance Criteria
+
 - AI suggestions appear in the inbox and today view.
 - Accepting a suggestion always creates events via commands.
 - No suggestion exceeds daily caps or cooldowns.

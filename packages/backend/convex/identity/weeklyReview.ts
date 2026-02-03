@@ -1,14 +1,12 @@
 import { v } from "convex/values";
 
 import type { LifeState } from "../../../../src/kernel/types";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { mutation, query } from "../_generated/server";
+import { requireAuthUser } from "../auth";
 import { filterSafeStrings, isSafeCopy } from "./guardrails";
 
 const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
-
-function getUserId(): string {
-  return "user_me";
-}
 
 function formatYYYYMMDD(date: Date) {
   const yyyy = date.getUTCFullYear();
@@ -69,8 +67,9 @@ export const generateWeeklyReview = mutation({
   args: {
     week: v.optional(v.string()),
   },
-  handler: async (ctx, { week }) => {
-    const userId = getUserId();
+  handler: async (ctx: MutationCtx, { week }: { week?: string }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const weekId = week ?? getDefaultWeekId();
     if (!/^\d{4}-\d{2}$/.test(weekId)) {
       throw new Error("Week must be YYYY-WW");
@@ -164,7 +163,9 @@ export const generateWeeklyReview = mutation({
     }
 
     const frictionPoints: string[] = [];
-    const overloadedDays = weekStates.filter((entry) => getLoad(entry.state) === "overloaded").length;
+    const overloadedDays = weekStates.filter(
+      (entry) => getLoad(entry.state) === "overloaded",
+    ).length;
     if (overloadedDays > 0) {
       frictionPoints.push(
         `Overload showed up on ${overloadedDays} day${overloadedDays === 1 ? "" : "s"}.`,
@@ -223,12 +224,13 @@ export const generateWeeklyReview = mutation({
   },
 });
 
-export const getWeeklyReview = query({
+export const getWeeklyReview: ReturnType<typeof query> = query({
   args: {
     week: v.optional(v.string()),
   },
-  handler: async (ctx, { week }) => {
-    const userId = getUserId();
+  handler: async (ctx: QueryCtx, { week }: { week?: string }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     if (week) {
       return ctx.db
         .query("weeklyReviews")

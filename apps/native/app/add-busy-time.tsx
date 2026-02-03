@@ -1,13 +1,13 @@
-import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import { makeFunctionReference } from "convex/server";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Button, Spinner, TextField } from "heroui-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 
+import { Container } from "@/components/container";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
-import { Container } from "@/components/container";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type BlockKind = "busy" | "rest";
@@ -35,8 +35,27 @@ export default function AddBusyTime() {
   const navigation = useNavigation();
   const params = useLocalSearchParams<{ day?: string }>();
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
-  const today = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
-  const addBlockMutation = useMutation(api.calendar.addBlock);
+  const getTodayQuery = makeFunctionReference<
+    "query",
+    { tzOffsetMinutes?: number },
+    { day: string } | null
+  >("kernel/commands:getToday");
+  const today = useQuery(getTodayQuery, { tzOffsetMinutes });
+  const addBlockMutation = useMutation(
+    makeFunctionReference<
+      "mutation",
+      {
+        day: string;
+        startMin: number;
+        endMin: number;
+        kind: "busy" | "focus" | "rest" | "personal";
+        source: "manual" | "imported";
+        title?: string;
+        notes?: string;
+        externalId?: string;
+      }
+    >("calendar:addBlock"),
+  );
 
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -49,14 +68,9 @@ export default function AddBusyTime() {
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dayParam =
-    typeof params.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.day)
-      ? params.day
-      : null;
+    typeof params.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.day) ? params.day : null;
   const activeDay = dayParam ?? today?.day ?? null;
-  const dayLabel = useMemo(
-    () => (activeDay ? formatDayLabel(activeDay) : ""),
-    [activeDay],
-  );
+  const dayLabel = useMemo(() => (activeDay ? formatDayLabel(activeDay) : ""), [activeDay]);
 
   useEffect(() => {
     return () => {
@@ -190,11 +204,7 @@ export default function AddBusyTime() {
                   onPress={() => setKind("busy")}
                 >
                   <MachineText
-                    className={
-                      kind === "busy"
-                        ? "text-accent-foreground"
-                        : "text-foreground"
-                    }
+                    className={kind === "busy" ? "text-accent-foreground" : "text-foreground"}
                   >
                     BUSY
                   </MachineText>
@@ -209,11 +219,7 @@ export default function AddBusyTime() {
                   onPress={() => setKind("rest")}
                 >
                   <MachineText
-                    className={
-                      kind === "rest"
-                        ? "text-accent-foreground"
-                        : "text-foreground"
-                    }
+                    className={kind === "rest" ? "text-accent-foreground" : "text-foreground"}
                   >
                     REST
                   </MachineText>
@@ -255,9 +261,7 @@ export default function AddBusyTime() {
               </View>
             </View>
 
-            {error ? (
-              <MachineText className="text-xs text-danger">{error}</MachineText>
-            ) : null}
+            {error ? <MachineText className="text-xs text-danger">{error}</MachineText> : null}
           </View>
         </HardCard>
 
@@ -271,18 +275,14 @@ export default function AddBusyTime() {
               {isSaving ? (
                 <Spinner size="sm" color="white" />
               ) : (
-                <MachineText className="text-accent-foreground font-bold">
-                  SAVE_BLOCK
-                </MachineText>
+                <MachineText className="text-accent-foreground font-bold">SAVE_BLOCK</MachineText>
               )}
             </Button>
             <Button
               className="bg-surface border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
               onPress={safeBack}
             >
-              <MachineText className="text-foreground font-bold">
-                CANCEL
-              </MachineText>
+              <MachineText className="text-foreground font-bold">CANCEL</MachineText>
             </Button>
             <MachineText className="text-xs text-foreground/70">
               Reason: protect what the day allows.
@@ -293,9 +293,7 @@ export default function AddBusyTime() {
       {toastMessage ? (
         <View className="absolute bottom-6 left-4 right-4">
           <View className="bg-foreground px-3 py-2 border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]">
-            <MachineText className="text-background text-xs">
-              {toastMessage}
-            </MachineText>
+            <MachineText className="text-background text-xs">{toastMessage}</MachineText>
           </View>
         </View>
       ) : null}

@@ -63,9 +63,7 @@ export function HardTabBar({ state, descriptors, navigation }: any) {
               onLongPress={onLongPress}
               className={`flex-1 items-center justify-center py-2 h-14 border border-divider ${isFocused ? "bg-accent shadow-none translate-y-0.5" : "bg-surface shadow-[2px_2px_0px_var(--color-foreground)]"}`}
               style={({ pressed }) =>
-                pressed
-                  ? { transform: [{ translateY: 2 }], boxShadow: "none" }
-                  : {}
+                pressed ? { transform: [{ translateY: 2 }], boxShadow: "none" } : {}
               }
             >
               <Ionicons

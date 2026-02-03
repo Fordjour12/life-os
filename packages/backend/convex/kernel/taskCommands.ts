@@ -1,11 +1,9 @@
 import { v } from "convex/values";
 
 import type { Id } from "../_generated/dataModel";
+import { api } from "../_generated/api";
 import { mutation } from "../_generated/server";
-
-function getUserId(): string {
-  return "user_me";
-}
+import { requireAuthUser } from "../auth";
 
 export const createTask = mutation({
   args: {
@@ -16,7 +14,8 @@ export const createTask = mutation({
     idempotencyKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = getUserId();
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const now = Date.now();
     const title = args.title.trim();
 
@@ -75,7 +74,8 @@ export const completeTask = mutation({
     idempotencyKey: v.string(),
   },
   handler: async (ctx, { taskId, idempotencyKey }) => {
-    const userId = getUserId();
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const now = Date.now();
 
     const existing = await ctx.db

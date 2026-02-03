@@ -1,10 +1,11 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Button, Spinner, TextField } from "heroui-native";
-import { useState, useMemo } from "react";
-import { View, ScrollView } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { FlashList } from "@shopify/flash-list";
 
 import { DailyIntentCard } from "@/components/daily-intent-card";
 import { DriftSignalsCard } from "@/components/drift-signals-card";
@@ -16,6 +17,8 @@ import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { TodaySkeleton } from "@/components/skeletons/today-skeleton";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
+import { TaskCard } from "@/components/task-card";
+import { Link } from "expo-router";
 
 // We'll define a local component for the "Engineering Badge" for now to match the style
 function EngBadge({
@@ -42,9 +45,7 @@ function EngBadge({
       </MachineText>
       <View className="flex-row gap-2 border border-divider items-center px-2 py-1 bg-surface">
         <View className={`w-2 h-2 ${dotColor}`} />
-        <MachineText className="text-[12px] font-bold">
-          {value.toUpperCase()}
-        </MachineText>
+        <MachineText className="text-[12px] font-bold">{value.toUpperCase()}</MachineText>
       </View>
     </View>
   );
@@ -99,9 +100,7 @@ const allowedJournalReasons = new Set([
 
 function normalizeJournalReason(value: unknown): JournalPromptReason {
   if (typeof value !== "string") return null;
-  return allowedJournalReasons.has(value)
-    ? (value as JournalPromptReason)
-    : null;
+  return allowedJournalReasons.has(value) ? (value as JournalPromptReason) : null;
 }
 
 function idem() {
@@ -113,33 +112,24 @@ export default function Today() {
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
-  const completeTaskMutation = useMutation(
-    api.kernel.taskCommands.completeTask,
-  );
-  const applyPlanResetMutation = useMutation(
-    api.kernel.planReset.applyPlanReset,
-  );
+  const completeTaskMutation = useMutation(api.kernel.taskCommands.completeTask);
+  const applyPlanResetMutation = useMutation(api.kernel.planReset.applyPlanReset);
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
-  const executeCommandMutation = useMutation(
-    api.kernel.commands.executeCommand,
-  );
+  const executeCommandMutation = useMutation(api.kernel.commands.executeCommand);
   const weeklyReview = useQuery(api.identity.weeklyReview.getWeeklyReview, {});
-  const generateWeeklyReviewMutation = useMutation(
-    api.identity.weeklyReview.generateWeeklyReview,
-  );
+  const generateWeeklyReviewMutation = useMutation(api.identity.weeklyReview.generateWeeklyReview);
   const patternInsights = useQuery(api.identity.getPatternInsights, {
     window: "week",
   });
   const driftSignals = useQuery(api.identity.getDriftSignals, {
     window: "month",
   });
-  const journalPrompt = useQuery(
-    api.identity.getJournalPrompt,
-    data ? { day: data.day } : "skip",
+  const generateWeeklyReviewDraft = useAction(api.kernel.vexAgents.generateWeeklyReviewDraft);
+  const generateJournalPromptDraft = useAction(api.kernel.vexAgents.generateJournalPromptDraft);
+  const generateRecoveryProtocolDraft = useAction(
+    api.kernel.vexAgents.generateRecoveryProtocolDraft,
   );
-  const createJournalEntryMutation = useMutation(
-    api.identity.createJournalEntry,
-  );
+  const createJournalEntryMutation = useMutation(api.identity.createJournalEntry);
   const journalEntries = useQuery(
     api.identity.getJournalEntriesForDay,
     data ? { day: data.day } : "skip",
@@ -155,8 +145,32 @@ export default function Today() {
   const [isLoggingHabit, setIsLoggingHabit] = useState(false);
   const [isLoggingExpense, setIsLoggingExpense] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
-  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] =
-    useState(false);
+  const [journalDraft, setJournalDraft] = useState<{
+    day: string;
+    prompt: string | null;
+    reason: { code: string; detail: string } | null;
+    quiet: boolean;
+  } | null>(null);
+  const [isLoadingJournalDraft, setIsLoadingJournalDraft] = useState(false);
+  const [isRegeneratingJournalDraft, setIsRegeneratingJournalDraft] = useState(false);
+  const [recoveryDraft, setRecoveryDraft] = useState<{
+    day: string;
+    title: string;
+    steps: string[];
+    minutes: number;
+    reason: { code: string; detail: string };
+  } | null>(null);
+  const [isLoadingRecoveryDraft, setIsLoadingRecoveryDraft] = useState(false);
+  const [weeklyDraft, setWeeklyDraft] = useState<{
+    highlights: string[];
+    frictionPoints: string[];
+    reflectionQuestion: string;
+    narrative: string;
+    reason: { code: string; detail: string };
+    week: string;
+  } | null>(null);
+  const [isLoadingWeeklyDraft, setIsLoadingWeeklyDraft] = useState(false);
+  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
   const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
   const [isSkippingJournal, setIsSkippingJournal] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
@@ -165,8 +179,7 @@ export default function Today() {
   const createTask = async () => {
     const trimmedTitle = title.trim();
     const estimateMin = Number.parseInt(estimate, 10);
-    if (!trimmedTitle || !Number.isFinite(estimateMin) || estimateMin <= 0)
-      return;
+    if (!trimmedTitle || !Number.isFinite(estimateMin) || estimateMin <= 0) return;
 
     setIsCreating(true);
     try {
@@ -277,11 +290,7 @@ export default function Today() {
     }
   };
 
-  const submitJournalEntry = async (input: {
-    day: string;
-    text?: string;
-    mood?: JournalMood;
-  }) => {
+  const submitJournalEntry = async (input: { day: string; text?: string; mood?: JournalMood }) => {
     setIsSubmittingJournal(true);
     try {
       await createJournalEntryMutation(input);
@@ -299,15 +308,11 @@ export default function Today() {
     }
   };
 
-  const getStatusIntent = (
-    value: string,
-  ): "success" | "warning" | "danger" | "default" => {
+  const getStatusIntent = (value: string): "success" | "warning" | "danger" | "default" => {
     const val = value?.toLowerCase();
-    if (["high", "balanced", "strong", "operational"].includes(val))
-      return "success";
+    if (["high", "balanced", "strong", "operational"].includes(val)) return "success";
     if (["medium", "steady", "stable"].includes(val)) return "warning";
-    if (["low", "over", "fragile", "stalled", "disconnected"].includes(val))
-      return "danger";
+    if (["low", "over", "fragile", "stalled", "disconnected"].includes(val)) return "danger";
     return "default";
   };
 
@@ -334,10 +339,74 @@ export default function Today() {
     return "Event";
   };
 
-  const suggestions = useMemo(
-    () => (data?.suggestions ?? []) as SuggestionItem[],
-    [data],
-  );
+  const suggestions = useMemo(() => (data?.suggestions ?? []) as SuggestionItem[], [data]);
+
+  useEffect(() => {
+    if (!data) return;
+    let cancelled = false;
+    setIsLoadingJournalDraft(true);
+    generateJournalPromptDraft({ day: data.day })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.status === "success") {
+          setJournalDraft(result.draft);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingJournalDraft(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [data, generateJournalPromptDraft]);
+
+  useEffect(() => {
+    if (!weeklyReview?.week) return;
+    let cancelled = false;
+    setIsLoadingWeeklyDraft(true);
+    generateWeeklyReviewDraft({ week: weeklyReview.week })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.status === "success") {
+          setWeeklyDraft({ ...result.draft, week: result.week });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingWeeklyDraft(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [generateWeeklyReviewDraft, weeklyReview?.week]);
+
+  const regenerateJournalPrompt = async () => {
+    if (!data) return;
+    setIsRegeneratingJournalDraft(true);
+    try {
+      const result = await generateJournalPromptDraft({ day: data.day });
+      if (result.status === "success") {
+        setJournalDraft(result.draft);
+      }
+    } finally {
+      setIsRegeneratingJournalDraft(false);
+    }
+  };
+
+  const loadRecoveryProtocol = async () => {
+    if (!data) return;
+    setIsLoadingRecoveryDraft(true);
+    try {
+      const result = await generateRecoveryProtocolDraft({
+        day: data.day,
+        tzOffsetMinutes,
+      });
+      if (result.status === "success") {
+        setRecoveryDraft(result.draft);
+      }
+    } finally {
+      setIsLoadingRecoveryDraft(false);
+    }
+  };
   const tasks = useMemo(() => (tasksData ?? []) as TaskItem[], [tasksData]);
   const eventSummary = useMemo(
     () =>
@@ -500,9 +569,11 @@ export default function Today() {
 
           {filteredEvents.length > 0 ? (
             <View className="gap-2 pt-2">
-              {(showAllEvents ? filteredEvents : filteredEvents.slice(0, 3)).map(
-                (event, index) => (
-                <View key={`${event.type}-${event.ts}-${index}`} className="flex-row justify-between">
+              {(showAllEvents ? filteredEvents : filteredEvents.slice(0, 3)).map((event, index) => (
+                <View
+                  key={`${event.type}-${event.ts}-${index}`}
+                  className="flex-row justify-between"
+                >
                   <MachineText variant="label" className="text-[10px] text-foreground/70">
                     {formatEventLabel(event)}
                   </MachineText>
@@ -510,8 +581,7 @@ export default function Today() {
                     {formatEventTime(event.ts)}
                   </MachineText>
                 </View>
-              ),
-              )}
+              ))}
               {filteredEvents.length > 3 ? (
                 <Button
                   size="sm"
@@ -554,9 +624,7 @@ export default function Today() {
                 onPress={() => logHabit("done")}
                 isDisabled={isLoggingHabit || !habitId.trim()}
               >
-                <MachineText className="text-xs font-bold text-accent-foreground">
-                  DONE
-                </MachineText>
+                <MachineText className="text-xs font-bold text-accent-foreground">DONE</MachineText>
               </Button>
               <Button
                 size="sm"
@@ -564,9 +632,7 @@ export default function Today() {
                 onPress={() => logHabit("missed")}
                 isDisabled={isLoggingHabit || !habitId.trim()}
               >
-                <MachineText className="text-xs font-bold text-foreground">
-                  MISSED
-                </MachineText>
+                <MachineText className="text-xs font-bold text-foreground">MISSED</MachineText>
               </Button>
             </View>
           </View>
@@ -586,7 +652,7 @@ export default function Today() {
                   style={{ fontFamily: "Menlo" }}
                 />
               </TextField>
-              <TextField className="flex-[2]">
+              <TextField className="flex-2">
                 <TextField.Input
                   value={expenseCategory}
                   onChangeText={setExpenseCategory}
@@ -640,28 +706,91 @@ export default function Today() {
         />
       )}
 
+      {weeklyReview ? (
+        <HardCard label="AI_NARRATIVE" className="mb-6 bg-surface">
+          <View className="p-2 gap-3">
+            <MachineText variant="label" className="text-accent">
+              WEEKLY_AI_SUMMARY
+            </MachineText>
+            {weeklyDraft ? (
+              <View className="gap-2">
+                <MachineText className="text-sm">{weeklyDraft.narrative}</MachineText>
+                <MachineText className="text-[10px] text-muted">
+                  REASON: {weeklyDraft.reason.detail}
+                </MachineText>
+              </View>
+            ) : isLoadingWeeklyDraft ? (
+              <Spinner size="sm" color="warning" />
+            ) : (
+              <MachineText className="text-sm">NO_AI_DRAFT_YET.</MachineText>
+            )}
+          </View>
+        </HardCard>
+      ) : null}
+
       {patternInsights !== undefined ? (
-        <PatternInsightsCard
-          insights={patternInsights ?? null}
-          windowLabel="WEEK_WINDOW"
-        />
+        <PatternInsightsCard insights={patternInsights ?? null} windowLabel="WEEK_WINDOW" />
       ) : null}
 
       {driftSignals !== undefined ? (
-        <DriftSignalsCard
-          signals={driftSignals ?? null}
-          windowLabel="MONTH_WINDOW"
-        />
+        <DriftSignalsCard signals={driftSignals ?? null} windowLabel="MONTH_WINDOW" />
       ) : null}
 
-      {journalPrompt !== undefined ? (
+      {data?.state?.mode === "recovery" ? (
+        <HardCard label="RECOVERY_PROTOCOL" className="mb-6 bg-surface">
+          <View className="p-2 gap-3">
+            <MachineText variant="label" className="text-accent">
+              RECOVERY_MODE_ACTIVE
+            </MachineText>
+            {recoveryDraft ? (
+              <View className="gap-2">
+                <MachineText className="text-lg font-bold">{recoveryDraft.title}</MachineText>
+                <View className="gap-1">
+                  {recoveryDraft.steps.map((step, index) => (
+                    <MachineText key={`${step}-${index}`} className="text-sm">
+                      {index + 1}. {step}
+                    </MachineText>
+                  ))}
+                </View>
+                <MachineText className="text-[10px] text-muted">
+                  REASON: {recoveryDraft.reason.detail}
+                </MachineText>
+              </View>
+            ) : (
+              <MachineText className="text-sm">NO_RECOVERY_DRAFT_YET.</MachineText>
+            )}
+            <Button
+              size="sm"
+              onPress={loadRecoveryProtocol}
+              isDisabled={isLoadingRecoveryDraft}
+              className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]"
+            >
+              {isLoadingRecoveryDraft ? (
+                <Spinner size="sm" color="white" />
+              ) : (
+                <MachineText className="text-background font-bold">GENERATE_PROTOCOL</MachineText>
+              )}
+            </Button>
+          </View>
+        </HardCard>
+      ) : null}
+
+      {isLoadingJournalDraft && !journalDraft ? (
+        <HardCard label="REFLECTION_MODULE" className="mb-6 bg-surface">
+          <View className="p-4 items-center">
+            <Spinner size="sm" color="warning" />
+          </View>
+        </HardCard>
+      ) : journalDraft ? (
         <JournalPromptCard
           day={data.day}
-          prompt={journalPrompt?.prompt ?? null}
-          quiet={journalPrompt?.quiet}
-          reason={normalizeJournalReason(journalPrompt?.reason)}
+          prompt={journalDraft.prompt}
+          quiet={journalDraft.quiet}
+          reason={normalizeJournalReason(journalDraft.reason?.code)}
           onSubmit={submitJournalEntry}
           onSkip={skipJournal}
+          onRegenerate={regenerateJournalPrompt}
+          isRegenerating={isRegeneratingJournalDraft}
           entries={
             (journalEntries ?? []) as Array<{
               _id: string;
@@ -742,9 +871,7 @@ export default function Today() {
                         <Button
                           size="sm"
                           className="bg-surface border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
-                          onPress={() =>
-                            acceptRest(suggestion.payload?.rest?.minutes ?? 15)
-                          }
+                          onPress={() => acceptRest(suggestion.payload?.rest?.minutes ?? 15)}
                         >
                           <MachineText className="text-xs font-bold text-foreground">
                             REST
@@ -763,8 +890,7 @@ export default function Today() {
                     )}
                   </View>
                 </View>
-                {suggestion.type === "MICRO_RECOVERY_PROTOCOL" &&
-                showReflection ? (
+                {suggestion.type === "MICRO_RECOVERY_PROTOCOL" && showReflection ? (
                   <View className="mt-3 p-2 bg-muted border-t border-divider">
                     <MachineText className="text-xs italic">
                       {suggestion.payload?.reflection?.question}
@@ -786,44 +912,18 @@ export default function Today() {
           <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
         </View>
 
-        <View className="gap-2 mb-6">
+        <View className="gap-2 mb-6 min-h-25">
           {tasks.length > 0 ? (
-            tasks.map((task: TaskItem, index) => (
-              <HardCard key={task._id} padding="sm" className="bg-surface">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-3 flex-1">
-                    <MachineText
-                      variant="label"
-                      className="w-4 text-center text-foreground/30"
-                    >
-                      {index + 1}
-                    </MachineText>
-                    <View>
-                      <MachineText className="font-bold text-base">
-                        {task.title}
-                      </MachineText>
-                      <MachineText className="text-xs opacity-50">
-                        {task.estimateMin} MIN
-                      </MachineText>
-                    </View>
-                  </View>
-                  <Button
-                    size="sm"
-                    onPress={() => completeTask(task._id)}
-                    className="border border-divider bg-muted shadow-[2px_2px_0px_var(--color-foreground)]"
-                  >
-                    <MachineText className="text-[10px] font-bold text-foreground">
-                      DONE
-                    </MachineText>
-                  </Button>
-                </View>
-              </HardCard>
-            ))
+            <FlashList
+              data={tasks}
+              renderItem={({ item, index }) => <TaskCard task={item} index={index} />}
+              estimatedItemSize={72}
+              keyExtractor={(item) => item._id}
+              contentContainerStyle={{ gap: 8 }}
+              showsVerticalScrollIndicator={false}
+            />
           ) : (
-            <HardCard
-              variant="flat"
-              className="items-center py-6 border-dashed"
-            >
+            <HardCard variant="flat" className="items-center py-6 border-dashed">
               <MachineText className="opacity-50">QUEUE_EMPTY</MachineText>
             </HardCard>
           )}
@@ -865,9 +965,7 @@ export default function Today() {
                 {isCreating ? (
                   <Spinner size="sm" color="white" />
                 ) : (
-                  <MachineText className="text-background font-bold">
-                    ENTER
-                  </MachineText>
+                  <MachineText className="text-background font-bold">ENTER</MachineText>
                 )}
               </Button>
             </View>

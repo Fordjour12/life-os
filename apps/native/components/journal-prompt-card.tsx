@@ -1,6 +1,7 @@
 import { Button, Spinner, TextField } from "heroui-native";
 import { useState } from "react";
 import { View } from "react-native";
+import React from "react";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -21,6 +22,8 @@ type Props = {
   reason?: "reflection" | "recovery" | "plan_reset" | "micro_recovery" | "quiet" | null;
   onSubmit: (input: { day: string; text?: string; mood?: Mood }) => Promise<void>;
   onSkip: (day: string) => Promise<void>;
+  onRegenerate?: () => Promise<void> | void;
+  isRegenerating?: boolean;
   entries?: JournalEntry[];
   isSkipping?: boolean;
   isSubmitting?: boolean;
@@ -33,13 +36,15 @@ const moods: Array<{ value: Mood; label: string }> = [
   { value: "good", label: "GOOD" },
 ];
 
-export function JournalPromptCard({
+export const JournalPromptCard = React.memo(function JournalPromptCard({
   day,
   prompt,
   quiet,
   reason,
   onSubmit,
   onSkip,
+  onRegenerate,
+  isRegenerating,
   entries = [],
   isSkipping,
   isSubmitting,
@@ -52,7 +57,9 @@ export function JournalPromptCard({
     return (
       <HardCard label="REFLECTION_MODULE" className="mb-6 bg-surface">
         <View className="gap-3 p-2">
-          <MachineText variant="label" className="text-accent">NO_PROMPT</MachineText>
+          <MachineText variant="label" className="text-accent">
+            NO_PROMPT
+          </MachineText>
           <MachineText className="text-sm">NO_PROMPT_TODAY.</MachineText>
           <Button
             size="sm"
@@ -102,27 +109,42 @@ export function JournalPromptCard({
     <HardCard label="REFLECTION_MODULE" className="mb-6 bg-surface">
       <View className="gap-6 p-2">
         <View className="gap-2">
-          <MachineText variant="label" className="text-accent">CORE_PROMPT</MachineText>
-          <MachineText
-            className="text-lg font-bold"
-            style={{ opacity: promptOpacity }}
-          >
+          <MachineText variant="label" className="text-accent">
+            CORE_PROMPT
+          </MachineText>
+          <MachineText className="text-lg font-bold" style={{ opacity: promptOpacity }}>
             {prompt}
           </MachineText>
-          <Button
-            size="sm"
-            onPress={() => setShowHints((value) => !value)}
-            className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
-          >
-            <MachineText className="text-foreground font-bold text-[10px]">
-              {showHints ? "HIDE_HINTS" : "SHOW_HINTS"}
-            </MachineText>
-          </Button>
+          <View className="flex-row flex-wrap gap-2">
+            <Button
+              size="sm"
+              onPress={() => setShowHints((value) => !value)}
+              className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
+            >
+              <MachineText className="text-foreground font-bold text-[10px]">
+                {showHints ? "HIDE_HINTS" : "SHOW_HINTS"}
+              </MachineText>
+            </Button>
+            {onRegenerate ? (
+              <Button
+                size="sm"
+                onPress={onRegenerate}
+                isDisabled={isRegenerating}
+                className="bg-foreground rounded-none"
+              >
+                {isRegenerating ? (
+                  <Spinner size="sm" color="white" />
+                ) : (
+                  <MachineText className="text-background font-bold text-[10px]">
+                    REGENERATE
+                  </MachineText>
+                )}
+              </Button>
+            ) : null}
+          </View>
           {showHints ? (
             <View className="gap-1">
-              {hint ? (
-                <MachineText className="text-[10px] text-muted">{hint}</MachineText>
-              ) : null}
+              {hint ? <MachineText className="text-[10px] text-muted">{hint}</MachineText> : null}
               {quiet ? (
                 <MachineText className="text-[10px] text-muted">
                   QUIET_MODE_ACTIVE. OPTIONAL_ENTRY_ALLOWED.
@@ -133,7 +155,9 @@ export function JournalPromptCard({
         </View>
 
         <View className="gap-3">
-          <MachineText variant="label" className="text-accent">STATE_SELECTOR</MachineText>
+          <MachineText variant="label" className="text-accent">
+            STATE_SELECTOR
+          </MachineText>
           <View className="flex-row flex-wrap gap-2">
             {moods.map((item) => {
               const selected = mood === item.value;
@@ -144,7 +168,11 @@ export function JournalPromptCard({
                   onPress={() => setMood(selected ? undefined : item.value)}
                   className={`border-2 ${selected ? "bg-foreground border-foreground shadow-none" : "bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"}`}
                 >
-                  <MachineText className={`${selected ? "text-background" : "text-foreground"} font-bold text-[10px]`}>{item.label}</MachineText>
+                  <MachineText
+                    className={`${selected ? "text-background" : "text-foreground"} font-bold text-[10px]`}
+                  >
+                    {item.label}
+                  </MachineText>
                 </Button>
               );
             })}
@@ -159,7 +187,7 @@ export function JournalPromptCard({
               placeholder="TYPE_INPUT_HERE..."
               multiline
               className="font-mono text-sm"
-              style={{ minHeight: 100, textAlignVertical: "top", fontFamily: 'Menlo' }}
+              style={{ minHeight: 100, textAlignVertical: "top", fontFamily: "Menlo" }}
             />
           </TextField>
         </View>
@@ -170,7 +198,11 @@ export function JournalPromptCard({
             isDisabled={!canSubmit || isSubmitting}
             className="flex-1 bg-foreground rounded-none shadow-[4px_4px_0px_var(--color-accent)]"
           >
-            {isSubmitting ? <Spinner size="sm" color="white" /> : <MachineText className="text-background font-bold">SAVE_ENTRY</MachineText>}
+            {isSubmitting ? (
+              <Spinner size="sm" color="white" />
+            ) : (
+              <MachineText className="text-background font-bold">SAVE_ENTRY</MachineText>
+            )}
           </Button>
           <Button
             variant="secondary"
@@ -178,7 +210,11 @@ export function JournalPromptCard({
             isDisabled={isSkipping}
             className="border border-foreground rounded-none shadow-[2px_2px_0px_var(--color-foreground)] bg-surface"
           >
-            {isSkipping ? <Spinner size="sm" /> : <MachineText className="font-bold">SKIP</MachineText>}
+            {isSkipping ? (
+              <Spinner size="sm" />
+            ) : (
+              <MachineText className="font-bold">SKIP</MachineText>
+            )}
           </Button>
         </View>
 
@@ -189,20 +225,16 @@ export function JournalPromptCard({
         ) : null}
 
         <View className="gap-4">
-          <MachineText variant="label" className="text-accent">HISTORY_LOG</MachineText>
+          <MachineText variant="label" className="text-accent">
+            HISTORY_LOG
+          </MachineText>
           {entries.length === 0 ? (
-            <MachineText className="text-xs text-muted">
-              NO_LOGS_FOUND.
-            </MachineText>
+            <MachineText className="text-xs text-muted">NO_LOGS_FOUND.</MachineText>
           ) : (
             <View className="gap-4">
               {entries.slice(0, 3).map((entry) => (
                 <View key={entry._id} className="gap-1 border-l-2 border-divider pl-3">
-                  {entry.text ? (
-                    <MachineText className="text-sm">
-                      {entry.text}
-                    </MachineText>
-                  ) : null}
+                  {entry.text ? <MachineText className="text-sm">{entry.text}</MachineText> : null}
                   {entry.mood ? (
                     <MachineText className="text-[10px] text-muted font-bold">
                       STATE: {entry.mood.toUpperCase()}
@@ -216,4 +248,4 @@ export function JournalPromptCard({
       </View>
     </HardCard>
   );
-}
+});

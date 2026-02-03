@@ -1,10 +1,7 @@
 import { v } from "convex/values";
 
 import { mutation } from "../_generated/server";
-
-function getUserId(): string {
-  return "user_me";
-}
+import { requireAuthUser } from "../auth";
 
 export const resumeTask = mutation({
   args: {
@@ -13,15 +10,14 @@ export const resumeTask = mutation({
     idempotencyKey: v.string(),
   },
   handler: async (ctx, { taskId, reason, idempotencyKey }) => {
-    const userId = getUserId();
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const now = Date.now();
     const why = reason ?? "manual";
 
     const existing = await ctx.db
       .query("events")
-      .withIndex("by_user_idem", (q) =>
-        q.eq("userId", userId).eq("idempotencyKey", idempotencyKey),
-      )
+      .withIndex("by_user_idem", (q) => q.eq("userId", userId).eq("idempotencyKey", idempotencyKey))
       .first();
 
     if (existing) {

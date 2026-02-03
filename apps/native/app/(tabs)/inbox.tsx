@@ -1,12 +1,13 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { Button, Spinner } from "heroui-native";
-import { View, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "heroui-native";
+import { View } from "react-native";
+import { useRouter } from "expo-router";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
+import { InboxSkeleton } from "@/components/skeletons/inbox-skeleton";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type SuggestionItem = {
@@ -20,9 +21,11 @@ function idem() {
 }
 
 export default function Inbox() {
+  const router = useRouter();
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
+  const createThread = useMutation(api.threads.createConversation);
 
   const vote = async (
     suggestionId: string,
@@ -38,12 +41,15 @@ export default function Inbox() {
     });
   };
 
+  const startConversation = async () => {
+    const result = await createThread({ title: "New Conversation" });
+    if (result.threadId) {
+      router.push(`/threads/${result.threadId}`);
+    }
+  };
+
   if (!data) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <Spinner size="lg" color="warning" />
-      </View>
-    );
+    return <InboxSkeleton />;
   }
 
   const suggestions = (data.suggestions ?? []) as SuggestionItem[];
@@ -116,6 +122,32 @@ export default function Inbox() {
           <MachineText className="text-muted">NO_SIGNALS_DETECTED</MachineText>
         </HardCard>
       )}
+
+      <View className="mt-8 pt-4 border-t border-divider">
+        <MachineText variant="label" className="mb-4">
+          CONVERSATION
+        </MachineText>
+
+        <Button
+          className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]"
+          onPress={startConversation}
+          size="sm"
+        >
+          <MachineText className="text-background font-bold text-[10px]">
+            START_CONVERSATION
+          </MachineText>
+        </Button>
+
+        <Button
+          className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]  mt-6"
+          onPress={() => router.push("/threads")}
+          size="sm"
+        >
+          <MachineText className="text-background font-bold text-[10px]">
+            CONVERSATIONS
+          </MachineText>
+        </Button>
+      </View>
     </Container>
   );
 }

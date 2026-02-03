@@ -1,3 +1,4 @@
+import { v } from "convex/values";
 
 import type {
   KernelEvent,
@@ -6,9 +7,10 @@ import type {
   PlanSetReason,
 } from "../../../../src/kernel/types";
 import type { Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
-import { v } from "convex/values";
-
+import { requireAuthUser } from "../auth";
 import { computeDailyState } from "./reducer";
 import { sanitizeSuggestionCopy } from "../identity/guardrails";
 import { runPolicies } from "./policies";
@@ -59,7 +61,11 @@ function shiftDay(day: string, deltaDays: number) {
   return formatYYYYMMDD(date);
 }
 
-const TRACKED_EVENT_TYPES = new Set(["HABIT_DONE", "HABIT_MISSED", "EXPENSE_ADDED"]);
+const TRACKED_EVENT_TYPES = new Set([
+  "HABIT_DONE",
+  "HABIT_MISSED",
+  "EXPENSE_ADDED",
+]);
 
 function getDailyEvents(
   events: Array<{ ts: number; type: string; meta: unknown }>,
@@ -83,19 +89,21 @@ function summarizeEvents(events: Array<{ type: string }>) {
   return { habitDone, habitMissed, expenseAdded };
 }
 
-const planReasons: PlanSetReason[] = ["initial", "adjust", "reset", "recovery", "return"];
-
-function getUserId(): string {
-  return "user_me";
-}
-
+const planReasons: PlanSetReason[] = [
+  "initial",
+  "adjust",
+  "reset",
+  "recovery",
+  "return",
+];
 
 export const executeCommand = mutation({
   args: {
     command: v.any(),
   },
   handler: async (ctx, { command }) => {
-    const userId = getUserId();
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const now = Date.now();
     const tzOffsetMinutes = normalizeOffsetMinutes(command?.tzOffsetMinutes);
 
@@ -121,7 +129,9 @@ export const executeCommand = mutation({
       const title = String(command.input.title ?? "").trim();
       const estimateMin = Number(command.input.estimateMin ?? 0);
       const priority = Number(command.input.priority ?? 2);
-      const notes = command.input.notes ? String(command.input.notes) : undefined;
+      const notes = command.input.notes
+        ? String(command.input.notes)
+        : undefined;
 
       if (!title) {
         throw new Error("Task title is required");
@@ -191,7 +201,9 @@ export const executeCommand = mutation({
             estimatedMinutes?: number;
           }>)
         : [];
-      const reasonInput = String(command.input.reason ?? "").trim() as PlanSetReason;
+      const reasonInput = String(
+        command.input.reason ?? "",
+      ).trim() as PlanSetReason;
 
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dayInput)) {
         throw new Error("Plan day must be YYYY-MM-DD");
@@ -200,7 +212,9 @@ export const executeCommand = mutation({
       const normalizeEstimate = (value: number) => {
         if (!Number.isFinite(value)) return 25;
         return allowedEstimates.reduce((closest, estimate) =>
-          Math.abs(estimate - value) < Math.abs(closest - value) ? estimate : closest,
+          Math.abs(estimate - value) < Math.abs(closest - value)
+            ? estimate
+            : closest,
         );
       };
 
@@ -209,12 +223,17 @@ export const executeCommand = mutation({
         .map((item, index) => {
           const label = String(item?.label ?? "").trim();
           if (!label) return null;
-          const estimatedMinutes = normalizeEstimate(Number(item?.estimatedMinutes ?? 0));
+          const estimatedMinutes = normalizeEstimate(
+            Number(item?.estimatedMinutes ?? 0),
+          );
           const id = String(item?.id ?? "").trim() || `focus-${now}-${index}`;
           return { id, label, estimatedMinutes };
         })
-        .filter((item): item is { id: string; label: string; estimatedMinutes: number } =>
-          Boolean(item),
+        .filter(
+          (
+            item,
+          ): item is { id: string; label: string; estimatedMinutes: number } =>
+            Boolean(item),
         );
 
       if (focusItems.length === 0) {
@@ -255,12 +274,15 @@ export const executeCommand = mutation({
 
       const activeTasks = await ctx.db
         .query("tasks")
-        .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
+        .withIndex("by_user_status", (q) =>
+          q.eq("userId", userId).eq("status", "active"),
+        )
         .collect();
       day = command.input.day;
 
       const sorted = [...activeTasks].sort((a, b) => {
-        if (a.estimateMin !== b.estimateMin) return a.estimateMin - b.estimateMin;
+        if (a.estimateMin !== b.estimateMin)
+          return a.estimateMin - b.estimateMin;
         return (a.priority ?? 2) - (b.priority ?? 2);
       });
 
@@ -298,7 +320,9 @@ export const executeCommand = mutation({
     } else if (command.cmd === "log_habit") {
       const habitId = String(command.input.habitId ?? "").trim();
       const status = String(command.input.status ?? "").trim();
-      const note = command.input.note ? String(command.input.note).trim() : undefined;
+      const note = command.input.note
+        ? String(command.input.note).trim()
+        : undefined;
 
       if (!habitId) {
         throw new Error("Habit id is required");
@@ -313,7 +337,9 @@ export const executeCommand = mutation({
     } else if (command.cmd === "add_expense") {
       const amount = Number(command.input.amount ?? 0);
       const category = String(command.input.category ?? "").trim();
-      const note = command.input.note ? String(command.input.note).trim() : undefined;
+      const note = command.input.note
+        ? String(command.input.note).trim()
+        : undefined;
 
       if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error("Expense amount must be a positive number");
@@ -367,14 +393,18 @@ export const executeCommand = mutation({
 
     const activeTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
+      .withIndex("by_user_status", (q) =>
+        q.eq("userId", userId).eq("status", "active"),
+      )
       .collect();
 
     const under10 = activeTasks
       .filter((task) => (task.estimateMin ?? 0) <= 10)
       .sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0];
     const smallestActive =
-      activeTasks.sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0] ?? null;
+      activeTasks.sort(
+        (a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0),
+      )[0] ?? null;
     const tinyWinTask = under10 ?? smallestActive ?? null;
 
     if (state.mode === "recovery") {
@@ -412,7 +442,10 @@ export const executeCommand = mutation({
     for (const event of dayEvents) {
       if (event.type === "PLAN_SET") {
         const meta = event.meta as { day?: string; reason?: PlanSetReason };
-        if (meta?.day === day && (meta.reason === "reset" || meta.reason === "recovery")) {
+        if (
+          meta?.day === day &&
+          (meta.reason === "reset" || meta.reason === "recovery")
+        ) {
           planResetCountToday += 1;
           if (event.ts > lastPlanResetAt) lastPlanResetAt = event.ts;
         }
@@ -436,7 +469,9 @@ export const executeCommand = mutation({
       .withIndex("by_user_day", (q) => q.eq("userId", userId))
       .collect();
 
-    const stateByDay = new Map(stateHistory.map((entry) => [entry.day, entry.state as LifeState]));
+    const stateByDay = new Map(
+      stateHistory.map((entry) => [entry.day, entry.state as LifeState]),
+    );
     const priorDays = [shiftDay(day, -1), shiftDay(day, -2), shiftDay(day, -3)];
     let stableDaysCount = 0;
     for (const priorDay of priorDays) {
@@ -452,15 +487,21 @@ export const executeCommand = mutation({
 
     const pausedTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
+      .withIndex("by_user_status", (q) =>
+        q.eq("userId", userId).eq("status", "paused"),
+      )
       .collect();
 
     const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-    const recentEvents = dayEvents.filter((event) => now - event.ts < SEVEN_DAYS);
+    const recentEvents = dayEvents.filter(
+      (event) => now - event.ts < SEVEN_DAYS,
+    );
     const recentlyResumedTaskIds = new Set<string>();
     for (const event of recentEvents) {
       if (event.type === "TASK_RESUMED") {
-        const taskId = String((event.meta as { taskId?: string })?.taskId ?? "");
+        const taskId = String(
+          (event.meta as { taskId?: string })?.taskId ?? "",
+        );
         if (taskId) recentlyResumedTaskIds.add(taskId);
       }
     }
@@ -484,7 +525,9 @@ export const executeCommand = mutation({
       suggestionStatuses.map((status) =>
         ctx.db
           .query("suggestions")
-          .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", status))
+          .withIndex("by_user_status", (q) =>
+            q.eq("userId", userId).eq("status", status),
+          )
           .collect(),
       ),
     );
@@ -496,11 +539,16 @@ export const executeCommand = mutation({
     const suggestedCountByTask = new Map<string, number>();
     for (const suggestion of allSuggestions) {
       if (suggestion.type !== "GENTLE_RETURN") continue;
-      const taskId = String((suggestion.payload as { taskId?: string })?.taskId ?? "");
+      const taskId = String(
+        (suggestion.payload as { taskId?: string })?.taskId ?? "",
+      );
       if (taskId) {
         suggestionIdToTaskId.set(suggestion._id, taskId);
         if (now - suggestion.createdAt < THIRTY_DAYS) {
-          suggestedCountByTask.set(taskId, (suggestedCountByTask.get(taskId) ?? 0) + 1);
+          suggestedCountByTask.set(
+            taskId,
+            (suggestedCountByTask.get(taskId) ?? 0) + 1,
+          );
         }
         if (now - suggestion.createdAt < SEVEN_DAYS) {
           recentlySuggestedTaskIds.add(taskId);
@@ -509,7 +557,8 @@ export const executeCommand = mutation({
     }
 
     const feedbackEvents = dayEvents.filter(
-      (event) => event.type === "SUGGESTION_FEEDBACK" && now - event.ts < THIRTY_DAYS,
+      (event) =>
+        event.type === "SUGGESTION_FEEDBACK" && now - event.ts < THIRTY_DAYS,
     );
     const negativeCountByTask = new Map<string, number>();
     for (const event of feedbackEvents) {
@@ -518,7 +567,10 @@ export const executeCommand = mutation({
       const taskId = suggestionIdToTaskId.get(suggestionId);
       if (!taskId) continue;
       if (meta?.vote === "down" || meta?.vote === "ignore") {
-        negativeCountByTask.set(taskId, (negativeCountByTask.get(taskId) ?? 0) + 1);
+        negativeCountByTask.set(
+          taskId,
+          (negativeCountByTask.get(taskId) ?? 0) + 1,
+        );
       }
     }
 
@@ -527,7 +579,8 @@ export const executeCommand = mutation({
     );
     const eligibleCandidates = roomCandidates.filter((task) => {
       const taskId = String(task._id);
-      if (lastGentleReturnTaskId && taskId === lastGentleReturnTaskId) return false;
+      if (lastGentleReturnTaskId && taskId === lastGentleReturnTaskId)
+        return false;
       if (recentlySuggestedTaskIds.has(taskId)) return false;
       if (recentlyResumedTaskIds.has(taskId)) return false;
       return true;
@@ -542,11 +595,17 @@ export const executeCommand = mutation({
         const penalty = isResistant ? 1000 : 0;
         return { task, score: (task.estimateMin ?? 0) + penalty };
       })
-      .sort((a, b) => (a.score !== b.score ? a.score - b.score : a.task.estimateMin - b.task.estimateMin));
+      .sort((a, b) =>
+        a.score !== b.score
+          ? a.score - b.score
+          : a.task.estimateMin - b.task.estimateMin,
+      );
 
     const rotated = scoredCandidates[0]?.task ?? null;
     const smallest =
-      roomCandidates.sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0))[0] ?? null;
+      roomCandidates.sort(
+        (a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0),
+      )[0] ?? null;
     const chosen = rotated ?? smallest;
 
     const boundaries = getBoundaryFlagsFromBlocks(blocks, now, tzOffsetMinutes);
@@ -578,12 +637,17 @@ export const executeCommand = mutation({
       .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
       .collect();
 
-    const existingNewCount = existingSugs.filter((suggestion) => suggestion.status === "new").length;
+    const existingNewCount = existingSugs.filter(
+      (suggestion) => suggestion.status === "new",
+    ).length;
     if (existingNewCount > 0) {
       return { ok: true, state, suggestionsCount: 0 };
     }
 
-    const remainingSuggestionSlots = Math.max(0, DAILY_SUGGESTION_CAP - existingSugs.length);
+    const remainingSuggestionSlots = Math.max(
+      0,
+      DAILY_SUGGESTION_CAP - existingSugs.length,
+    );
     if (remainingSuggestionSlots === 0) {
       return { ok: true, state, suggestionsCount: 0 };
     }
@@ -595,13 +659,17 @@ export const executeCommand = mutation({
 
       return existingSugs.some(
         (suggestion) =>
-          suggestion.cooldownKey === cooldownKey && now - suggestion.createdAt < TWELVE_HOURS,
+          suggestion.cooldownKey === cooldownKey &&
+          now - suggestion.createdAt < TWELVE_HOURS,
       );
     };
 
     for (const suggestion of existingSugs) {
       if (suggestion.status === "new") {
-        await ctx.db.patch(suggestion._id, { status: "expired", updatedAt: now });
+        await ctx.db.patch(suggestion._id, {
+          status: "expired",
+          updatedAt: now,
+        });
       }
     }
 
@@ -626,7 +694,8 @@ export const executeCommand = mutation({
       });
 
       if (safeSuggestion.type === "GENTLE_RETURN") {
-        const taskId = (safeSuggestion.payload as { taskId?: Id<"tasks"> })?.taskId;
+        const taskId = (safeSuggestion.payload as { taskId?: Id<"tasks"> })
+          ?.taskId;
         if (taskId) {
           if (prefs) {
             await ctx.db.patch(prefs._id, {
@@ -644,6 +713,13 @@ export const executeCommand = mutation({
       }
     }
 
+    const scheduleAction: any = "generateAiSuggestions";
+    await ctx.scheduler.runAfter(0, scheduleAction, {
+      day,
+      tzOffsetMinutes,
+      source: "executeCommand",
+    });
+
     return { ok: true, state, suggestionsCount: cappedSuggestions.length };
   },
 });
@@ -652,8 +728,12 @@ export const getToday = query({
   args: {
     tzOffsetMinutes: v.optional(v.number()),
   },
-  handler: async (ctx, { tzOffsetMinutes }) => {
-    const userId = getUserId();
+  handler: async (
+    ctx: QueryCtx,
+    { tzOffsetMinutes }: { tzOffsetMinutes?: number },
+  ) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const offset = normalizeOffsetMinutes(tzOffsetMinutes);
     const day = getTodayYYYYMMDDWithOffset(offset);
 
@@ -672,14 +752,16 @@ export const getToday = query({
       .withIndex("by_user_ts", (q) => q.eq("userId", userId))
       .collect();
 
-    let plan:
-      | {
-          day: string;
-          version: number;
-          reason: PlanSetReason;
-          focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
-        }
-      | null = null;
+    let plan: {
+      day: string;
+      version: number;
+      reason: PlanSetReason;
+      focusItems: Array<{
+        id: string;
+        label: string;
+        estimatedMinutes: number;
+      }>;
+    } | null = null;
     let latestPlanVersion = -1;
     let latestPlanTs = 0;
     for (const event of events) {
@@ -688,12 +770,17 @@ export const getToday = query({
         day?: string;
         version?: number;
         reason?: PlanSetReason;
-        focusItems?: Array<{ id?: string; label?: string; estimatedMinutes?: number }>;
+        focusItems?: Array<{
+          id?: string;
+          label?: string;
+          estimatedMinutes?: number;
+        }>;
       };
       if (meta?.day !== day || !Array.isArray(meta.focusItems)) continue;
       const version = Number(meta.version ?? 0);
       const shouldReplace =
-        version > latestPlanVersion || (version === latestPlanVersion && event.ts > latestPlanTs);
+        version > latestPlanVersion ||
+        (version === latestPlanVersion && event.ts > latestPlanTs);
       if (!shouldReplace) continue;
       const focusItems = meta.focusItems
         .map((item) => ({
@@ -701,11 +788,17 @@ export const getToday = query({
           label: String(item?.label ?? "").trim(),
           estimatedMinutes: Number(item?.estimatedMinutes ?? 0),
         }))
-        .filter((item) => item.id && item.label && Number.isFinite(item.estimatedMinutes));
+        .filter(
+          (item) =>
+            item.id && item.label && Number.isFinite(item.estimatedMinutes),
+        );
       plan = {
         day,
         version,
-        reason: meta.reason && planReasons.includes(meta.reason) ? meta.reason : "initial",
+        reason:
+          meta.reason && planReasons.includes(meta.reason)
+            ? meta.reason
+            : "initial",
         focusItems,
       };
       latestPlanVersion = version;
@@ -771,8 +864,16 @@ export const getEventsForDay = query({
     types: v.optional(v.array(v.string())),
     tzOffsetMinutes: v.optional(v.number()),
   },
-  handler: async (ctx, { day, types, tzOffsetMinutes }) => {
-    const userId = getUserId();
+  handler: async (
+    ctx: QueryCtx,
+    {
+      day,
+      types,
+      tzOffsetMinutes,
+    }: { day?: string; types?: string[]; tzOffsetMinutes?: number },
+  ) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const offset = normalizeOffsetMinutes(tzOffsetMinutes);
     const targetDay = day ?? getTodayYYYYMMDDWithOffset(offset);
     const typeFilter = new Set(types ?? []);
@@ -783,7 +884,9 @@ export const getEventsForDay = query({
       .collect();
 
     return events
-      .filter((event) => formatYYYYMMDDWithOffset(event.ts, offset) === targetDay)
+      .filter(
+        (event) => formatYYYYMMDDWithOffset(event.ts, offset) === targetDay,
+      )
       .filter((event) => (typeFilter.size ? typeFilter.has(event.type) : true))
       .map((event) => ({
         id: event._id,

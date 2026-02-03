@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import React from "react";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -22,7 +23,11 @@ type Props = {
   completedMinutes?: number | null;
 };
 
-export function DailyIntentCard({ plan, plannedMinutes, completedMinutes }: Props) {
+export const DailyIntentCard = React.memo(function DailyIntentCard({
+  plan,
+  plannedMinutes,
+  completedMinutes,
+}: Props) {
   const items = plan?.focusItems ?? [];
   const planned =
     plannedMinutes ?? items.reduce((sum, item) => sum + (item.estimatedMinutes || 0), 0);
@@ -48,12 +53,12 @@ export function DailyIntentCard({ plan, plannedMinutes, completedMinutes }: Prop
             TODAY_FOCUS
           </MachineText>
           <View className="flex-row items-center gap-2">
-            <MachineText className="text-[10px] text-muted">OPTIONAL, EDITABLE, DISPOSABLE</MachineText>
+            <MachineText className="text-[10px] text-muted">
+              OPTIONAL, EDITABLE, DISPOSABLE
+            </MachineText>
             {reasonLabel ? (
               <View className="border border-divider bg-surface px-2 py-0.5">
-                <MachineText className="text-[9px] font-bold text-muted">
-                  {reasonLabel}
-                </MachineText>
+                <MachineText className="text-[9px] font-bold text-muted">{reasonLabel}</MachineText>
               </View>
             ) : null}
           </View>
@@ -92,4 +97,4 @@ export function DailyIntentCard({ plan, plannedMinutes, completedMinutes }: Prop
       </View>
     </HardCard>
   );
-}
+});

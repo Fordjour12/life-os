@@ -1,11 +1,10 @@
 import { v } from "convex/values";
 
+import type { Id } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { mutation, query } from "../_generated/server";
+import { requireAuthUser } from "../auth";
 import { isSafeCopy } from "./guardrails";
-
-function getUserId(): string {
-  return "user_me";
-}
 
 function getTodayYYYYMMDD() {
   const date = new Date();
@@ -28,12 +27,13 @@ function pickPrompt(day: string) {
   return source[seed % source.length] ?? source[0];
 }
 
-export const getJournalPrompt = query({
+export const getJournalPrompt: ReturnType<typeof query> = query({
   args: {
     day: v.optional(v.string()),
   },
-  handler: async (ctx, { day }) => {
-    const userId = getUserId();
+  handler: async (ctx: QueryCtx, { day }: { day?: string }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
     const skip = await ctx.db
@@ -63,7 +63,8 @@ export const getJournalPrompt = query({
     const hasReflectionSuggestion = suggestions.some(
       (suggestion) => suggestion.type === "DAILY_REVIEW_QUESTION" && suggestion.status === "new",
     );
-    const recoveryMode = stateDoc?.state && (stateDoc.state as { mode?: string }).mode === "recovery";
+    const recoveryMode =
+      stateDoc?.state && (stateDoc.state as { mode?: string }).mode === "recovery";
     const hadPlanReset = events.some((event) => {
       if (event.type === "PLAN_RESET_APPLIED") return true;
       if (event.type !== "PLAN_SET") return false;
@@ -95,12 +96,13 @@ export const getJournalPrompt = query({
   },
 });
 
-export const getJournalSkipForDay = query({
+export const getJournalSkipForDay: ReturnType<typeof query> = query({
   args: {
     day: v.optional(v.string()),
   },
-  handler: async (ctx, { day }) => {
-    const userId = getUserId();
+  handler: async (ctx: QueryCtx, { day }: { day?: string }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
     return ctx.db
@@ -110,14 +112,28 @@ export const getJournalSkipForDay = query({
   },
 });
 
-export const createJournalEntry = mutation({
+export const createJournalEntry: ReturnType<typeof mutation> = mutation({
   args: {
     day: v.string(),
     text: v.optional(v.string()),
-    mood: v.optional(v.union(v.literal("low"), v.literal("neutral"), v.literal("ok"), v.literal("good"))),
+    mood: v.optional(
+      v.union(v.literal("low"), v.literal("neutral"), v.literal("ok"), v.literal("good")),
+    ),
   },
-  handler: async (ctx, { day, text, mood }) => {
-    const userId = getUserId();
+  handler: async (
+    ctx: MutationCtx,
+    {
+      day,
+      text,
+      mood,
+    }: {
+      day: string;
+      text?: string;
+      mood?: "low" | "neutral" | "ok" | "good";
+    },
+  ) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const trimmed = text?.trim();
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
@@ -141,12 +157,13 @@ export const createJournalEntry = mutation({
   },
 });
 
-export const createJournalSkip = mutation({
+export const createJournalSkip: ReturnType<typeof mutation> = mutation({
   args: {
     day: v.string(),
   },
-  handler: async (ctx, { day }) => {
-    const userId = getUserId();
+  handler: async (ctx: MutationCtx, { day }: { day: string }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
       throw new Error("Day must be YYYY-MM-DD");
@@ -172,12 +189,13 @@ export const createJournalSkip = mutation({
   },
 });
 
-export const getJournalEntriesForDay = query({
+export const getJournalEntriesForDay: ReturnType<typeof query> = query({
   args: {
     day: v.optional(v.string()),
   },
-  handler: async (ctx, { day }) => {
-    const userId = getUserId();
+  handler: async (ctx: QueryCtx, { day }: { day?: string }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
     const entries = await ctx.db
@@ -189,12 +207,13 @@ export const getJournalEntriesForDay = query({
   },
 });
 
-export const getRecentJournalEntries = query({
+export const getRecentJournalEntries: ReturnType<typeof query> = query({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, { limit }) => {
-    const userId = getUserId();
+  handler: async (ctx: QueryCtx, { limit }: { limit?: number }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
     const cap = Math.max(1, Math.min(50, Math.floor(limit ?? 20)));
 
     const entries = await ctx.db
@@ -206,19 +225,21 @@ export const getRecentJournalEntries = query({
   },
 });
 
-export const deleteJournalEntry = mutation({
+export const deleteJournalEntry: ReturnType<typeof mutation> = mutation({
   args: {
     entryId: v.id("journalEntries"),
   },
-  handler: async (ctx, { entryId }) => {
-    const userId = getUserId();
-    const entry = await ctx.db.get(entryId);
+  handler: async (ctx: MutationCtx, { entryId }: { entryId: Id<"journalEntries"> }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
+    const typedEntryId = entryId as Id<"journalEntries">;
+    const entry = await ctx.db.get(typedEntryId);
 
     if (!entry || entry.userId !== userId) {
       throw new Error("Journal entry not found");
     }
 
-    await ctx.db.delete(entryId);
+    await ctx.db.delete(typedEntryId);
     return { ok: true };
   },
 });

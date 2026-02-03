@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import React from "react";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -17,7 +18,10 @@ type Props = {
   windowLabel?: string;
 };
 
-export function PatternInsightsCard({ insights, windowLabel }: Props) {
+export const PatternInsightsCard = React.memo(function PatternInsightsCard({
+  insights,
+  windowLabel,
+}: Props) {
   const items = insights ?? [];
   const label = windowLabel ?? "WEEK_WINDOW";
 
@@ -53,4 +57,4 @@ export function PatternInsightsCard({ insights, windowLabel }: Props) {
       </View>
     </HardCard>
   );
-}
+});
