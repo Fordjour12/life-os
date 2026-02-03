@@ -30,7 +30,7 @@ export const DriftSignalsCard = React.memo(function DriftSignalsCard({
           <MachineText variant="label" className="text-accent">
             LIGHT_SIGNALS
           </MachineText>
-          <MachineText className="text-[10px] text-muted">{label}</MachineText>
+          <MachineText className="text-[10px] text-muted-foreground/40">{label}</MachineText>
         </View>
 
         {items.length === 0 ? (
@@ -41,7 +41,9 @@ export const DriftSignalsCard = React.memo(function DriftSignalsCard({
               <View key={item.id} className="gap-2 border border-divider bg-muted p-3">
                 <MachineText className="text-sm">{item.observation}</MachineText>
                 {item.suggestion ? (
-                  <MachineText className="text-[10px] text-muted">{item.suggestion}</MachineText>
+                  <MachineText className="text-[10px] text-muted-foreground/40">
+                    {item.suggestion}
+                  </MachineText>
                 ) : null}
               </View>
             ))}

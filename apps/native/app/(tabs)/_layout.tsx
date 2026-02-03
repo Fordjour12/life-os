@@ -47,7 +47,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="inbox"
         options={{
-          title: "INPUT",
+          title: "SUGGEST",
         }}
       />
 

@@ -32,7 +32,7 @@ export const PatternInsightsCard = React.memo(function PatternInsightsCard({
           <MachineText variant="label" className="text-accent">
             OBSERVATIONS
           </MachineText>
-          <MachineText className="text-[10px] text-muted">{label}</MachineText>
+          <MachineText className="text-[10px] text-muted-foreground/40">{label}</MachineText>
         </View>
 
         {items.length === 0 ? (

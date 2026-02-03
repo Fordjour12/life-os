@@ -99,14 +99,16 @@ export const WeeklyPlanSection = React.memo(function WeeklyPlanSection({
           <MachineText variant="label" className="text-accent">
             PLAN_DRAFT
           </MachineText>
-          <MachineText className="text-xs text-muted">DRAFT_ONLY. APPLY_PER_DAY.</MachineText>
+          <MachineText className="text-xs text-muted-foreground/40">
+            DRAFT_ONLY. APPLY_PER_DAY.
+          </MachineText>
         </View>
 
         {error && <MachineText className="text-sm text-danger">ERROR: {error}</MachineText>}
 
         {weeklyPlanDraft ? (
           <View className="gap-3">
-            <MachineText className="text-[10px] text-muted">
+            <MachineText className="text-[10px] text-muted-foreground/40">
               REASON: {weeklyPlanDraft.reason.detail}
             </MachineText>
             <View className="gap-3">
@@ -134,7 +136,7 @@ export const WeeklyPlanSection = React.memo(function WeeklyPlanSection({
                       </MachineText>
                     ))}
                   </View>
-                  <MachineText className="text-[10px] text-muted">
+                  <MachineText className="text-[10px] text-muted-foreground/40">
                     REASON: {dayPlan.reason.detail}
                   </MachineText>
                 </View>
@@ -144,7 +146,7 @@ export const WeeklyPlanSection = React.memo(function WeeklyPlanSection({
             {showConfirmApplyAll ? (
               <View className="gap-2 p-3 bg-muted border border-divider">
                 <MachineText className="text-sm font-bold">APPLY ALL DAYS?</MachineText>
-                <MachineText className="text-xs text-muted">
+                <MachineText className="text-xs text-muted-foreground/40">
                   This will set daily plans for all days.
                 </MachineText>
                 <View className="flex-row gap-2">

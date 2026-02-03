@@ -122,10 +122,6 @@ export default function TimeReality() {
   const otherMinutesLabel = formatMinutes(totals.focus + totals.rest + totals.personal);
   const totalLoggedLabel = formatMinutes(totals.total);
 
-  if (!today || !freeData) {
-    return <TimeRealitySkeleton />;
-  }
-
   const toggleNotes = useCallback((blockId: Id<"calendarBlocks">) => {
     setExpandedBlockId((current) => (current === blockId ? null : blockId));
   }, []);
@@ -174,12 +170,20 @@ export default function TimeReality() {
   );
 
   const duplicateBlockTomorrow = useCallback(
-    (block: CalendarBlock) => duplicateBlock(block, shiftDay(activeDay ?? today.day, 1)),
+    (block: CalendarBlock) => {
+      const day = activeDay ?? today?.day;
+      if (!day) return;
+      duplicateBlock(block, shiftDay(day, 1));
+    },
     [duplicateBlock, activeDay, today],
   );
 
   const duplicateBlockToday = useCallback(
-    (block: CalendarBlock) => duplicateBlock(block, activeDay ?? today.day),
+    (block: CalendarBlock) => {
+      const day = activeDay ?? today?.day;
+      if (!day) return;
+      duplicateBlock(block, day);
+    },
     [duplicateBlock, activeDay, today],
   );
 
@@ -213,15 +217,21 @@ export default function TimeReality() {
   );
 
   const handleAddBusyTime = useCallback(() => {
+    const day = activeDay ?? today?.day;
+    if (!day) return;
     router.push({
       pathname: "/add-busy-time" as any,
-      params: { day: activeDay ?? today.day },
+      params: { day },
     });
   }, [router, activeDay, today]);
 
   const handleAddBusyTimeToday = useCallback(() => {
     router.push("/add-busy-time" as any);
   }, [router]);
+
+  if (!today || !freeData) {
+    return <TimeRealitySkeleton />;
+  }
 
   return (
     <Container className="flex-1 bg-background">

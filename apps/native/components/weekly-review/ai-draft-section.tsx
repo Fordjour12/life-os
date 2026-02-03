@@ -44,7 +44,9 @@ export const AIDraftSection = React.memo(function AIDraftSection({
           <MachineText variant="label" className="text-accent">
             AI_DRAFT
           </MachineText>
-          <MachineText className="text-xs text-muted">DRAFT_ONLY. YOU_DECIDE.</MachineText>
+          <MachineText className="text-xs text-muted-foreground/40">
+            DRAFT_ONLY. YOU_DECIDE.
+          </MachineText>
         </View>
 
         {error && <MachineText className="text-sm text-danger">ERROR: {error}</MachineText>}
@@ -76,7 +78,7 @@ export const AIDraftSection = React.memo(function AIDraftSection({
                 {aiDraft.reflectionQuestion}
               </MachineText>
             </View>
-            <MachineText className="text-[10px] text-muted">
+            <MachineText className="text-[10px] text-muted-foreground/40">
               REASON: {aiDraft.reason.detail}
             </MachineText>
           </View>

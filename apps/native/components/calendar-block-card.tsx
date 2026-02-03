@@ -1,3 +1,4 @@
+import React from "react";
 import { Button, Spinner } from "heroui-native";
 import { Pressable, View } from "react-native";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
@@ -132,5 +133,3 @@ export const CalendarBlockCard = React.memo(function CalendarBlockCard({
     </View>
   );
 });
-
-import React from "react";
