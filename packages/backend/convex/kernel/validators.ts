@@ -1,5 +1,9 @@
 import type { KernelSuggestion, LifeState } from "../../../../src/kernel/types";
-import { DAILY_SUGGESTION_CAP, getBoundaryFlagsFromBlocks, normalizeOffsetMinutes } from "./stabilization";
+import {
+  DAILY_SUGGESTION_CAP,
+  getBoundaryFlagsFromBlocks,
+  normalizeOffsetMinutes,
+} from "./stabilization";
 import { normalizePlanEstimate } from "./helpers";
 import {
   filterSafeStrings,
@@ -40,49 +44,33 @@ const journalReasonDetails: Record<string, string> = {
   micro_recovery: "You used a recovery protocol, so a soft prompt can help.",
 };
 
-export function getMomentum(
-  state: LifeState | null | undefined,
-): LifeState["momentum"] | null {
+export function getMomentum(state: LifeState | null | undefined): LifeState["momentum"] | null {
   if (!state || typeof state !== "object") return null;
   const momentum = (state as LifeState).momentum;
   return allowedMomenta.has(momentum) ? momentum : null;
 }
 
-export function getLoad(
-  state: LifeState | null | undefined,
-): LifeState["load"] | null {
+export function getLoad(state: LifeState | null | undefined): LifeState["load"] | null {
   if (!state || typeof state !== "object") return null;
   const load = (state as LifeState).load;
-  return load === "balanced" || load === "overloaded" || load === "underloaded"
-    ? load
-    : null;
+  return load === "balanced" || load === "overloaded" || load === "underloaded" ? load : null;
 }
 
-export function isValidSuggestionType(
-  type: string,
-): type is KernelSuggestion["type"] {
-  return AI_SUGGESTION_TYPES.includes(
-    type as (typeof AI_SUGGESTION_TYPES)[number],
-  );
+export function isValidSuggestionType(type: string): type is KernelSuggestion["type"] {
+  return AI_SUGGESTION_TYPES.includes(type as (typeof AI_SUGGESTION_TYPES)[number]);
 }
 
-export function isValidPriority(
-  priority: number,
-): priority is KernelSuggestion["priority"] {
+export function isValidPriority(priority: number): priority is KernelSuggestion["priority"] {
   return Number.isInteger(priority) && priority >= 1 && priority <= 5;
 }
 
-export function validateAiSuggestion(
-  suggestion: unknown,
-): KernelSuggestion | null {
+export function validateAiSuggestion(suggestion: unknown): KernelSuggestion | null {
   if (!suggestion || typeof suggestion !== "object") return null;
   const s = suggestion as Record<string, unknown>;
 
   if (!s.day || typeof s.day !== "string") return null;
-  if (!s.type || typeof s.type !== "string" || !isValidSuggestionType(s.type))
-    return null;
-  if (typeof s.priority !== "number" || !isValidPriority(s.priority))
-    return null;
+  if (!s.type || typeof s.type !== "string" || !isValidSuggestionType(s.type)) return null;
+  if (typeof s.priority !== "number" || !isValidPriority(s.priority)) return null;
 
   const reason = s.reason as { code?: string; detail?: string } | undefined;
   if (!reason || typeof reason !== "object") return null;
@@ -140,23 +128,19 @@ export function buildAiContext(
     .slice(0, 200)
     .map((e) => ({ type: e.type, ts: e.ts, meta: e.meta }));
 
-  const activeTasks = raw.activeTasks
-    .slice(0, 50)
-    .map((t) => ({
-      _id: t._id,
-      title: t.title,
-      estimateMin: t.estimateMin,
-      priority: t.priority,
-    }));
+  const activeTasks = raw.activeTasks.slice(0, 50).map((t) => ({
+    _id: t._id,
+    title: t.title,
+    estimateMin: t.estimateMin,
+    priority: t.priority,
+  }));
 
-  const pausedTasks = raw.pausedTasks
-    .slice(0, 50)
-    .map((t) => ({
-      _id: t._id,
-      title: t.title,
-      estimateMin: t.estimateMin,
-      priority: t.priority,
-    }));
+  const pausedTasks = raw.pausedTasks.slice(0, 50).map((t) => ({
+    _id: t._id,
+    title: t.title,
+    estimateMin: t.estimateMin,
+    priority: t.priority,
+  }));
 
   const blocks = raw.calendarBlocks;
 
@@ -190,23 +174,18 @@ export function buildAiContext(
             label: String(item?.label ?? "").trim(),
             estimatedMinutes: Number(item?.estimatedMinutes ?? 0),
           }))
-          .filter(
-            (item) =>
-              item.id && item.label && Number.isFinite(item.estimatedMinutes),
-          ),
+          .filter((item) => item.id && item.label && Number.isFinite(item.estimatedMinutes)),
       };
     }
   }
 
-  const existingSuggestions = raw.existingSuggestions
-    .slice(0, 20)
-    .map((s) => ({
-      type: s.type,
-      priority: s.priority,
-      cooldownKey: s.cooldownKey,
-      createdAt: s.createdAt,
-      status: s.status,
-    }));
+  const existingSuggestions = raw.existingSuggestions.slice(0, 20).map((s) => ({
+    type: s.type,
+    priority: s.priority,
+    cooldownKey: s.cooldownKey,
+    createdAt: s.createdAt,
+    status: s.status,
+  }));
 
   const boundaries = getBoundaryFlagsFromBlocks(blocks, now, offset);
 
@@ -250,17 +229,13 @@ export function normalizeWeeklyReviewDraft(
     typeof candidate.narrative === "string"
       ? safeCopy(candidate.narrative, fallback.narrative)
       : fallback.narrative;
-  const reasonRaw = candidate.reason as
-    | { code?: string; detail?: string }
-    | undefined;
+  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
           code: reasonRaw.code,
           detail: safeCopy(
-            typeof reasonRaw.detail === "string"
-              ? reasonRaw.detail
-              : fallback.reason.detail,
+            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
             fallback.reason.detail,
           ),
         }
@@ -287,9 +262,7 @@ export function normalizeJournalPromptDraft(
       : typeof candidate.prompt === "string"
         ? safeCopy(candidate.prompt, fallback.prompt ?? "")
         : fallback.prompt;
-  const reasonRaw = candidate.reason as
-    | { code?: string; detail?: string }
-    | undefined;
+  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
@@ -302,42 +275,31 @@ export function normalizeJournalPromptDraft(
           ),
         }
       : fallback.reason;
-  const quiet =
-    typeof candidate.quiet === "boolean" ? candidate.quiet : fallback.quiet;
+  const quiet = typeof candidate.quiet === "boolean" ? candidate.quiet : fallback.quiet;
 
   return {
     day: fallback.day,
-    prompt:
-      promptValue && isSafeCopy(promptValue) ? promptValue : fallback.prompt,
+    prompt: promptValue && isSafeCopy(promptValue) ? promptValue : fallback.prompt,
     reason,
     quiet,
   };
 }
 
-export function normalizeNextStepDraft(
-  raw: unknown,
-  fallback: NextStepDraft,
-): NextStepDraft {
+export function normalizeNextStepDraft(raw: unknown, fallback: NextStepDraft): NextStepDraft {
   if (!raw || typeof raw !== "object") return fallback;
   const candidate = raw as Record<string, unknown>;
   const step =
-    typeof candidate.step === "string"
-      ? safeCopy(candidate.step, fallback.step)
-      : fallback.step;
+    typeof candidate.step === "string" ? safeCopy(candidate.step, fallback.step) : fallback.step;
   const estimateMin = Number.isFinite(Number(candidate.estimateMin))
     ? Math.max(1, Math.round(Number(candidate.estimateMin)))
     : fallback.estimateMin;
-  const reasonRaw = candidate.reason as
-    | { code?: string; detail?: string }
-    | undefined;
+  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
           code: reasonRaw.code,
           detail: safeCopy(
-            typeof reasonRaw.detail === "string"
-              ? reasonRaw.detail
-              : fallback.reason.detail,
+            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
             fallback.reason.detail,
           ),
         }
@@ -370,17 +332,13 @@ export function normalizeRecoveryProtocolDraft(
   const minutes = Number.isFinite(Number(candidate.minutes))
     ? Math.max(5, Math.round(Number(candidate.minutes)))
     : fallback.minutes;
-  const reasonRaw = candidate.reason as
-    | { code?: string; detail?: string }
-    | undefined;
+  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
           code: reasonRaw.code,
           detail: safeCopy(
-            typeof reasonRaw.detail === "string"
-              ? reasonRaw.detail
-              : fallback.reason.detail,
+            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
             fallback.reason.detail,
           ),
         }
@@ -395,26 +353,17 @@ export function normalizeRecoveryProtocolDraft(
   };
 }
 
-export function normalizeWeeklyPlanDraft(
-  raw: unknown,
-  fallback: WeeklyPlanDraft,
-): WeeklyPlanDraft {
+export function normalizeWeeklyPlanDraft(raw: unknown, fallback: WeeklyPlanDraft): WeeklyPlanDraft {
   if (!raw || typeof raw !== "object") return fallback;
   const candidate = raw as Record<string, unknown>;
-  const daysRaw = Array.isArray(candidate.days)
-    ? candidate.days
-    : fallback.days;
-  const reasonRaw = candidate.reason as
-    | { code?: string; detail?: string }
-    | undefined;
+  const daysRaw = Array.isArray(candidate.days) ? candidate.days : fallback.days;
+  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
   const reason =
     reasonRaw?.code && typeof reasonRaw.code === "string"
       ? {
           code: reasonRaw.code,
           detail: safeCopy(
-            typeof reasonRaw.detail === "string"
-              ? reasonRaw.detail
-              : fallback.reason.detail,
+            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
             fallback.reason.detail,
           ),
         }
@@ -425,38 +374,24 @@ export function normalizeWeeklyPlanDraft(
       if (!entry || typeof entry !== "object") return null;
       const item = entry as Record<string, unknown>;
       const day = typeof item.day === "string" ? item.day : "";
-      const focusItemsRaw = Array.isArray(item.focusItems)
-        ? item.focusItems
-        : [];
+      const focusItemsRaw = Array.isArray(item.focusItems) ? item.focusItems : [];
       const focusItems = focusItemsRaw
         .slice(0, 3)
         .map((focus, index) => {
           if (!focus || typeof focus !== "object") return null;
           const data = focus as Record<string, unknown>;
-          const label = safeCopy(
-            String(data.label ?? "").trim(),
-            "Focus block",
-          );
+          const label = safeCopy(String(data.label ?? "").trim(), "Focus block");
           if (!label) return null;
           return {
-            id:
-              String(data.id ?? `focus-${day}-${index}`).trim() ||
-              `focus-${day}-${index}`,
+            id: String(data.id ?? `focus-${day}-${index}`).trim() || `focus-${day}-${index}`,
             label,
-            estimatedMinutes: normalizePlanEstimate(
-              Number(data.estimatedMinutes ?? 25),
-            ),
+            estimatedMinutes: normalizePlanEstimate(Number(data.estimatedMinutes ?? 25)),
           };
         })
-        .filter(
-          (
-            focus,
-          ): focus is { id: string; label: string; estimatedMinutes: number } =>
-            Boolean(focus),
+        .filter((focus): focus is { id: string; label: string; estimatedMinutes: number } =>
+          Boolean(focus),
         );
-      const reasonValue = item.reason as
-        | { code?: string; detail?: string }
-        | undefined;
+      const reasonValue = item.reason as { code?: string; detail?: string } | undefined;
       const reason =
         reasonValue?.code && typeof reasonValue.code === "string"
           ? {
@@ -473,8 +408,7 @@ export function normalizeWeeklyPlanDraft(
               detail: "Drafted to fit your capacity for the day.",
             };
 
-      if (!/\d{4}-\d{2}-\d{2}/.test(day) || focusItems.length === 0)
-        return null;
+      if (!/\d{4}-\d{2}-\d{2}/.test(day) || focusItems.length === 0) return null;
 
       return {
         day,
@@ -482,9 +416,7 @@ export function normalizeWeeklyPlanDraft(
         reason,
       };
     })
-    .filter((entry): entry is WeeklyPlanDraft["days"][number] =>
-      Boolean(entry),
-    );
+    .filter((entry): entry is WeeklyPlanDraft["days"][number] => Boolean(entry));
 
   return {
     week: fallback.week,

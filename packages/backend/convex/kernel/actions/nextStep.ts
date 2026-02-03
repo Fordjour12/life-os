@@ -4,9 +4,7 @@ import { v } from "convex/values";
 import { requireAuthUser } from "../../auth";
 import { suggestionAgent } from "../agents";
 import { getTodayYYYYMMDD } from "../helpers";
-import {
-  normalizeNextStepDraft,
-} from "../validators";
+import { normalizeNextStepDraft } from "../validators";
 import type { NextStepRawData, NextStepDraft } from "../typesVex";
 
 export const generateNextStepDraft = action({
@@ -19,10 +17,10 @@ export const generateNextStepDraft = action({
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
-    const raw = await (ctx.runQuery as any)(
-      "kernel/vexAgents/getNextStepRawData",
-      { taskId, day: targetDay }
-    ) as NextStepRawData;
+    const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getNextStepRawData", {
+      taskId,
+      day: targetDay,
+    })) as NextStepRawData;
 
     if (!raw.task) {
       return { status: "error", reason: "task_not_found" } as const;
@@ -31,10 +29,7 @@ export const generateNextStepDraft = action({
     const fallback: NextStepDraft = {
       taskId: raw.task._id,
       step: "Open the task and write the very next physical action.",
-      estimateMin: Math.max(
-        5,
-        Math.min(10, Math.round(raw.task.estimateMin / 2 || 10)),
-      ),
+      estimateMin: Math.max(5, Math.min(10, Math.round(raw.task.estimateMin / 2 || 10))),
       reason: {
         code: "micro_step",
         detail: "Small steps reduce decision load and build momentum.",
@@ -81,13 +76,9 @@ RULES:
 OUTPUT FORMAT:
 { "step": string, "estimateMin": number, "reason": { "code": string, "detail": string } }`;
 
-      const result = await suggestionAgent.generateText(
-        ctx,
-        { threadId, userId },
-        {
-          prompt,
-        } as Parameters<typeof suggestionAgent.generateText>[2],
-      );
+      const result = await suggestionAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof suggestionAgent.generateText>[2]);
 
       if (!result.text) {
         return {

@@ -4,11 +4,7 @@ import { v } from "convex/values";
 import { requireAuthUser } from "../../auth";
 import { journalAgent } from "../agents";
 import { getTodayYYYYMMDD, truncate } from "../helpers";
-import {
-  pickPrompt,
-  normalizeJournalPromptDraft,
-  journalReasonDetails,
-} from "../validators";
+import { pickPrompt, normalizeJournalPromptDraft, journalReasonDetails } from "../validators";
 import type { JournalPromptRawData, JournalPromptDraft } from "../typesVex";
 
 export const generateJournalPromptDraft = action({
@@ -20,10 +16,9 @@ export const generateJournalPromptDraft = action({
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
-    const raw = await (ctx.runQuery as any)(
-      "kernel/vexAgents:getJournalPromptRawData",
-      { day: targetDay }
-    ) as JournalPromptRawData;
+    const raw = (await (ctx.runQuery as any)("kernel/vexAgents:getJournalPromptRawData", {
+      day: targetDay,
+    })) as JournalPromptRawData;
 
     if (raw.skip) {
       return {
@@ -46,28 +41,20 @@ export const generateJournalPromptDraft = action({
     const events = raw.events;
 
     const hasReflectionSuggestion = suggestions.some(
-      (suggestion) =>
-        suggestion.type === "DAILY_REVIEW_QUESTION" &&
-        suggestion.status === "new",
+      (suggestion) => suggestion.type === "DAILY_REVIEW_QUESTION" && suggestion.status === "new",
     );
     const recoveryMode =
-      stateDoc?.state &&
-      (stateDoc.state as { mode?: string }).mode === "recovery";
+      stateDoc?.state && (stateDoc.state as { mode?: string }).mode === "recovery";
     const hadPlanReset = events.some((event) => {
       if (event.type === "PLAN_RESET_APPLIED") return true;
       if (event.type !== "PLAN_SET") return false;
       const reason = (event.meta as { reason?: string })?.reason;
       return reason === "reset" || reason === "recovery";
     });
-    const usedMicroRecovery = events.some(
-      (event) => event.type === "RECOVERY_PROTOCOL_USED",
-    );
+    const usedMicroRecovery = events.some((event) => event.type === "RECOVERY_PROTOCOL_USED");
 
     const shouldPrompt = Boolean(
-      hasReflectionSuggestion ||
-        recoveryMode ||
-        hadPlanReset ||
-        usedMicroRecovery,
+      hasReflectionSuggestion || recoveryMode || hadPlanReset || usedMicroRecovery,
     );
 
     if (!shouldPrompt) {
@@ -95,9 +82,7 @@ export const generateJournalPromptDraft = action({
       prompt: pickPrompt(targetDay),
       reason: {
         code: reasonCode,
-        detail:
-          journalReasonDetails[reasonCode] ??
-          "A gentle check-in can help today.",
+        detail: journalReasonDetails[reasonCode] ?? "A gentle check-in can help today.",
       },
       quiet: false,
     };
@@ -119,9 +104,7 @@ export const generateJournalPromptDraft = action({
 
       const recentEvents = events
         .slice(-25)
-        .map((event) =>
-          truncate({ type: event.type, ts: event.ts, meta: event.meta }),
-        );
+        .map((event) => truncate({ type: event.type, ts: event.ts, meta: event.meta }));
       const prompt = `You are generating a single gentle journal prompt.
 
 CONTEXT:
@@ -140,13 +123,9 @@ RULES:
 OUTPUT FORMAT:
 { "prompt": string, "reason": { "code": string, "detail": string }, "quiet": false }`;
 
-      const result = await journalAgent.generateText(
-        ctx,
-        { threadId, userId },
-        {
-          prompt,
-        } as Parameters<typeof journalAgent.generateText>[2],
-      );
+      const result = await journalAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof journalAgent.generateText>[2]);
       if (!result.text) {
         return {
           status: "success",

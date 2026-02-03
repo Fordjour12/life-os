@@ -3,16 +3,8 @@ import { action } from "../../_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser } from "../../auth";
 import { weeklyReviewAgent } from "../agents";
-import {
-  getISOWeekStartDate,
-  formatYYYYMMDD,
-  getDefaultWeekId,
-} from "../helpers";
-import {
-  getMomentum,
-  getLoad,
-  normalizeWeeklyReviewDraft,
-} from "../validators";
+import { getISOWeekStartDate, formatYYYYMMDD, getDefaultWeekId } from "../helpers";
+import { getMomentum, getLoad, normalizeWeeklyReviewDraft } from "../validators";
 import type { WeeklyReviewRawData, WeeklyReviewDraft } from "../typesVex";
 
 export const generateWeeklyReviewDraft = action({
@@ -32,39 +24,28 @@ export const generateWeeklyReviewDraft = action({
     weekEndExclusive.setUTCDate(weekStart.getUTCDate() + 7);
 
     const startDay = formatYYYYMMDD(weekStart);
-    const endDay = formatYYYYMMDD(
-      new Date(weekEndExclusive.getTime() - 24 * 60 * 60 * 1000),
-    );
+    const endDay = formatYYYYMMDD(new Date(weekEndExclusive.getTime() - 24 * 60 * 60 * 1000));
 
-    const raw = await (ctx.runQuery as any)(
-      "kernel/vexAgents/getWeeklyReviewRawData",
-      {
-        startDay,
-        endDay,
-        weekStartMs: weekStart.getTime(),
-        weekEndMs: weekEndExclusive.getTime(),
-      }
-    ) as WeeklyReviewRawData;
+    const raw = (await (ctx.runQuery as any)("kernel/queries:getWeeklyReviewRawData", {
+      startDay,
+      endDay,
+      weekStartMs: weekStart.getTime(),
+      weekEndMs: weekEndExclusive.getTime(),
+    })) as WeeklyReviewRawData;
 
     const weekStates = raw.stateDocs.map((entry) => ({
       day: entry.day,
       state: entry.state as LifeState,
     }));
 
-    const recoveryDays = weekStates.filter(
-      (entry) => entry.state?.mode === "recovery",
-    ).length;
-    const balancedDays = weekStates.filter(
-      (entry) => getLoad(entry.state) === "balanced",
-    ).length;
+    const recoveryDays = weekStates.filter((entry) => entry.state?.mode === "recovery").length;
+    const balancedDays = weekStates.filter((entry) => getLoad(entry.state) === "balanced").length;
 
     const weekEvents = raw.events;
 
     const tinyWins = weekEvents.filter((event) => {
       if (event.type !== "TASK_COMPLETED") return false;
-      const estimateMin = Number(
-        (event.meta as { estimateMin?: number })?.estimateMin ?? 0,
-      );
+      const estimateMin = Number((event.meta as { estimateMin?: number })?.estimateMin ?? 0);
       return Number.isFinite(estimateMin) && estimateMin <= 10;
     }).length;
 
@@ -75,9 +56,7 @@ export const generateWeeklyReviewDraft = action({
       return reason === "reset" || reason === "recovery";
     }).length;
 
-    const plannedDays = weekStates.filter(
-      (entry) => (entry.state?.plannedMinutes ?? 0) > 0,
-    );
+    const plannedDays = weekStates.filter((entry) => (entry.state?.plannedMinutes ?? 0) > 0);
     const onTrackDays = plannedDays.filter((entry) => {
       const planned = entry.state?.plannedMinutes ?? 0;
       const completed = entry.state?.completedMinutes ?? 0;
@@ -85,22 +64,15 @@ export const generateWeeklyReviewDraft = action({
       return completed >= planned * 0.8;
     }).length;
     const plannedDaysCount = plannedDays.length;
-    const onTrackRatio =
-      plannedDaysCount > 0 ? onTrackDays / plannedDaysCount : 0;
+    const onTrackRatio = plannedDaysCount > 0 ? onTrackDays / plannedDaysCount : 0;
 
     const highlights: string[] = [];
-    const sortedStates = [...weekStates].sort((a, b) =>
-      a.day.localeCompare(b.day),
-    );
+    const sortedStates = [...weekStates].sort((a, b) => a.day.localeCompare(b.day));
     let momentumLift = 0;
     for (let index = 1; index < sortedStates.length; index += 1) {
       const prev = sortedStates[index - 1]?.state;
       const next = sortedStates[index]?.state;
-      if (
-        getMomentum(prev) === "stalled" &&
-        getMomentum(next) &&
-        getMomentum(next) !== "stalled"
-      ) {
+      if (getMomentum(prev) === "stalled" && getMomentum(next) && getMomentum(next) !== "stalled") {
         momentumLift += 1;
       }
     }
@@ -208,13 +180,9 @@ RULES:
 OUTPUT FORMAT:
 { "highlights": string[], "frictionPoints": string[], "reflectionQuestion": string, "narrative": string, "reason": { "code": string, "detail": string } }`;
 
-      const result = await weeklyReviewAgent.generateText(
-        ctx,
-        { threadId, userId },
-        {
-          prompt,
-        } as Parameters<typeof weeklyReviewAgent.generateText>[2],
-      );
+      const result = await weeklyReviewAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof weeklyReviewAgent.generateText>[2]);
 
       if (!result.text) {
         return {

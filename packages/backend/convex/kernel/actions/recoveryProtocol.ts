@@ -4,9 +4,7 @@ import { v } from "convex/values";
 import { requireAuthUser } from "../../auth";
 import { journalAgent } from "../agents";
 import { getTodayYYYYMMDD } from "../helpers";
-import {
-  normalizeRecoveryProtocolDraft,
-} from "../validators";
+import { normalizeRecoveryProtocolDraft } from "../validators";
 import { getBoundaryFlagsFromBlocks, normalizeOffsetMinutes } from "../stabilization";
 import type { RecoveryProtocolRawData, RecoveryProtocolDraft } from "../typesVex";
 
@@ -21,25 +19,16 @@ export const generateRecoveryProtocolDraft = action({
     const targetDay = day ?? getTodayYYYYMMDD();
     const offset = normalizeOffsetMinutes(tzOffsetMinutes ?? 0);
 
-    const raw = await (ctx.runQuery as any)(
-      "kernel/vexAgents/getRecoveryProtocolRawData",
-      { day: targetDay }
-    ) as RecoveryProtocolRawData;
+    const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getRecoveryProtocolRawData", {
+      day: targetDay,
+    })) as RecoveryProtocolRawData;
 
-    const boundaries = getBoundaryFlagsFromBlocks(
-      raw.calendarBlocks,
-      Date.now(),
-      offset,
-    );
+    const boundaries = getBoundaryFlagsFromBlocks(raw.calendarBlocks, Date.now(), offset);
 
     const fallback: RecoveryProtocolDraft = {
       day: targetDay,
       title: "Recovery protocol",
-      steps: [
-        "Drink water.",
-        "Slow breath for 2 minutes.",
-        "Take 10 minutes of rest.",
-      ],
+      steps: ["Drink water.", "Slow breath for 2 minutes.", "Take 10 minutes of rest."],
       minutes: 15,
       reason: {
         code: "recovery",
@@ -80,13 +69,9 @@ RULES:
 OUTPUT FORMAT:
 { "title": string, "steps": string[], "minutes": number, "reason": { "code": string, "detail": string } }`;
 
-      const result = await journalAgent.generateText(
-        ctx,
-        { threadId, userId },
-        {
-          prompt,
-        } as Parameters<typeof journalAgent.generateText>[2],
-      );
+      const result = await journalAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof journalAgent.generateText>[2]);
 
       if (!result.text) {
         return {

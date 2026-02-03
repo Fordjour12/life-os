@@ -16,10 +16,7 @@ function unfoldLines(text: string) {
   const lines = text.split(/\r?\n/);
   const unfolded: string[] = [];
   for (const line of lines) {
-    if (
-      (line.startsWith(" ") || line.startsWith("\t")) &&
-      unfolded.length > 0
-    ) {
+    if ((line.startsWith(" ") || line.startsWith("\t")) && unfolded.length > 0) {
       unfolded[unfolded.length - 1] += line.slice(1);
     } else {
       unfolded.push(line.trim());
@@ -177,7 +174,7 @@ export const importFromIcsUrl = action({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: { inserted: number; skipped: number } = await (ctx as any).runMutation(
       "calendar/importBlocks",
-      { blocks }
+      { blocks },
     );
 
     return {

@@ -1,7 +1,4 @@
-import {
-  internalQuery,
-  internalMutation,
-} from "../_generated/server";
+import { internalQuery, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser } from "../auth";
 import type {
@@ -207,16 +204,12 @@ export const getWeeklyPlanRawData = internalQuery({
 
     const activeTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "active"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
       .collect();
 
     const pausedTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "paused"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
       .collect();
 
     const stateDocs = await ctx.db
@@ -275,16 +268,12 @@ export const getAiSuggestRawData = internalQuery({
 
     const activeTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "active"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
       .collect();
 
     const pausedTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "paused"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
       .collect();
 
     const calendarBlocks = await ctx.db

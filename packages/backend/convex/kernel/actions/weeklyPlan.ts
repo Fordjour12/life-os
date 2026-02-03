@@ -9,9 +9,7 @@ import {
   getDefaultWeekId,
   normalizePlanEstimate,
 } from "../helpers";
-import {
-  normalizeWeeklyPlanDraft,
-} from "../validators";
+import { normalizeWeeklyPlanDraft } from "../validators";
 import type { WeeklyPlanRawData, WeeklyPlanDraft } from "../typesVex";
 
 export const generateWeeklyPlanDraft = action({
@@ -31,14 +29,12 @@ export const generateWeeklyPlanDraft = action({
     weekEndExclusive.setUTCDate(weekStart.getUTCDate() + 7);
 
     const startDay = formatYYYYMMDD(weekStart);
-    const endDay = formatYYYYMMDD(
-      new Date(weekEndExclusive.getTime() - 24 * 60 * 60 * 1000),
-    );
+    const endDay = formatYYYYMMDD(new Date(weekEndExclusive.getTime() - 24 * 60 * 60 * 1000));
 
-    const raw = await (ctx.runQuery as any)(
-      "kernel/vexAgents/getWeeklyPlanRawData",
-      { startDay, endDay }
-    ) as WeeklyPlanRawData;
+    const raw = (await (ctx.runQuery as any)("kernel/queries:getWeeklyPlanRawData", {
+      startDay,
+      endDay,
+    })) as WeeklyPlanRawData;
 
     const days = Array.from({ length: 7 }, (_, index) => {
       const date = new Date(weekStart);
@@ -122,13 +118,9 @@ RULES:
 OUTPUT FORMAT:
 { "week": "${weekId}", "days": [{ "day": "YYYY-MM-DD", "focusItems": [{ "id": string, "label": string, "estimatedMinutes": number }], "reason": { "code": string, "detail": string } }], "reason": { "code": string, "detail": string } }`;
 
-      const result = await suggestionAgent.generateText(
-        ctx,
-        { threadId, userId },
-        {
-          prompt,
-        } as Parameters<typeof suggestionAgent.generateText>[2],
-      );
+      const result = await suggestionAgent.generateText(ctx, { threadId, userId }, {
+        prompt,
+      } as Parameters<typeof suggestionAgent.generateText>[2]);
 
       if (!result.text) {
         return {

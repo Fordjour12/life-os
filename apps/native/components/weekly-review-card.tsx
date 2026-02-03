@@ -2,24 +2,9 @@ import { Button, Spinner } from "heroui-native";
 import React, { useMemo } from "react";
 import { View } from "react-native";
 
+import type { WeeklyReview } from "@/types/weekly-review";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
-
-type WeeklyReviewFacts = {
-  recoveryDays: number;
-  balancedDays: number;
-  tinyWins: number;
-  planResets: number;
-};
-
-type WeeklyReview = {
-  week: string;
-  facts: WeeklyReviewFacts;
-  highlights: string[];
-  frictionPoints: string[];
-  reflectionQuestion: string;
-  createdAt: number;
-};
 
 type Props = {
   review?: WeeklyReview | null;
