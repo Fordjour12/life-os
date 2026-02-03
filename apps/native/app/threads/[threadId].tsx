@@ -60,7 +60,7 @@ export default function ThreadDetail() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="height"
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <Container className="pt-6 flex-1">
@@ -80,10 +80,14 @@ export default function ThreadDetail() {
           contentContainerStyle={{ paddingBottom: 16 }}
         >
           {isLoading ? (
-            <MachineText className="text-muted text-center mt-8">LOADING_MESSAGES...</MachineText>
+            <MachineText className="text-muted text-center mt-8">
+              LOADING_MESSAGES...
+            </MachineText>
           ) : messages.length === 0 ? (
             <View className="items-center justify-center py-12">
-              <MachineText className="text-muted text-center">NO_MESSAGES_YET</MachineText>
+              <MachineText className="text-muted text-center">
+                NO_MESSAGES_YET
+              </MachineText>
               <MachineText className="text-muted text-center text-xs mt-2">
                 Start the conversation below
               </MachineText>
@@ -95,7 +99,11 @@ export default function ThreadDetail() {
           )}
         </ScrollView>
 
-        <ChatInput onSend={handleSend} disabled={isSending} placeholder="Type a message..." />
+        <ChatInput
+          onSend={handleSend}
+          disabled={isSending}
+          placeholder="Type a message..."
+        />
       </Container>
     </KeyboardAvoidingView>
   );

@@ -27,7 +27,10 @@ export default function Inbox() {
   const execute = useMutation(api.kernel.commands.executeCommand);
   const createThread = useMutation(api.threads.createConversation);
 
-  const vote = async (suggestionId: string, voteValue: "up" | "down" | "ignore") => {
+  const vote = async (
+    suggestionId: string,
+    voteValue: "up" | "down" | "ignore",
+  ) => {
     await execute({
       command: {
         cmd: "submit_feedback",
@@ -65,9 +68,15 @@ export default function Inbox() {
       {suggestions.length ? (
         <View className="gap-4">
           {suggestions.map((suggestion) => (
-            <HardCard key={suggestion._id} label="SIGNAL_DETECTED" className="gap-3 p-4 bg-surface">
+            <HardCard
+              key={suggestion._id}
+              label="SIGNAL_DETECTED"
+              className="gap-3 p-4 bg-surface"
+            >
               <View className="gap-1">
-                <MachineText className="font-bold text-lg">{suggestion.type}</MachineText>
+                <MachineText className="font-bold text-lg">
+                  {suggestion.type}
+                </MachineText>
                 <MachineText className="text-muted text-xs">
                   {suggestion.reason?.detail}
                 </MachineText>
@@ -106,7 +115,10 @@ export default function Inbox() {
           ))}
         </View>
       ) : (
-        <HardCard variant="flat" className="p-6 border-dashed items-center justify-center">
+        <HardCard
+          variant="flat"
+          className="p-6 border-dashed items-center justify-center"
+        >
           <MachineText className="text-muted">NO_SIGNALS_DETECTED</MachineText>
         </HardCard>
       )}
@@ -123,6 +135,16 @@ export default function Inbox() {
         >
           <MachineText className="text-background font-bold text-[10px]">
             START_CONVERSATION
+          </MachineText>
+        </Button>
+
+        <Button
+          className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]  mt-6"
+          onPress={() => router.push("/threads")}
+          size="sm"
+        >
+          <MachineText className="text-background font-bold text-[10px]">
+            CONVERSATIONS
           </MachineText>
         </Button>
       </View>
