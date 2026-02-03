@@ -38,3 +38,14 @@ export const journalAgent = new Agent(components.agent, {
   },
   maxSteps: 1,
 });
+
+export const chatAgent = new Agent(components.agent, {
+  name: "LifeOS Chat Assistant",
+  languageModel: openrouter.chat("google/gemini-2.5-flash"),
+  instructions:
+    "You are a gentle, recovery-first Life OS chat assistant. Listen to the user and respond with empathy and support. Never judge or shame. Keep responses conversational and helpful.",
+  callSettings: {
+    temperature: 0.7,
+  },
+  maxSteps: 1,
+});

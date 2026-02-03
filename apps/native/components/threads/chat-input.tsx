@@ -1,6 +1,8 @@
-import { useState, useCallback } from "react";
-import { View, TextInput, StyleSheet, Pressable, Text } from "react-native";
-import { useAppTheme } from "@/contexts/app-theme-context";
+import { useCallback, useState } from "react";
+import { Pressable, TextInput, View } from "react-native";
+
+import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
 
 interface ChatInputProps {
   onSend: (text: string) => Promise<void>;
@@ -9,27 +11,8 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
-  const { currentTheme } = useAppTheme();
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const colors =
-    currentTheme === "dark"
-      ? {
-          surface: "#1A1A1A",
-          border: "#333333",
-          text: "#FFFFFF",
-          textMuted: "#888888",
-          primary: "#0066CC",
-          surfaceVariant: "#2A2A2A",
-        }
-      : {
-          surface: "#FFFFFF",
-          border: "#E0E0E0",
-          text: "#000000",
-          textMuted: "#888888",
-          primary: "#0066CC",
-          surfaceVariant: "#F0F0F0",
-        };
 
   const handleSend = useCallback(async () => {
     if (!text.trim() || isSending || disabled) return;
@@ -44,77 +27,47 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
   }, [text, isSending, disabled, onSend]);
 
   return (
-    <View style={styles.container}>
-      <View
-        style={[
-          styles.inputContainer,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <TextInput
-          style={[styles.input, { color: colors.text }]}
-          value={text}
-          onChangeText={setText}
-          placeholder={placeholder ?? "Type a message..."}
-          placeholderTextColor={colors.textMuted}
-          multiline
-          maxLength={2000}
-          editable={!disabled && !isSending}
-        />
-        <Pressable
-          onPress={handleSend}
-          disabled={!text.trim() || isSending || disabled}
-          style={[
-            styles.sendButton,
-            {
-              backgroundColor: text.trim() ? colors.primary : colors.surfaceVariant,
-            },
-          ]}
-        >
-          <Text
-            style={{
-              color: text.trim() ? "#FFFFFF" : colors.textMuted,
-              fontSize: 18,
-              fontWeight: "bold",
-            }}
-          >
-            ↑
-          </Text>
-        </Pressable>
-      </View>
+    <View className="px-4 pb-4">
+      <HardCard label="CONSOLE" className="bg-surface" padding="sm">
+        <View className="gap-3">
+          <View className="h-0.5 bg-accent/30" />
+          <View className="flex-row items-end gap-2">
+            <View className="flex-1 border border-field-border bg-field-background px-3 py-2">
+              <TextInput
+                className="text-field-foreground text-sm"
+                value={text}
+                onChangeText={setText}
+                placeholder={placeholder ?? "Type a message..."}
+                placeholderTextColor="var(--color-field-placeholder)"
+                multiline
+                maxLength={2000}
+                editable={!disabled && !isSending}
+              />
+            </View>
+            <Pressable
+              onPress={handleSend}
+              disabled={!text.trim() || isSending || disabled}
+              className={
+                text.trim() && !disabled && !isSending
+                  ? "bg-foreground border border-foreground"
+                  : "bg-muted border border-divider"
+              }
+            >
+              <View className="px-4 py-3">
+                <MachineText
+                  className={
+                    text.trim() && !disabled && !isSending
+                      ? "text-background text-xs font-bold"
+                      : "text-muted-foreground text-xs"
+                  }
+                >
+                  SEND
+                </MachineText>
+              </View>
+            </Pressable>
+          </View>
+        </View>
+      </HardCard>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    borderWidth: 1,
-    borderRadius: 24,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    maxHeight: 120,
-    fontSize: 15,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});

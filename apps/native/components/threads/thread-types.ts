@@ -7,6 +7,8 @@ export type ThreadItem = {
   id: string;
   title: string | null | undefined;
   summary: string | null | undefined;
+  lastMessage: string;
+  lastMessageRole: "user" | "assistant";
   createdAt: number;
   updatedAt: number;
   metadata?: ThreadMetadata;

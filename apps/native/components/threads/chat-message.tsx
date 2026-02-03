@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet } from "react-native";
-import { useAppTheme } from "@/contexts/app-theme-context";
 import type { UIMessage } from "@convex-dev/agent";
+import { View } from "react-native";
+
+import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
 
 interface ChatMessageProps {
   message: UIMessage;
@@ -17,69 +19,35 @@ function formatTime(timestamp: number): string {
 }
 
 export function ChatMessageItem({ message }: ChatMessageProps) {
-  const { currentTheme } = useAppTheme();
   const isUser = message.role === "user";
   const timestamp = message._creationTime ?? Date.now();
-  const colors =
-    currentTheme === "dark"
-      ? {
-          primary: "#0066CC",
-          surfaceVariant: "#2A2A2A",
-          text: "#FFFFFF",
-          textMuted: "#888888",
-          background: "#1A1A1A",
-        }
-      : {
-          primary: "#0066CC",
-          surfaceVariant: "#F0F0F0",
-          text: "#000000",
-          textMuted: "#888888",
-          background: "#FFFFFF",
-        };
+  const label = isUser ? "USER" : "ASSISTANT";
+  const summary = isUser ? "INPUT_PACKET" : "OUTPUT_PACKET";
+  const alignment = isUser ? "items-end" : "items-start";
+  const cardWidth = isUser ? "max-w-[92%]" : "max-w-[96%]";
 
   return (
-    <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
-      <View
-        style={[
-          styles.bubble,
-          {
-            backgroundColor: isUser ? colors.primary : colors.surfaceVariant,
-          },
-        ]}
+    <View className={`px-4 mb-3 ${alignment}`}>
+      <HardCard
+        label={label}
+        className={`${cardWidth} ${isUser ? "bg-foreground" : "bg-surface"}`}
+        padding="sm"
       >
-        <Text style={[styles.content, { color: isUser ? "#FFFFFF" : colors.text }]}>
-          {message.text}
-        </Text>
-      </View>
-      <Text style={[styles.timestamp, { color: colors.textMuted }]}>{formatTime(timestamp)}</Text>
+        <View className="gap-2">
+          <View className="flex-row items-center justify-between">
+            <MachineText className={isUser ? "text-background" : "text-accent"}>
+              {summary}
+            </MachineText>
+            <MachineText className={isUser ? "text-background/70 text-[10px]" : "text-muted-foreground text-[10px]"}>
+              {formatTime(timestamp)}
+            </MachineText>
+          </View>
+          <View className={isUser ? "h-px bg-background/30" : "h-px bg-accent/30"} />
+          <MachineText className={isUser ? "text-background text-sm" : "text-foreground text-sm"}>
+            {message.text}
+          </MachineText>
+        </View>
+      </HardCard>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginVertical: 4,
-    paddingHorizontal: 16,
-  },
-  userContainer: {
-    alignItems: "flex-end",
-  },
-  assistantContainer: {
-    alignItems: "flex-start",
-  },
-  bubble: {
-    maxWidth: "85%",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-  },
-  content: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  timestamp: {
-    fontSize: 11,
-    marginTop: 4,
-    marginHorizontal: 4,
-  },
-});

@@ -14,11 +14,21 @@ export default function ThreadsIndex() {
 
   return (
     <Container className="pt-6">
-      <View className="mb-6 border-b-2 border-divider pb-2">
-        <MachineText variant="header" size="2xl">
-          CONVERSATIONS
-        </MachineText>
-        <MachineText className="text-muted text-xs mt-1 uppercase">Thread History</MachineText>
+      <View className="relative px-4 pb-2">
+        <View className="absolute -right-2 top-6 size-20 border border-divider/60" />
+        <View className="absolute right-6 top-20 size-12 border border-divider/40" />
+
+        <View className="mb-6 border-b-2 border-divider pb-3">
+          <MachineText variant="label" className="text-accent mb-2">
+            SYSTEM://THREADS
+          </MachineText>
+          <MachineText variant="header" size="2xl">
+            CONVERSATIONS
+          </MachineText>
+          <MachineText className="text-muted-foreground text-xs mt-1 uppercase">
+            Thread History
+          </MachineText>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
