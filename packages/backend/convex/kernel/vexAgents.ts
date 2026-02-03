@@ -1383,7 +1383,7 @@ export const generateJournalPromptDraft = action({
     const targetDay = day ?? getTodayYYYYMMDD();
 
     const raw = await (ctx.runQuery as any)(
-      "kernel/vexAgents/getJournalPromptRawData",
+      "kernel/vexAgents:getJournalPromptRawData",
       { day: targetDay }
     ) as JournalPromptRawData;
 

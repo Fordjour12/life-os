@@ -1,47 +1,47 @@
 {
-  "name": "life-os",
-  "private": true,
-  "workspaces": {
-    "packages": [
-      "apps/*",
-      "packages/*"
-    ],
-    "catalog": {
-      "dotenv": "^17.2.2",
-      "zod": "^4.1.13",
-      "typescript": "^5",
-      "convex": "^1.31.7",
-      "better-auth": "1.4.9",
-      "@better-auth/expo": "1.4.9",
-      "@convex-dev/better-auth": "^0.10.9"
-    }
-  },
-  "type": "module",
-  "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "check-types": "turbo check-types",
-    "dev:native": "turbo -F native dev",
-    "dev:web": "turbo -F web dev",
-    "dev:server": "turbo -F @life-os/backend dev",
-    "dev:setup": "turbo -F @life-os/backend dev:setup",
-    "check": "oxlint && oxfmt --write",
-    "ruler:apply": "bunx @intellectronica/ruler@latest apply --local-only"
-  },
-  "dependencies": {
-    "@life-os/env": "workspace:*",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@life-os/config": "workspace:*",
-    "oxfmt": "^0.19.0",
-    "oxlint": "^1.34.0",
-    "turbo": "^2.8.1",
-    "typescript": "catalog:"
-  },
-  "overrides": {
-    "ai": "^5.0.29"
-  },
-  "packageManager": "bun@1.3.0"
+   "name": "life-os",
+   "private": true,
+   "workspaces": {
+      "packages": [
+         "apps/*",
+         "packages/*"
+      ],
+      "catalog": {
+         "dotenv": "^17.2.2",
+         "zod": "^4.1.13",
+         "typescript": "^5",
+         "convex": "1.31.6",
+         "better-auth": "1.4.9",
+         "@better-auth/expo": "1.4.9",
+         "@convex-dev/better-auth": "^0.10.9"
+      }
+   },
+   "type": "module",
+   "scripts": {
+      "dev": "turbo dev",
+      "build": "turbo build",
+      "check-types": "turbo check-types",
+      "dev:native": "turbo -F native dev",
+      "dev:web": "turbo -F web dev",
+      "dev:server": "turbo -F @life-os/backend dev",
+      "dev:setup": "turbo -F @life-os/backend dev:setup",
+      "check": "oxlint && oxfmt --write",
+      "ruler:apply": "bunx @intellectronica/ruler@latest apply --local-only"
+   },
+   "dependencies": {
+      "@life-os/env": "workspace:*",
+      "dotenv": "catalog:",
+      "zod": "catalog:"
+   },
+   "devDependencies": {
+      "@life-os/config": "workspace:*",
+      "oxfmt": "^0.19.0",
+      "oxlint": "^1.34.0",
+      "turbo": "^2.8.1",
+      "typescript": "catalog:"
+   },
+   "overrides": {
+      "ai": "^5.0.29"
+   },
+   "packageManager": "bun@1.3.0"
 }

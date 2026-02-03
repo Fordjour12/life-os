@@ -1,13 +1,13 @@
-import { api } from "@life-os/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import { makeFunctionReference } from "convex/server";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Button, Spinner, TextField } from "heroui-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 
+import { Container } from "@/components/container";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
-import { Container } from "@/components/container";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type BlockKind = "busy" | "rest";
@@ -35,8 +35,27 @@ export default function AddBusyTime() {
   const navigation = useNavigation();
   const params = useLocalSearchParams<{ day?: string }>();
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
-  const today = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
-  const addBlockMutation = useMutation(api.calendar.addBlock);
+  const getTodayQuery = makeFunctionReference<
+    "query",
+    { tzOffsetMinutes?: number },
+    { day: string } | null
+  >("kernel/commands:getToday");
+  const today = useQuery(getTodayQuery, { tzOffsetMinutes });
+  const addBlockMutation = useMutation(
+    makeFunctionReference<
+      "mutation",
+      {
+        day: string;
+        startMin: number;
+        endMin: number;
+        kind: "busy" | "focus" | "rest" | "personal";
+        source: "manual" | "imported";
+        title?: string;
+        notes?: string;
+        externalId?: string;
+      }
+    >("calendar:addBlock"),
+  );
 
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
