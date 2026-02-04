@@ -9,9 +9,39 @@ export function PlannerSkeleton() {
     <Container className="pt-6">
       <SkeletonGroup isLoading isSkeletonOnly variant="shimmer" className="gap-6 px-4">
         <View className="mb-6 border-b-2 border-divider pb-2">
-          <SkeletonGroup.Item className="h-8 w-32 rounded-md" />
-          <SkeletonGroup.Item className="h-4 w-56 rounded-md mt-1" />
+          <SkeletonGroup.Item className="h-3 w-24 rounded-md" />
+          <SkeletonGroup.Item className="h-8 w-40 rounded-md mt-2" />
+          <SkeletonGroup.Item className="h-4 w-56 rounded-md mt-2" />
         </View>
+
+        <HardCard padding="sm" label="STATE_MATRIX">
+          <View className="gap-3 p-2">
+            <View className="flex-row flex-wrap gap-2">
+              {Array.from({ length: 7 }).map((_, index) => (
+                <SkeletonGroup.Item key={`chip-${index}`} className="h-6 w-24 rounded-md" />
+              ))}
+            </View>
+            <View className="flex-row flex-wrap gap-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <View key={`metric-${index}`} className="gap-1">
+                  <SkeletonGroup.Item className="h-3 w-20 rounded-md" />
+                  <SkeletonGroup.Item className="h-5 w-16 rounded-md" />
+                </View>
+              ))}
+            </View>
+          </View>
+        </HardCard>
+
+        <HardCard padding="sm" label="REASONS">
+          <View className="gap-2 p-2">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <View key={`reason-${index}`} className="gap-1">
+                <SkeletonGroup.Item className="h-3 w-32 rounded-md" />
+                <SkeletonGroup.Item className="h-4 w-48 rounded-md" />
+              </View>
+            ))}
+          </View>
+        </HardCard>
 
         <HardCard padding="sm" label="EVENT SUMMARY">
           <View className="flex-row justify-between p-2">

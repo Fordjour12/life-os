@@ -163,6 +163,12 @@ export type RecoveryProtocolDraft = {
   reason: { code: string; detail: string };
 };
 
+export type DailyPlanDraft = {
+  day: string;
+  focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
+  reason: { code: string; detail: string };
+};
+
 export type WeeklyPlanDraft = {
   week: string;
   days: Array<{

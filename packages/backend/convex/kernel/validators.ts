@@ -20,6 +20,7 @@ import {
   type JournalPromptRawData,
   type NextStepRawData,
   type RecoveryProtocolRawData,
+  type DailyPlanDraft,
   type WeeklyPlanRawData,
   type WeeklyPlanDraft,
   type WeeklyReviewDraft,
@@ -421,6 +422,47 @@ export function normalizeWeeklyPlanDraft(raw: unknown, fallback: WeeklyPlanDraft
   return {
     week: fallback.week,
     days: days.length ? days : fallback.days,
+    reason,
+  };
+}
+
+export function normalizeDailyPlanDraft(raw: unknown, fallback: DailyPlanDraft): DailyPlanDraft {
+  if (!raw || typeof raw !== "object") return fallback;
+  const candidate = raw as Record<string, unknown>;
+  const focusItemsRaw = Array.isArray(candidate.focusItems) ? candidate.focusItems : [];
+  const focusItems = focusItemsRaw
+    .slice(0, 3)
+    .map((focus, index) => {
+      if (!focus || typeof focus !== "object") return null;
+      const data = focus as Record<string, unknown>;
+      const label = safeCopy(String(data.label ?? "").trim(), "Focus block");
+      if (!label) return null;
+      return {
+        id:
+          String(data.id ?? `focus-${fallback.day}-${index}`).trim() ||
+          `focus-${fallback.day}-${index}`,
+        label,
+        estimatedMinutes: normalizePlanEstimate(Number(data.estimatedMinutes ?? 25)),
+      };
+    })
+    .filter((focus): focus is { id: string; label: string; estimatedMinutes: number } =>
+      Boolean(focus),
+    );
+  const reasonRaw = candidate.reason as { code?: string; detail?: string } | undefined;
+  const reason =
+    reasonRaw?.code && typeof reasonRaw.code === "string"
+      ? {
+          code: reasonRaw.code,
+          detail: safeCopy(
+            typeof reasonRaw.detail === "string" ? reasonRaw.detail : fallback.reason.detail,
+            fallback.reason.detail,
+          ),
+        }
+      : fallback.reason;
+
+  return {
+    day: fallback.day,
+    focusItems: focusItems.length ? focusItems : fallback.focusItems,
     reason,
   };
 }

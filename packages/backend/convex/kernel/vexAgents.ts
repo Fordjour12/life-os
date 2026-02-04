@@ -21,6 +21,7 @@ export type {
   JournalPromptDraft,
   NextStepDraft,
   RecoveryProtocolDraft,
+  DailyPlanDraft,
   WeeklyPlanDraft,
   KernelSuggestion,
 } from "./typesVex";
@@ -37,6 +38,7 @@ export {
   normalizeNextStepDraft,
   normalizeRecoveryProtocolDraft,
   normalizeWeeklyPlanDraft,
+  normalizeDailyPlanDraft,
   journalReasonDetails,
 } from "./validators";
 export {
@@ -48,6 +50,7 @@ export {
 export { generateAiSuggestions } from "./actions/suggestions";
 export { generateWeeklyReviewDraft } from "./actions/weeklyReview";
 export { generateWeeklyPlanDraft } from "./actions/weeklyPlan";
+export { generateDailyPlanDraft } from "./actions/dailyPlan";
 export { generateJournalPromptDraft } from "./actions/journal";
 export { generateNextStepDraft } from "./actions/nextStep";
 export { generateRecoveryProtocolDraft } from "./actions/recoveryProtocol";
