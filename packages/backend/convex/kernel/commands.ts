@@ -286,10 +286,19 @@ export const executeCommand = mutation({
         pausedTaskIds: paused.map((task) => task._id),
       };
     } else if (command.cmd === "submit_feedback") {
+      const suggestionId = String(command.input.suggestionId ?? "").trim();
+      const vote = String(command.input.vote ?? "").trim();
+      if (!suggestionId) {
+        throw new Error("Suggestion id is required");
+      }
+      if (!new Set(["up", "down", "ignore"]).has(vote)) {
+        throw new Error("Vote must be 'up', 'down', or 'ignore'");
+      }
+
       eventType = "SUGGESTION_FEEDBACK";
       meta = {
-        suggestionId: command.input.suggestionId,
-        vote: command.input.vote,
+        suggestionId,
+        vote,
       };
     } else if (command.cmd === "log_habit") {
       const habitId = String(command.input.habitId ?? "").trim();
@@ -332,6 +341,19 @@ export const executeCommand = mutation({
       meta,
       idempotencyKey: command.idempotencyKey,
     });
+
+    if (command.cmd === "submit_feedback") {
+      const suggestionId = String(meta.suggestionId ?? "");
+      const vote = String(meta.vote ?? "");
+      const suggestion = await ctx.db.get(suggestionId as Id<"suggestions">);
+      if (suggestion && suggestion.userId === userId) {
+        const status = vote === "up" ? "accepted" : vote === "down" ? "downvoted" : "ignored";
+        await ctx.db.patch(suggestion._id, {
+          status,
+          updatedAt: now,
+        });
+      }
+    }
 
     if (command.cmd === "accept_rest") {
       await ctx.db.insert("events", {
