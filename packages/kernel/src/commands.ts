@@ -101,10 +101,16 @@ const commandHandlers: { [K in keyof CommandMap]: CommandHandler<CommandMap[K]> 
   },
   add_expense: {
     validate: (input) => {
-      const req = input as { amount: number; category: string };
+      if (typeof input !== "object" || input === null) {
+        return { valid: false, error: "Invalid input" };
+      }
+      const req = input as { amount?: number; category?: string };
       if (!req.category) return { valid: false, error: "Category required" };
-      if (req.amount <= 0) return { valid: false, error: "Amount must be greater than 0" };
+      if (typeof req.amount !== "number" || req.amount <= 0) {
+        return { valid: false, error: "Amount must be a number greater than 0" };
+      }
       return { valid: true };
+    },
     },
     guardrails: () => ({ pass: true }),
     execute: async (cmd) => [
