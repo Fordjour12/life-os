@@ -1,12 +1,12 @@
 import { SkeletonGroup } from "heroui-native";
 import { View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Container } from "@/components/container";
 
 import { HardCard } from "@/components/ui/hard-card";
 
 export function JournalSkeleton() {
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Container>
       <SkeletonGroup isLoading isSkeletonOnly variant="shimmer" className="gap-6 p-4">
         <View className="mb-6 border-b-2 border-divider pb-2">
           <SkeletonGroup.Item className="h-3 w-24 rounded-md" />
@@ -74,6 +74,6 @@ export function JournalSkeleton() {
           ))}
         </View>
       </SkeletonGroup>
-    </SafeAreaView>
+    </Container>
   );
 }

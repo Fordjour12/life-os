@@ -1,11 +1,12 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Button, TextField } from "heroui-native";
+import { Button, TextField, Spinner } from "heroui-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, SafeAreaView, ScrollView, View } from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
+import { Container } from "@/components/container";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { JournalSkeleton } from "@/components/skeletons/journal-skeleton";
@@ -39,6 +40,9 @@ type SavedView = {
 
 const FILTERS_KEY = "journal.filters.v2";
 const SAVED_VIEWS_KEY = "journal.savedViews.v1";
+const DRAFT_KEY = "journal.draft.v1";
+
+const MOODS = ["low", "neutral", "ok", "good"] as const;
 
 function loadFilters(): JournalFilters {
   const raw = storage.getString(FILTERS_KEY);
@@ -85,6 +89,7 @@ function loadSavedViews(): SavedView[] {
 export default function JournalScreen() {
   const entries = useQuery(api.identity.getRecentJournalEntries, { limit: 30 });
   const deleteEntryMutation = useMutation(api.identity.deleteJournalEntry);
+  const createEntryMutation = useMutation(api.identity.createJournalEntry);
   const [moodFilter, setMoodFilter] = useState<JournalFilters["moodFilter"]>(
     () => loadFilters().moodFilter,
   );
@@ -97,11 +102,17 @@ export default function JournalScreen() {
   const [savedViews, setSavedViews] = useState<SavedView[]>(() => loadSavedViews());
   const [viewName, setViewName] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [showWrite, setShowWrite] = useState(false);
   const [deletingId, setDeletingId] = useState<Id<"journalEntries"> | null>(null);
+  const [draftText, setDraftText] = useState(() => {
+    const raw = storage.getString(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as { text: string; mood: Mood }) : { text: "", mood: undefined };
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    storage.set(FILTERS_KEY, JSON.stringify({ moodFilter, windowFilter, query: searchQuery }));
-  }, [moodFilter, searchQuery, windowFilter]);
+    storage.set(DRAFT_KEY, JSON.stringify(draftText));
+  }, [draftText]);
 
   useEffect(() => {
     storage.set(SAVED_VIEWS_KEY, JSON.stringify(savedViews));
@@ -191,6 +202,27 @@ export default function JournalScreen() {
     setSavedViews((prev) => prev.filter((view) => view.id !== id));
   };
 
+  const submitEntry = async () => {
+    if (!draftText.text.trim() && !draftText.mood) return;
+    setIsSubmitting(true);
+    try {
+      const today = new Date().toISOString().split("T")[0] ?? "";
+      await createEntryMutation({
+        day: today,
+        text: draftText.text.trim() || undefined,
+        mood: draftText.mood,
+      });
+      setDraftText({ text: "", mood: undefined });
+      setShowWrite(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const clearDraft = () => {
+    setDraftText({ text: "", mood: undefined });
+  };
+
   const groupedEntries = useMemo(() => {
     return filteredEntries.reduce<Record<string, JournalEntry[]>>((acc, entry) => {
       if (!acc[entry.day]) acc[entry.day] = [];
@@ -246,7 +278,7 @@ export default function JournalScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Container>
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
@@ -260,7 +292,16 @@ export default function JournalScreen() {
           </MachineText>
         </View>
 
-        <View className="mb-6">
+        <View className="mb-4 flex-row gap-3">
+          <Button
+            size="sm"
+            onPress={() => setShowWrite((value) => !value)}
+            className={`border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)] ${showWrite ? "bg-accent/20" : ""}`}
+          >
+            <MachineText className="text-foreground font-bold text-[10px]">
+              {showWrite ? "HIDE_WRITE" : "WRITE_ENTRY"}
+            </MachineText>
+          </Button>
           <Button
             size="sm"
             onPress={() => setShowFilters((value) => !value)}
@@ -392,6 +433,76 @@ export default function JournalScreen() {
           </HardCard>
         ) : null}
 
+        {showWrite ? (
+          <HardCard label="WRITE_MODULE" className="mb-6 bg-surface">
+            <View className="gap-4 p-2">
+              <View className="gap-2">
+                <MachineText variant="label">MOOD_SELECTOR</MachineText>
+                <View className="flex-row flex-wrap gap-2">
+                  {MOODS.map((mood) => (
+                    <Button
+                      key={mood}
+                      size="sm"
+                      onPress={() => setDraftText((prev) => ({ ...prev, mood: mood as Mood }))}
+                      className={`border-2 rounded-none ${
+                        draftText.mood === mood
+                          ? "bg-foreground border-foreground"
+                          : "bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
+                      }`}
+                    >
+                      <MachineText className={`${draftText.mood === mood ? "text-background" : "text-foreground"} font-bold text-[10px]`}>
+                        {mood.toUpperCase()}
+                      </MachineText>
+                    </Button>
+                  ))}
+                </View>
+              </View>
+
+              <View className="gap-2">
+                <MachineText variant="label">ENTRY_TEXT</MachineText>
+                <View className="bg-surface border border-divider p-2 min-h-[100]">
+                  <TextField>
+                    <TextField.Input
+                      value={draftText.text}
+                      onChangeText={(text) => setDraftText((prev) => ({ ...prev, text }))}
+                      placeholder="WRITE_YOUR_REFLECTION..."
+                      placeholderTextColor="var(--color-muted)"
+                      multiline
+                      textAlignVertical="top"
+                      className="font-mono text-sm min-h-[80]"
+                      style={{ fontFamily: "Menlo", fontSize: 12 }}
+                    />
+                  </TextField>
+                </View>
+              </View>
+
+              <View className="flex-row gap-2 justify-end">
+                <Button
+                  size="sm"
+                  onPress={clearDraft}
+                  className="border-2 rounded-none bg-surface border-divider shadow-[2px_2px_0px_var(--color-foreground)]"
+                >
+                  <MachineText className="text-foreground font-bold text-[10px]">CLEAR</MachineText>
+                </Button>
+                <Button
+                  size="sm"
+                  onPress={submitEntry}
+                  isDisabled={isSubmitting || (!draftText.text.trim() && !draftText.mood)}
+                  className={`border-2 rounded-none shadow-[2px_2px_0px_var(--color-accent)] ${
+                    isSubmitting || (!draftText.text.trim() && !draftText.mood)
+                      ? "bg-muted border-muted"
+                      : "bg-foreground border-foreground"
+                  }`}
+                >
+                  <MachineText className={`font-bold text-[10px] ${isSubmitting || (!draftText.text.trim() && !draftText.mood) ? "text-muted-foreground" : "text-background"}`}>
+                    {isSubmitting ? "SUBMITTING..." : "SUBMIT_ENTRY"}
+                  </MachineText>
+                </Button>
+              </View>
+            </View>
+          </HardCard>
+        ) : null}
+
         {entriesData.length === 0 ? (
           <HardCard variant="flat" className="p-8 items-center border-dashed">
             <MachineText className="text-muted">NO_REFLECTIONS_YET.</MachineText>
@@ -432,7 +543,6 @@ export default function JournalScreen() {
                 }
                 return null;
               }}
-              estimatedItemSize={200}
               keyExtractor={(_, index) => `entry-${index}`}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ gap: 16 }}
@@ -440,6 +550,6 @@ export default function JournalScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </Container>
   );
 }
