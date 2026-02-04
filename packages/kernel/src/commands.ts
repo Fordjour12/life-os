@@ -26,14 +26,18 @@ type CommandMap = {
 const commandHandlers: { [K in keyof CommandMap]: CommandHandler<CommandMap[K]> } = {
   create_task: {
     validate: (input) => {
-      const req = input as { title: string; estimateMin: number };
-      if (!req.title || req.title.trim().length === 0) {
+      if (typeof input !== "object" || input === null) {
+        return { valid: false, error: "Invalid input" };
+      }
+      const req = input as { title?: string; estimateMin?: number };
+      if (typeof req.title !== "string" || req.title.trim().length === 0) {
         return { valid: false, error: "Title required" };
       }
-      if (req.estimateMin < 5 || req.estimateMin > 480) {
+      if (typeof req.estimateMin !== "number" || req.estimateMin < 5 || req.estimateMin > 480) {
         return { valid: false, error: "Estimate must be 5-480 minutes" };
       }
       return { valid: true };
+    },
     },
     guardrails: () => ({ pass: true }),
     execute: async (cmd) => {

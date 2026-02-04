@@ -3,7 +3,7 @@ import type { Policy } from "../types";
 export const financialDriftWatch: Policy = {
   name: "financial-drift-watch",
   when: (ctx) => ctx.state.financialDrift === "risk",
-  propose: () => {
+  propose: (_ctx) => {
     return [
       {
         id: `fdw-${Date.now()}`,

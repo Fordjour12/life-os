@@ -59,7 +59,13 @@ class MMKVEventStore implements EventStore {
 
   private getAllEvents(): StoredEvent[] {
     const raw = this.storage.getString(EVENT_STORE_KEY);
-    return raw ? (JSON.parse(raw) as StoredEvent[]) : [];
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw) as StoredEvent[];
+    } catch {
+      console.error("Failed to parse event store, resetting to empty");
+      return [];
+    }
   }
 
   private createId(): string {
