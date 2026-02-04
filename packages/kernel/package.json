@@ -1,0 +1,21 @@
+{
+  "name": "@life-os/kernel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "react-native": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "dependencies": {
+    "react-native-mmkv": "^4.1.2"
+  },
+  "devDependencies": {
+    "@life-os/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
