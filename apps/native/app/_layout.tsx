@@ -10,6 +10,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { authClient } from "@/lib/auth-client";
+import { KernelProvider } from "@/lib/kernel-provider";
 import { BootGate } from "@/components/boot-gate";
 
 export const unstable_settings = {
@@ -76,7 +77,9 @@ export default function Layout() {
             <AuthProvider>
               <AppThemeProvider>
                 <HeroUINativeProvider>
-                  <StackLayout />
+                  <KernelProvider>
+                    <StackLayout />
+                  </KernelProvider>
                 </HeroUINativeProvider>
               </AppThemeProvider>
             </AuthProvider>

@@ -29,6 +29,7 @@
         "@gorhom/bottom-sheet": "^5",
         "@life-os/backend": "workspace:*",
         "@life-os/env": "workspace:*",
+        "@life-os/kernel": "workspace:*",
         "@react-navigation/drawer": "^7.3.9",
         "@react-navigation/elements": "^2.8.1",
         "@shopify/flash-list": "2.0.2",
@@ -106,6 +107,17 @@
         "@t3-oss/env-core": "^0.13.1",
         "dotenv": "catalog:",
         "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@life-os/config": "workspace:*",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/kernel": {
+      "name": "@life-os/kernel",
+      "version": "0.1.0",
+      "dependencies": {
+        "react-native-mmkv": "^4.1.2",
       },
       "devDependencies": {
         "@life-os/config": "workspace:*",
@@ -501,6 +513,8 @@
     "@life-os/config": ["@life-os/config@workspace:packages/config"],
 
     "@life-os/env": ["@life-os/env@workspace:packages/env"],
+
+    "@life-os/kernel": ["@life-os/kernel@workspace:packages/kernel"],
 
     "@noble/ciphers": ["@noble/ciphers@2.1.1", "", {}, "sha512-bysYuiVfhxNJuldNXlFEitTVdNnYUc+XNJZd7Qm2a5j1vZHgY+fazadNFWFaMK/2vye0JVlxV3gHmC0WDfAOQw=="],
 
