@@ -20,6 +20,7 @@
     "@gorhom/bottom-sheet": "^5",
     "@life-os/backend": "workspace:*",
     "@life-os/env": "workspace:*",
+    "@life-os/kernel": "workspace:*",
     "@react-navigation/drawer": "^7.3.9",
     "@react-navigation/elements": "^2.8.1",
     "@shopify/flash-list": "2.0.2",
