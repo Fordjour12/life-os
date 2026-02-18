@@ -1,7 +1,4 @@
-import {
-  internalQuery,
-  internalMutation,
-} from "../_generated/server";
+import { internalQuery, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser } from "../auth";
 import type {
@@ -124,16 +121,12 @@ export const getWeeklyPlanRawData = internalQuery({
 
     const activeTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "active"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
       .collect();
 
     const pausedTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "paused"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
       .collect();
 
     const stateDocs = await ctx.db
@@ -145,6 +138,59 @@ export const getWeeklyPlanRawData = internalQuery({
       .query("calendarBlocks")
       .withIndex("by_user_day", (q) => q.eq("userId", userId))
       .collect();
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_user_ts", (q) => q.eq("userId", userId))
+      .collect();
+
+    const latestPlanByDay = new Map<
+      string,
+      {
+        day: string;
+        version: number;
+        ts: number;
+        focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
+      }
+    >();
+    for (const event of events) {
+      if (event.type !== "PLAN_SET") continue;
+      const meta = event.meta as
+        | {
+            day?: string;
+            version?: number;
+            focusItems?: Array<{ id?: string; label?: string; estimatedMinutes?: number }>;
+          }
+        | undefined;
+      if (!meta?.day || !Array.isArray(meta.focusItems)) continue;
+      if (meta.day < startDay || meta.day > endDay) continue;
+      const version = Number(meta.version ?? 0);
+      const focusItems = meta.focusItems
+        .map((item, index) => {
+          const label = String(item?.label ?? "").trim();
+          if (!label) return null;
+          const estimatedMinutes = Number(item?.estimatedMinutes ?? 0);
+          if (!Number.isFinite(estimatedMinutes) || estimatedMinutes <= 0) return null;
+          const id = String(item?.id ?? "").trim() || `focus-${meta.day}-${index}`;
+          return { id, label, estimatedMinutes };
+        })
+        .filter((item): item is { id: string; label: string; estimatedMinutes: number } =>
+          Boolean(item),
+        );
+      if (!focusItems.length) continue;
+      const existing = latestPlanByDay.get(meta.day);
+      if (
+        !existing ||
+        version > existing.version ||
+        (version === existing.version && event.ts > existing.ts)
+      ) {
+        latestPlanByDay.set(meta.day, {
+          day: meta.day,
+          version,
+          ts: event.ts,
+          focusItems,
+        });
+      }
+    }
 
     return {
       activeTasks: activeTasks.map((task) => ({
@@ -168,6 +214,11 @@ export const getWeeklyPlanRawData = internalQuery({
           endMin: block.endMin,
           kind: block.kind,
         })),
+      existingPlans: Array.from(latestPlanByDay.values()).map((plan) => ({
+        day: plan.day,
+        version: plan.version,
+        focusItems: plan.focusItems,
+      })),
     } as WeeklyPlanRawData;
   },
 });
@@ -192,16 +243,12 @@ export const getAiSuggestRawData = internalQuery({
 
     const activeTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "active"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
       .collect();
 
     const pausedTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "paused"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
       .collect();
 
     const calendarBlocks = await ctx.db

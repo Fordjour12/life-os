@@ -46,7 +46,8 @@ export function reduce(prevState: LifeState, event: KernelEvent): LifeState {
     }
     case "TASK_COMPLETED": {
       state.completedMinutes += 30;
-      state.completionRate = state.plannedMinutes > 0 ? state.completedMinutes / state.plannedMinutes : 0;
+      state.completionRate =
+        state.plannedMinutes > 0 ? state.completedMinutes / state.plannedMinutes : 0;
       state.backlogPressure = Math.max(0, state.backlogPressure - 3);
       reasons.push({ code: "TASK_DONE", detail: `Completed task ${event.taskId}` });
       break;
@@ -126,7 +127,10 @@ function computeDerivedMetrics(state: LifeState, reasons: LifeState["reasons"]):
   const loadRatio = state.plannedMinutes / Math.max(1, state.freeMinutes);
   state.load = computeLoadState(loadRatio);
   if (state.load === "overloaded") {
-    reasons.push({ code: "OVERLOAD", detail: `Planning ${Math.round(loadRatio * 100)}% of free time` });
+    reasons.push({
+      code: "OVERLOAD",
+      detail: `Planning ${Math.round(loadRatio * 100)}% of free time`,
+    });
   }
 
   state.momentum = computeMomentum(state.completedMinutes);
@@ -181,7 +185,8 @@ function computeFriction(momentum: Momentum): Friction {
 
 function computeLifeMode(state: LifeState): LifeMode {
   if (
-    (state.load === "overloaded" && (state.focusCapacity === "low" || state.focusCapacity === "very_low")) ||
+    (state.load === "overloaded" &&
+      (state.focusCapacity === "low" || state.focusCapacity === "very_low")) ||
     state.habitHealth === "fragile"
   ) {
     return "recovery";

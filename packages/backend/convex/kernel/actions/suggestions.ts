@@ -2,10 +2,7 @@ import { internalAction } from "../../_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser } from "../../auth";
 import { suggestionAgent } from "../agents";
-import {
-  buildAiContext,
-  validateAiSuggestion,
-} from "../validators";
+import { buildAiContext, validateAiSuggestion } from "../validators";
 import { DAILY_SUGGESTION_CAP } from "../stabilization";
 import { sanitizeSuggestionCopy } from "../../identity/guardrails";
 import type { AiSuggestRawData, AiSuggestContext, KernelSuggestion } from "../typesVex";
@@ -18,9 +15,7 @@ async function callAiModel(
 ): Promise<KernelSuggestion[]> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    console.log(
-      "[vex-agents] No OPENROUTER_API_KEY configured, skipping AI call",
-    );
+    console.log("[vex-agents] No OPENROUTER_API_KEY configured, skipping AI call");
     return [];
   }
 
@@ -60,13 +55,9 @@ OUTPUT FORMAT: JSON array of suggestions with fields: day, type, priority, reaso
 Generate suggestions based on:
 ${JSON.stringify(context, null, 2)}`;
 
-    const result = await suggestionAgent.generateText(
-      ctx,
-      { threadId, userId },
-      {
-        prompt,
-      } as Parameters<typeof suggestionAgent.generateText>[2],
-    );
+    const result = await suggestionAgent.generateText(ctx, { threadId, userId }, {
+      prompt,
+    } as Parameters<typeof suggestionAgent.generateText>[2]);
 
     if (!result.text) {
       console.log("[vex-agents] Empty response from AI");
@@ -79,9 +70,7 @@ ${JSON.stringify(context, null, 2)}`;
       return [];
     }
 
-    return suggestions
-      .map(validateAiSuggestion)
-      .filter((s): s is KernelSuggestion => s !== null);
+    return suggestions.map(validateAiSuggestion).filter((s): s is KernelSuggestion => s !== null);
   } catch (error) {
     console.error("[vex-agents] Error calling AI:", error);
     return [];
@@ -112,10 +101,9 @@ export const generateAiSuggestions = internalAction({
     );
 
     try {
-      const raw = await (ctx.runQuery as any)(
-        "kernel/vexAgents/getAiSuggestRawData",
-        { day }
-      ) as AiSuggestRawData;
+      const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getAiSuggestRawData", {
+        day,
+      })) as AiSuggestRawData;
       const context = buildAiContext(raw, day, tzOffsetMinutes ?? 0);
       if (!context) {
         console.log(`[vex-agents] No state found for day=${day}, skipping`);
@@ -126,22 +114,17 @@ export const generateAiSuggestions = internalAction({
       console.log(`[vex-agents] Context built: input_size=${inputSize} chars`);
 
       const aiSuggestions = await callAiModel(ctx, userId, context);
-      console.log(
-        `[vex-agents] AI returned ${aiSuggestions.length} suggestions`,
-      );
+      console.log(`[vex-agents] AI returned ${aiSuggestions.length} suggestions`);
 
       if (aiSuggestions.length === 0) {
         return { status: "success", count: 0 };
       }
 
-      const existingSugs = await (ctx.runQuery as any)(
-        "kernel/vexAgents/getSuggestionsForDay",
-        { day }
-      ) as AiSuggestRawData["existingSuggestions"];
+      const existingSugs = (await (ctx.runQuery as any)("kernel/vexAgents/getSuggestionsForDay", {
+        day,
+      })) as AiSuggestRawData["existingSuggestions"];
 
-      const existingNewCount = existingSugs.filter(
-        (s) => s.status === "new",
-      ).length;
+      const existingNewCount = existingSugs.filter((s) => s.status === "new").length;
       if (existingNewCount > 0) {
         console.log(
           `[vex-agents] Existing new suggestions found (${existingNewCount}), skipping insertion`,
@@ -149,14 +132,9 @@ export const generateAiSuggestions = internalAction({
         return { status: "skipped", reason: "existing_new_suggestions" };
       }
 
-      const remainingSlots = Math.max(
-        0,
-        DAILY_SUGGESTION_CAP - existingSugs.length,
-      );
+      const remainingSlots = Math.max(0, DAILY_SUGGESTION_CAP - existingSugs.length);
       if (remainingSlots === 0) {
-        console.log(
-          `[vex-agents] Daily cap reached (${DAILY_SUGGESTION_CAP}), skipping insertion`,
-        );
+        console.log(`[vex-agents] Daily cap reached (${DAILY_SUGGESTION_CAP}), skipping insertion`);
         return { status: "skipped", reason: "daily_cap_reached" };
       }
 
@@ -164,8 +142,7 @@ export const generateAiSuggestions = internalAction({
       const recentlySuggested = (cooldownKey?: string) => {
         if (!cooldownKey) return false;
         return existingSugs.some(
-          (s) =>
-            s.cooldownKey === cooldownKey && now - s.createdAt < TWELVE_HOURS,
+          (s) => s.cooldownKey === cooldownKey && now - s.createdAt < TWELVE_HOURS,
         );
       };
 

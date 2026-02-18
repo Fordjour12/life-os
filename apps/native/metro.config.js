@@ -15,12 +15,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules"),
 ];
 config.resolver.unstable_enablePackageExports = true;
-config.resolver.unstable_conditionNames = [
-  "react-native",
-  "browser",
-  "import",
-  "default",
-];
+config.resolver.unstable_conditionNames = ["react-native", "browser", "import", "default"];
 config.resolver.sourceExts.unshift("mjs");
 config.resolver.sourceExts.push("mjs");
 

@@ -69,7 +69,8 @@ const commandHandlers: { [K in keyof CommandMap]: CommandHandler<CommandMap[K]> 
   reschedule_task: {
     validate: (input) => {
       const req = input as { taskId: string; newDate: string };
-      if (!req.taskId || !req.newDate) return { valid: false, error: "TaskId and newDate required" };
+      if (!req.taskId || !req.newDate)
+        return { valid: false, error: "TaskId and newDate required" };
       return { valid: true };
     },
     guardrails: () => ({ pass: true }),
@@ -142,7 +143,8 @@ const commandHandlers: { [K in keyof CommandMap]: CommandHandler<CommandMap[K]> 
   apply_reschedule: {
     validate: (input) => {
       const req = input as { taskId: string; newDate: string };
-      if (!req.taskId || !req.newDate) return { valid: false, error: "TaskId and newDate required" };
+      if (!req.taskId || !req.newDate)
+        return { valid: false, error: "TaskId and newDate required" };
       return { valid: true };
     },
     guardrails: () => ({ pass: true }),
@@ -159,7 +161,8 @@ const commandHandlers: { [K in keyof CommandMap]: CommandHandler<CommandMap[K]> 
   downshift_habit: {
     validate: (input) => {
       const req = input as { habitId: string; newTarget: string };
-      if (!req.habitId || !req.newTarget) return { valid: false, error: "HabitId and newTarget required" };
+      if (!req.habitId || !req.newTarget)
+        return { valid: false, error: "HabitId and newTarget required" };
       return { valid: true };
     },
     guardrails: () => ({ pass: true }),
@@ -204,12 +207,20 @@ export async function executeCommand(command: KernelCommand): Promise<CommandRes
 
   const validation = handler.validate(typedCommand.input);
   if (!validation.valid) {
-    return { success: false, error: validation.error ?? "Invalid command", code: "VALIDATION_ERROR" };
+    return {
+      success: false,
+      error: validation.error ?? "Invalid command",
+      code: "VALIDATION_ERROR",
+    };
   }
 
   const guardrails = handler.guardrails(typedCommand, null);
   if (!guardrails.pass) {
-    return { success: false, error: guardrails.reason ?? "Guardrail blocked", code: "GUARDRAIL_ERROR" };
+    return {
+      success: false,
+      error: guardrails.reason ?? "Guardrail blocked",
+      code: "GUARDRAIL_ERROR",
+    };
   }
 
   const events = await handler.execute(typedCommand);

@@ -101,6 +101,11 @@ export type WeeklyPlanRawData = {
     endMin: number;
     kind: string;
   }>;
+  existingPlans: Array<{
+    day: string;
+    version: number;
+    focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
+  }>;
 };
 
 export type NextStepRawData = {
@@ -142,6 +147,15 @@ export type WeeklyPlanDraft = {
     day: string;
     focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
     reason: { code: string; detail: string };
+    conflict?: { code: string; detail: string };
+    adjustment?: { code: string; detail: string };
+    reservations?: Array<{
+      itemId: string;
+      label: string;
+      startMin?: number;
+      endMin?: number;
+      status: "reserved" | "unplaced";
+    }>;
   }>;
   reason: { code: string; detail: string };
 };

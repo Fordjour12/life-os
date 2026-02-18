@@ -9,9 +9,7 @@ export const getActiveTasks = query({
 
     return ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "active"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "active"))
       .collect();
   },
 });
@@ -24,9 +22,7 @@ export const getPausedTasks = query({
 
     const paused = await ctx.db
       .query("tasks")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", userId).eq("status", "paused"),
-      )
+      .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "paused"))
       .collect();
 
     return paused.sort((a, b) => (a.estimateMin ?? 0) - (b.estimateMin ?? 0));

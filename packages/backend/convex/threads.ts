@@ -56,7 +56,7 @@ export const listConversations: ReturnType<typeof query> = query({
           createdAt: thread._creationTime,
           updatedAt: thread._creationTime,
         };
-      })
+      }),
     );
 
     return {

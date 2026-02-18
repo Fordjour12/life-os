@@ -8,16 +8,12 @@ export function formatYYYYMMDD(date: Date): string {
 }
 
 export function getISOWeekIdFromDate(date: Date): string {
-  const target = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
+  const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const day = target.getUTCDay() || 7;
   target.setUTCDate(target.getUTCDate() + 4 - day);
   const year = target.getUTCFullYear();
   const yearStart = new Date(Date.UTC(year, 0, 1));
-  const week = Math.ceil(
-    ((target.getTime() - yearStart.getTime()) / MILLISECONDS_IN_DAY + 1) / 7,
-  );
+  const week = Math.ceil(((target.getTime() - yearStart.getTime()) / MILLISECONDS_IN_DAY + 1) / 7);
   return `${year}-${String(week).padStart(2, "0")}`;
 }
 
@@ -53,10 +49,7 @@ export function getTodayYYYYMMDD(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export function truncate<T extends Record<string, unknown>>(
-  obj: T,
-  maxDepth = 3,
-): T {
+export function truncate<T extends Record<string, unknown>>(obj: T, maxDepth = 3): T {
   if (maxDepth <= 0) return {} as T;
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -70,9 +63,7 @@ export function truncate<T extends Record<string, unknown>>(
       result[key] = value
         .slice(0, 50)
         .map((item) =>
-          typeof item === "object" && item !== null
-            ? truncate(item, maxDepth - 1)
-            : item,
+          typeof item === "object" && item !== null ? truncate(item, maxDepth - 1) : item,
         );
     } else if (typeof value === "object" && value !== null) {
       result[key] = truncate(value as Record<string, unknown>, maxDepth - 1);

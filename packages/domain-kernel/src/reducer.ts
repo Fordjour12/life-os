@@ -1,11 +1,4 @@
-import type {
-  FocusCapacity,
-  KernelEvent,
-  LifeMode,
-  LifeState,
-  LoadState,
-  Momentum,
-} from "./types";
+import type { FocusCapacity, KernelEvent, LifeMode, LifeState, LoadState, Momentum } from "./types";
 
 const DEFAULT_FREE_MINUTES = 240;
 

@@ -8,9 +8,10 @@ export const endOfDayReview: Policy = {
   },
   propose: (ctx) => {
     const questions = generateReflectionQuestions(ctx);
-    const question =
-      questions[Math.floor(Math.random() * Math.max(1, questions.length))] ??
-      { id: "q-general", text: "What's one thing you're grateful for today?" };
+    const question = questions[Math.floor(Math.random() * Math.max(1, questions.length))] ?? {
+      id: "q-general",
+      text: "What's one thing you're grateful for today?",
+    };
 
     return [
       {

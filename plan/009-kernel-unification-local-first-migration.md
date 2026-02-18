@@ -24,6 +24,7 @@ Migrate the current hybrid architecture to a unified behavioral engine with a lo
 2. Add observability fields across command flow (`commandId`, `idempotencyKey`, `traceId`).
 3. Add baseline test harness for reducer/policies/command idempotency.
 4. Add migration feature flags:
+
 - `kernel_unified_domain`
 - `local_outbox_enabled`
 - `local_read_model_enabled`
@@ -37,12 +38,14 @@ Migrate the current hybrid architecture to a unified behavioral engine with a lo
 ## Phase 1: Create Canonical Domain Kernel Package (1-2 weeks)
 
 1. Create `packages/domain-kernel` with pure modules only:
+
 - `types`
 - `commands`
 - `events`
 - `reducer`
 - `policies`
 - `suggestion-lifecycle`
+
 2. Move behavior from backend kernel reducer/policies into shared pure functions.
 3. Keep storage/network concerns in adapters only.
 4. Keep existing `packages/kernel` temporarily but stop adding logic to it.
@@ -55,12 +58,14 @@ Migrate the current hybrid architecture to a unified behavioral engine with a lo
 ## Phase 2: Refactor Backend to Orchestrate Domain Kernel (1-2 weeks)
 
 1. Split `packages/backend/convex/kernel/commands.ts` into pipeline steps:
+
 - validate
 - authorize
 - dedupe
 - execute
 - project state
 - generate suggestions
+
 2. Replace inline reducer/policy logic with `packages/domain-kernel`.
 3. Replace broad payload validation (`v.any()`) for kernel commands with typed command validators.
 4. Preserve current API response shape consumed by native app.
@@ -74,14 +79,17 @@ Migrate the current hybrid architecture to a unified behavioral engine with a lo
 ## Phase 3: Local-First Foundation in Native App (1-2 weeks)
 
 1. Add SQLite layer in `apps/native` with tables:
+
 - `local_events`
 - `local_state_daily`
 - `local_suggestions`
 - `outbox_commands`
 - `sync_cursor`
+
 2. Build local adapters that execute the shared `packages/domain-kernel`.
 3. Write user actions to local outbox.
 4. Start in shadow mode:
+
 - server remains source for UI
 - local engine runs in parallel for diffing
 
@@ -93,12 +101,16 @@ Migrate the current hybrid architecture to a unified behavioral engine with a lo
 ## Phase 4: Sync V2 Protocol (1 week)
 
 1. Add backend sync endpoints:
+
 - `pushCommands(batch)`
 - `pullEventsSince(cursor)`
+
 2. Enforce idempotency and replay-safe handlers.
 3. Define merge semantics:
+
 - immediate UX from local apply
 - server authoritative for shared history
+
 4. Add retry/backoff and dead-letter path for failed sync commands.
 
 ### Exit Criteria
@@ -148,10 +160,15 @@ Migrate the current hybrid architecture to a unified behavioral engine with a lo
 ## Risks and Mitigations
 
 1. Behavior drift during dual-run period.
+
 - Mitigation: shadow diff checks + golden fixtures.
+
 2. Sync duplication/conflicts under unstable networks.
+
 - Mitigation: strict idempotency + replay-safe command handlers.
+
 3. Oversized backend handlers slowing iteration.
+
 - Mitigation: handler pipeline decomposition + command registry.
 
 ## Recommended Implementation Order

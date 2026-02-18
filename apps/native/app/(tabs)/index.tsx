@@ -135,7 +135,8 @@ export default function Today() {
   const [isSkippingJournal, setIsSkippingJournal] = useState(false);
   const trimmedTitle = title.trim();
   const parsedEstimate = Number.parseInt(estimate, 10);
-  const isEstimateValid = Number.isFinite(parsedEstimate) && parsedEstimate >= 5 && parsedEstimate <= 480;
+  const isEstimateValid =
+    Number.isFinite(parsedEstimate) && parsedEstimate >= 5 && parsedEstimate <= 480;
   const canCreateTask = trimmedTitle.length > 0 && isEstimateValid && !isCreating;
 
   const createTask = async () => {
@@ -343,10 +344,7 @@ export default function Today() {
             </MachineText>
           </View>
           <View className="h-2 border border-divider bg-surface">
-            <View
-              className="h-full bg-accent"
-              style={{ width: `${completionPercent}%` }}
-            />
+            <View className="h-full bg-accent" style={{ width: `${completionPercent}%` }} />
           </View>
         </View>
       </HardCard>
@@ -691,9 +689,7 @@ export default function Today() {
 
             {trimmedTitle.length > 0 ? (
               <View className="border border-divider bg-muted px-2 py-2">
-                <MachineText className="text-[10px] text-foreground/70">
-                  WILL ADD:
-                </MachineText>
+                <MachineText className="text-[10px] text-foreground/70">WILL ADD:</MachineText>
                 <MachineText className="text-xs font-bold">
                   {trimmedTitle} ({estimate || "?"} MIN)
                 </MachineText>

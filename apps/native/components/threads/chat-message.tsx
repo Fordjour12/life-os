@@ -38,7 +38,11 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
             <MachineText className={isUser ? "text-background" : "text-accent"}>
               {summary}
             </MachineText>
-            <MachineText className={isUser ? "text-background/70 text-[10px]" : "text-muted-foreground text-[10px]"}>
+            <MachineText
+              className={
+                isUser ? "text-background/70 text-[10px]" : "text-muted-foreground text-[10px]"
+              }
+            >
               {formatTime(timestamp)}
             </MachineText>
           </View>

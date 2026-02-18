@@ -60,9 +60,7 @@ export function appendLocalEvent(input: Omit<LocalEventRecord, "id">) {
 }
 
 export function listLocalEvents(userId: string, day?: string) {
-  const events = readList<LocalEventRecord>(EVENTS_KEY).filter(
-    (event) => event.userId === userId,
-  );
+  const events = readList<LocalEventRecord>(EVENTS_KEY).filter((event) => event.userId === userId);
   if (!day) return events.sort((a, b) => a.ts - b.ts);
   return events
     .filter((event) => new Date(event.ts).toISOString().slice(0, 10) === day)
@@ -110,9 +108,7 @@ export function getLocalSuggestionsForDay(userId: string, day: string) {
   return readList<LocalSuggestionRecord>(SUGGESTIONS_KEY)
     .filter(
       (suggestion) =>
-        suggestion.userId === userId &&
-        suggestion.day === day &&
-        suggestion.status === "new",
+        suggestion.userId === userId && suggestion.day === day && suggestion.status === "new",
     )
     .sort((a, b) => b.priority - a.priority);
 }
@@ -186,9 +182,7 @@ export function retryFailedOutboxCommand(id: string) {
 
 export function pruneAckedOutboxCommands(userId: string, keep = 50) {
   const entries = readList<OutboxCommandRecord>(OUTBOX_KEY);
-  const active = entries.filter(
-    (entry) => !(entry.userId === userId && entry.status === "acked"),
-  );
+  const active = entries.filter((entry) => !(entry.userId === userId && entry.status === "acked"));
   const acked = entries
     .filter((entry) => entry.userId === userId && entry.status === "acked")
     .sort((a, b) => b.updatedAt - a.updatedAt)
@@ -213,7 +207,5 @@ export function setSyncCursor(userId: string, cursor: string | null) {
 }
 
 export function getSyncCursor(userId: string) {
-  return readList<SyncCursorRecord>(CURSORS_KEY).find(
-    (entry) => entry.userId === userId,
-  );
+  return readList<SyncCursorRecord>(CURSORS_KEY).find((entry) => entry.userId === userId);
 }

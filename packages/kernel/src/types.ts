@@ -30,7 +30,13 @@ export type KernelEvent =
   | { type: "TASK_DELETED"; taskId: string; ts: number; meta?: Record<string, unknown> }
   | { type: "HABIT_DONE"; habitId: string; ts: number; meta?: Record<string, unknown> }
   | { type: "HABIT_MISSED"; habitId: string; ts: number; meta?: Record<string, unknown> }
-  | { type: "PLAN_SET"; day: string; top3TaskIds: string[]; ts: number; meta?: Record<string, unknown> }
+  | {
+      type: "PLAN_SET";
+      day: string;
+      top3TaskIds: string[];
+      ts: number;
+      meta?: Record<string, unknown>;
+    }
   | {
       type: "CAL_BLOCK_ADDED";
       blockId: string;
@@ -40,7 +46,13 @@ export type KernelEvent =
       ts: number;
       meta?: Record<string, unknown>;
     }
-  | { type: "CAL_BLOCK_FINISHED"; blockId: string; completed: boolean; ts: number; meta?: Record<string, unknown> }
+  | {
+      type: "CAL_BLOCK_FINISHED";
+      blockId: string;
+      completed: boolean;
+      ts: number;
+      meta?: Record<string, unknown>;
+    }
   | { type: "CAL_BLOCK_REMOVED"; blockId: string; ts: number; meta?: Record<string, unknown> }
   | {
       type: "EXPENSE_ADDED";
@@ -97,7 +109,10 @@ export type KernelAction =
   | { type: "SUGGEST_BACKLOG_CLEANUP"; count: number };
 
 export type KernelCommand =
-  | { cmd: "create_task"; input: { title: string; estimateMin: number; dueDate?: string; habitId?: string } }
+  | {
+      cmd: "create_task";
+      input: { title: string; estimateMin: number; dueDate?: string; habitId?: string };
+    }
   | { cmd: "complete_task"; input: { taskId: string } }
   | { cmd: "reschedule_task"; input: { taskId: string; newDate: string } }
   | { cmd: "delete_task"; input: { taskId: string } }

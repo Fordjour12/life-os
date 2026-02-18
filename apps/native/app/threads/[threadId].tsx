@@ -105,11 +105,7 @@ export default function ThreadDetail() {
           )}
         </ScrollView>
 
-        <ChatInput
-          onSend={handleSend}
-          disabled={isSending}
-          placeholder="Type a message..."
-        />
+        <ChatInput onSend={handleSend} disabled={isSending} placeholder="Type a message..." />
       </Container>
     </KeyboardAvoidingView>
   );

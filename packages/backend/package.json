@@ -13,13 +13,13 @@
     "@better-auth/expo": "catalog:",
     "@convex-dev/agent": "^0.3.2",
     "@convex-dev/better-auth": "catalog:",
+    "@life-os/domain-kernel": "workspace:*",
     "@openrouter/ai-sdk-provider": "^1.5.4",
     "ai": "^5.0.29",
     "better-auth": "catalog:",
     "convex": "catalog:",
     "dotenv": "catalog:",
-    "zod": "catalog:",
-    "@life-os/domain-kernel": "workspace:*"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@life-os/config": "workspace:*",

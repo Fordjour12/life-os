@@ -62,7 +62,10 @@ export default function TimeReality() {
 
   const activeDay = selectedDay ?? today?.day ?? null;
   const blocks = useQuery(api.calendar.listBlocksForDay, activeDay ? { day: activeDay } : "skip");
-  const freeData = useQuery(api.calendar.getFreeMinutesForDay, activeDay ? { day: activeDay } : "skip");
+  const freeData = useQuery(
+    api.calendar.getFreeMinutesForDay,
+    activeDay ? { day: activeDay } : "skip",
+  );
 
   const sortedBlocks = useMemo(() => {
     return ((blocks ?? []) as CalendarBlock[]).slice().sort((a, b) => a.startMin - b.startMin);
@@ -210,7 +213,9 @@ export default function TimeReality() {
                 className="flex-1 bg-accent border border-foreground shadow-[2px_2px_0px_var(--color-foreground)]"
                 onPress={() => setSelectedDay(today.day)}
               >
-                <MachineText className="text-[10px] font-bold text-accent-foreground">TODAY</MachineText>
+                <MachineText className="text-[10px] font-bold text-accent-foreground">
+                  TODAY
+                </MachineText>
               </Button>
               <Button
                 size="sm"
@@ -237,12 +242,18 @@ export default function TimeReality() {
               </View>
               <View className="items-end">
                 <MachineText variant="label">EFFECTIVE_FREE</MachineText>
-                <MachineText className="text-sm">{formatMinutes(freeData.effectiveFreeMinutes)}</MachineText>
+                <MachineText className="text-sm">
+                  {formatMinutes(freeData.effectiveFreeMinutes)}
+                </MachineText>
               </View>
             </View>
             <View className="flex-row justify-between">
-              <MachineText className="text-xs">BUSY: {formatMinutes(freeData.busyMinutes)}</MachineText>
-              <MachineText className="text-xs">FOCUS: {formatMinutes(freeData.focusMinutes)}</MachineText>
+              <MachineText className="text-xs">
+                BUSY: {formatMinutes(freeData.busyMinutes)}
+              </MachineText>
+              <MachineText className="text-xs">
+                FOCUS: {formatMinutes(freeData.focusMinutes)}
+              </MachineText>
               <MachineText className="text-xs">TOTAL: {formatMinutes(totals.total)}</MachineText>
             </View>
             <MachineText className="text-[10px] text-foreground/60">

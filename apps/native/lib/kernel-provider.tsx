@@ -21,7 +21,9 @@ type KernelContextValue = {
   state: LifeState | null;
   suggestions: ProposedAction[];
   appendEvent: (event: KernelEvent) => Promise<void>;
-  executeKernelCommand: (cmd: Parameters<typeof executeCommand>[0]) => Promise<{ success: boolean }>;
+  executeKernelCommand: (
+    cmd: Parameters<typeof executeCommand>[0],
+  ) => Promise<{ success: boolean }>;
   refreshState: () => Promise<void>;
 };
 
@@ -117,7 +119,8 @@ function buildPolicyContext(state: LifeState, events: KernelEvent[]): PolicyCont
   const completedLast3Days = recentEvents.filter((event) => event.type === "TASK_COMPLETED").length;
   const habitDone = recentHabits.filter((event) => event.type === "HABIT_DONE").length;
   const habitMissed = recentHabits.filter((event) => event.type === "HABIT_MISSED").length;
-  const habitCompletion7Days = habitDone + habitMissed > 0 ? habitDone / (habitDone + habitMissed) : 0;
+  const habitCompletion7Days =
+    habitDone + habitMissed > 0 ? habitDone / (habitDone + habitMissed) : 0;
   const streakBreaks = habitMissed;
   const backlogCount = Math.round(state.backlogPressure / 5);
 

@@ -34,9 +34,7 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 
 export { createAuth };
 
-export async function requireAuthUser(
-  ctx: QueryCtx | MutationCtx | ActionCtx
-) {
+export async function requireAuthUser(ctx: QueryCtx | MutationCtx | ActionCtx) {
   const authUser = await authComponent.safeGetAuthUser(
     ctx as unknown as Parameters<typeof authComponent.safeGetAuthUser>[0],
   );

@@ -1,14 +1,13 @@
 import { api } from "@life-os/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Button, Spinner, TextField } from "heroui-native";
 import { useState } from "react";
-import { View, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
 
-import { HardCard } from "@/components/ui/hard-card";
-import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { PlannerSkeleton } from "@/components/skeletons/planner-skeleton";
+import { HardCard } from "@/components/ui/hard-card";
+import { MachineText } from "@/components/ui/machine-text";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 
 type PlanItem = {
@@ -32,10 +31,51 @@ type PlanData = {
 
 type PlannerState = "NO_PLAN" | "PLANNED_OK" | "OVERLOADED" | "STALLED" | "RECOVERY" | "RETURNING";
 
+type WeeklyPlanDraft = {
+  week: string;
+  days: Array<{
+    day: string;
+    focusItems: Array<{ id: string; label: string; estimatedMinutes: number }>;
+    reason: { code: string; detail: string };
+    conflict?: { code: string; detail: string };
+    adjustment?: { code: string; detail: string };
+    reservations?: Array<{
+      itemId: string;
+      label: string;
+      startMin?: number;
+      endMin?: number;
+      status: "reserved" | "unplaced";
+    }>;
+  }>;
+  reason: { code: string; detail: string };
+};
+
 const allowedEstimates = [10, 25, 45, 60];
 
 function idem() {
   return `device:${Date.now()}:${Math.random().toString(16).slice(2)}`;
+}
+
+function getCurrentIsoWeekId() {
+  const now = new Date();
+  const target = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const day = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - day);
+  const year = target.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(year, 0, 1));
+  const week = Math.ceil(
+    ((target.getTime() - yearStart.getTime()) / (24 * 60 * 60 * 1000) + 1) / 7,
+  );
+  return `${year}-${String(week).padStart(2, "0")}`;
+}
+
+function formatMinuteOfDay(totalMinutes: number) {
+  const minutes = Math.max(0, Math.min(24 * 60, Math.floor(totalMinutes)));
+  const hour24 = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  const meridiem = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = ((hour24 + 11) % 12) + 1;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${meridiem}`;
 }
 
 function normalizeEstimate(value: number) {
@@ -73,12 +113,20 @@ export default function Planner() {
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
+  const generateWeeklyPlanDraft = useAction(api.kernel.vexAgents.generateWeeklyPlanDraft);
+
   const [draftItems, setDraftItems] = useState<DraftItem[]>(() => createEmptyDraft());
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nextStepIndex, setNextStepIndex] = useState(0);
   const [nextStepMinutes, setNextStepMinutes] = useState(10);
   const [showNextStep, setShowNextStep] = useState(false);
+  const [isGeneratingWeekPlan, setIsGeneratingWeekPlan] = useState(false);
+  const [isApplyingWeekPlan, setIsApplyingWeekPlan] = useState(false);
+  const [hardModeEnabled, setHardModeEnabled] = useState(false);
+  const [weeklyPlanDraft, setWeeklyPlanDraft] = useState<WeeklyPlanDraft | null>(null);
+  const [acceptedDays, setAcceptedDays] = useState<string[]>([]);
+  const [declinedDays, setDeclinedDays] = useState<string[]>([]);
 
   if (!data) {
     return <PlannerSkeleton />;
@@ -107,6 +155,7 @@ export default function Planner() {
   const setPlan = async (
     reason: "initial" | "adjust" | "reset" | "recovery" | "return",
     items: PlanItem[],
+    dayOverride?: string,
   ) => {
     if (!items.length) return;
     setIsSaving(true);
@@ -114,7 +163,7 @@ export default function Planner() {
       await execute({
         command: {
           cmd: "set_daily_plan",
-          input: { day: data.day, focusItems: items.slice(0, 3), reason },
+          input: { day: dayOverride ?? data.day, focusItems: items.slice(0, 3), reason },
           idempotencyKey: idem(),
           tzOffsetMinutes,
         },
@@ -122,6 +171,52 @@ export default function Planner() {
       setIsEditing(false);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const applyDraftDayPlan = async (dayPlan: WeeklyPlanDraft["days"][number]) => {
+    await setPlan("adjust", dayPlan.focusItems, dayPlan.day);
+  };
+
+  const applyAcceptedDays = async (daysToApply: string[], draftOverride?: WeeklyPlanDraft) => {
+    const draft = draftOverride ?? weeklyPlanDraft;
+    if (!draft || !daysToApply.length) return;
+    setIsApplyingWeekPlan(true);
+    try {
+      const acceptedSet = new Set(daysToApply);
+      for (const dayPlan of draft.days) {
+        if (!acceptedSet.has(dayPlan.day) || dayPlan.conflict) continue;
+        await applyDraftDayPlan(dayPlan);
+      }
+    } finally {
+      setIsApplyingWeekPlan(false);
+    }
+  };
+
+  const generateWeekPlannerSuggestion = async () => {
+    setIsGeneratingWeekPlan(true);
+    try {
+      const result = await generateWeeklyPlanDraft({ week: getCurrentIsoWeekId() });
+      if (result.status !== "success") return;
+
+      const draft = result.draft as WeeklyPlanDraft;
+      setWeeklyPlanDraft(draft);
+
+      if (hardModeEnabled) {
+        const nonConflictingDays = draft.days
+          .filter((dayPlan) => !dayPlan.conflict)
+          .map((dayPlan) => dayPlan.day);
+        setAcceptedDays(nonConflictingDays);
+        setDeclinedDays(
+          draft.days.filter((dayPlan) => dayPlan.conflict).map((dayPlan) => dayPlan.day),
+        );
+        await applyAcceptedDays(nonConflictingDays, draft);
+      } else {
+        setAcceptedDays([]);
+        setDeclinedDays([]);
+      }
+    } finally {
+      setIsGeneratingWeekPlan(false);
     }
   };
 
@@ -203,6 +298,16 @@ export default function Planner() {
     setNextStepIndex(nextIndex);
   };
 
+  const acceptSuggestionDay = (day: string) => {
+    setAcceptedDays((days) => Array.from(new Set([...days, day])));
+    setDeclinedDays((days) => days.filter((entry) => entry !== day));
+  };
+
+  const declineSuggestionDay = (day: string) => {
+    setDeclinedDays((days) => Array.from(new Set([...days, day])));
+    setAcceptedDays((days) => days.filter((entry) => entry !== day));
+  };
+
   const subtitle = (() => {
     if (plannerState === "RETURNING") return "Welcome back. No pressure.";
     if (plannerState === "RECOVERY") return "Recovery mode. Keep it small.";
@@ -247,6 +352,148 @@ export default function Planner() {
             </MachineText>
           </View>
         </View>
+      </HardCard>
+
+      <HardCard label="WEEKLY_AI_PLANNER" className="mb-6 gap-3 p-4">
+        <View className="gap-1">
+          <MachineText className="font-bold">SUGGESTED_WEEK_PLAN</MachineText>
+          <MachineText className="text-xs text-muted">
+            AI proposes. You decide. Hard mode auto-applies non-conflicting days.
+          </MachineText>
+        </View>
+        <View className="flex-row gap-2 flex-wrap">
+          <Button
+            onPress={generateWeekPlannerSuggestion}
+            isDisabled={isGeneratingWeekPlan || isApplyingWeekPlan}
+            className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]"
+            size="sm"
+          >
+            {isGeneratingWeekPlan ? (
+              <Spinner size="sm" color="white" />
+            ) : (
+              <MachineText className="text-background font-bold">
+                GENERATE_WEEKLY_AI_PLAN
+              </MachineText>
+            )}
+          </Button>
+          <Button
+            onPress={() => setHardModeEnabled((value) => !value)}
+            isDisabled={isGeneratingWeekPlan || isApplyingWeekPlan}
+            className="bg-surface border border-foreground rounded-none"
+            size="sm"
+          >
+            <MachineText className="text-foreground font-bold">
+              {hardModeEnabled ? "HARD_MODE_ON" : "HARD_MODE_OFF"}
+            </MachineText>
+          </Button>
+          {!hardModeEnabled ? (
+            <Button
+              onPress={() => applyAcceptedDays(acceptedDays)}
+              isDisabled={!acceptedDays.length || isApplyingWeekPlan || isGeneratingWeekPlan}
+              className="bg-surface border border-foreground rounded-none"
+              size="sm"
+            >
+              {isApplyingWeekPlan ? (
+                <Spinner size="sm" />
+              ) : (
+                <MachineText className="text-foreground font-bold">APPLY_ACCEPTED</MachineText>
+              )}
+            </Button>
+          ) : null}
+        </View>
+
+        {weeklyPlanDraft ? (
+          <View className="gap-2">
+            <MachineText className="text-[10px] text-muted">
+              REASON: {weeklyPlanDraft.reason.detail}
+            </MachineText>
+            {weeklyPlanDraft.days.map((dayPlan) => {
+              const isAccepted = acceptedDays.includes(dayPlan.day);
+              const isDeclined = declinedDays.includes(dayPlan.day);
+              return (
+                <HardCard
+                  key={dayPlan.day}
+                  variant="flat"
+                  padding="sm"
+                  className="gap-2 bg-surface border-dashed"
+                >
+                  <View className="flex-row items-center justify-between">
+                    <MachineText className="font-bold text-xs">{dayPlan.day}</MachineText>
+                    {dayPlan.conflict ? (
+                      <MachineText className="text-[10px] text-danger">CONFLICT</MachineText>
+                    ) : isAccepted ? (
+                      <MachineText className="text-[10px] text-accent">ACCEPTED</MachineText>
+                    ) : isDeclined ? (
+                      <MachineText className="text-[10px] text-muted">DECLINED</MachineText>
+                    ) : (
+                      <MachineText className="text-[10px] text-muted">PENDING</MachineText>
+                    )}
+                  </View>
+                  <View className="gap-1">
+                    {dayPlan.focusItems.map((item) => (
+                      <MachineText key={item.id} className="text-sm">
+                        {item.label} ({item.estimatedMinutes} MIN)
+                      </MachineText>
+                    ))}
+                  </View>
+                  <MachineText className="text-[10px] text-muted">
+                    REASON: {dayPlan.reason.detail}
+                  </MachineText>
+                  {dayPlan.adjustment ? (
+                    <MachineText className="text-[10px] text-accent">
+                      ADAPTIVE_GUARD: {dayPlan.adjustment.detail}
+                    </MachineText>
+                  ) : null}
+                  {dayPlan.reservations?.length ? (
+                    <View className="gap-1">
+                      {dayPlan.reservations.map((reservation) => (
+                        <MachineText
+                          key={`${dayPlan.day}:${reservation.itemId}:${reservation.status}`}
+                          className="text-[10px] text-muted"
+                        >
+                          {reservation.label}:{" "}
+                          {reservation.status === "reserved" &&
+                          typeof reservation.startMin === "number" &&
+                          typeof reservation.endMin === "number"
+                            ? `${formatMinuteOfDay(reservation.startMin)} - ${formatMinuteOfDay(reservation.endMin)}`
+                            : "NO_SLOT"}
+                        </MachineText>
+                      ))}
+                    </View>
+                  ) : null}
+                  {dayPlan.conflict ? (
+                    <MachineText className="text-[10px] text-danger">
+                      CONFLICT_REASON: {dayPlan.conflict.detail}
+                    </MachineText>
+                  ) : hardModeEnabled ? (
+                    <MachineText className="text-[10px] text-accent">
+                      HARD_MODE_AUTO_ATTACHES_THIS_DAY
+                    </MachineText>
+                  ) : (
+                    <View className="flex-row gap-2">
+                      <Button
+                        onPress={() => acceptSuggestionDay(dayPlan.day)}
+                        size="sm"
+                        className="bg-foreground rounded-none"
+                      >
+                        <MachineText className="text-background text-[10px]">ACCEPT</MachineText>
+                      </Button>
+                      <Button
+                        onPress={() => declineSuggestionDay(dayPlan.day)}
+                        size="sm"
+                        className="bg-surface border border-foreground rounded-none"
+                      >
+                        <MachineText className="text-foreground text-[10px]">DECLINE</MachineText>
+                      </Button>
+                    </View>
+                  )}
+                </HardCard>
+              );
+            })}
+          </View>
+        ) : (
+          <MachineText className="text-xs text-muted">NO_WEEKLY_SUGGESTION_YET.</MachineText>
+        )}
       </HardCard>
 
       {showEditor ? (

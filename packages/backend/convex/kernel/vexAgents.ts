@@ -42,21 +42,13 @@ export {
   DATA_LIMITS,
 } from "./typesVex";
 
-export {
-  generateAiSuggestions,
-} from "./actions/suggestions";
+export { generateAiSuggestions } from "./actions/suggestions";
 
-export {
-  generateWeeklyPlanDraft,
-} from "./actions/weeklyPlan";
+export { generateWeeklyPlanDraft } from "./actions/weeklyPlan";
 
-export {
-  generateNextStepDraft,
-} from "./actions/nextStep";
+export { generateNextStepDraft } from "./actions/nextStep";
 
-export {
-  generateRecoveryProtocolDraft,
-} from "./actions/recoveryProtocol";
+export { generateRecoveryProtocolDraft } from "./actions/recoveryProtocol";
 
 export {
   getNextStepRawData,
