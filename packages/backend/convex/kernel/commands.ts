@@ -853,3 +853,49 @@ export const getEventsForDay = query({
       }));
   },
 });
+
+export const getPlannerPrefs = query({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    const user = await requireAuthUser(ctx);
+    const prefs = await ctx.db
+      .query("userKernelPrefs")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .first();
+
+    return {
+      weeklyPlannerHardMode: prefs?.weeklyPlannerHardMode ?? false,
+      updatedAt: prefs?.updatedAt ?? null,
+    };
+  },
+});
+
+export const setPlannerHardMode = mutation({
+  args: {
+    enabled: v.boolean(),
+  },
+  handler: async (ctx: MutationCtx, { enabled }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
+    const now = Date.now();
+    const prefs = await ctx.db
+      .query("userKernelPrefs")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (prefs) {
+      await ctx.db.patch(prefs._id, {
+        weeklyPlannerHardMode: enabled,
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("userKernelPrefs", {
+        userId,
+        weeklyPlannerHardMode: enabled,
+        updatedAt: now,
+      });
+    }
+
+    return { ok: true, weeklyPlannerHardMode: enabled };
+  },
+});
