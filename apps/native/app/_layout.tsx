@@ -50,13 +50,6 @@ function StackLayout() {
             headerShown: false,
           }}
         />
-        <Stack.Screen
-          name="import-calendar"
-          options={{
-            presentation: "modal",
-            headerShown: false,
-          }}
-        />
       </Stack.Protected>
 
       <Stack.Protected guard={!isLoggedIn}>

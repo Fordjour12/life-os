@@ -13,32 +13,15 @@ import {
   MAX_REASON_DETAIL_LENGTH,
   type AiSuggestContext,
   type AiSuggestRawData,
-  type JournalPromptRawData,
   type NextStepRawData,
   type RecoveryProtocolRawData,
   type WeeklyPlanRawData,
   type WeeklyPlanDraft,
-  type WeeklyReviewDraft,
-  type JournalPromptDraft,
   type NextStepDraft,
   type RecoveryProtocolDraft,
 } from "./typesVex";
 
 const allowedMomenta = new Set(["stalled", "steady", "strong"]);
-
-const journalFallbackPrompts = [
-  "What felt heavy today?",
-  "What helped, even a little?",
-  "Anything you want to unload here?",
-];
-
-const journalReasonDetails: Record<string, string> = {
-  quiet: "You marked today as quiet, so the prompt stays optional.",
-  reflection: "A reflection prompt was suggested today.",
-  recovery: "Recovery mode shows up today, so the prompt is gentle.",
-  plan_reset: "You used a plan reset this week, so a light check-in helps.",
-  micro_recovery: "You used a recovery protocol, so a soft prompt can help.",
-};
 
 export function getMomentum(
   state: LifeState | null | undefined,
@@ -223,97 +206,6 @@ export function buildAiContext(
   };
 }
 
-export function pickPrompt(day: string): string {
-  const safePrompts = journalFallbackPrompts.filter(isSafeCopy);
-  const source = safePrompts.length > 0 ? safePrompts : journalFallbackPrompts;
-  const seed = day.split("-").reduce((sum, part) => sum + Number(part || 0), 0);
-  return source[seed % source.length] ?? source[0];
-}
-
-export function normalizeWeeklyReviewDraft(
-  raw: unknown,
-  fallback: WeeklyReviewDraft,
-): WeeklyReviewDraft {
-  if (!raw || typeof raw !== "object") return fallback;
-  const candidate = raw as Record<string, unknown>;
-  const highlightsRaw = Array.isArray(candidate.highlights)
-    ? candidate.highlights.map((item) => String(item))
-    : fallback.highlights;
-  const frictionRaw = Array.isArray(candidate.frictionPoints)
-    ? candidate.frictionPoints.map((item) => String(item))
-    : fallback.frictionPoints;
-  const reflectionQuestion =
-    typeof candidate.reflectionQuestion === "string"
-      ? safeCopy(candidate.reflectionQuestion, fallback.reflectionQuestion)
-      : fallback.reflectionQuestion;
-  const narrative =
-    typeof candidate.narrative === "string"
-      ? safeCopy(candidate.narrative, fallback.narrative)
-      : fallback.narrative;
-  const reasonRaw = candidate.reason as
-    | { code?: string; detail?: string }
-    | undefined;
-  const reason =
-    reasonRaw?.code && typeof reasonRaw.code === "string"
-      ? {
-          code: reasonRaw.code,
-          detail: safeCopy(
-            typeof reasonRaw.detail === "string"
-              ? reasonRaw.detail
-              : fallback.reason.detail,
-            fallback.reason.detail,
-          ),
-        }
-      : fallback.reason;
-
-  return {
-    highlights: filterSafeStrings(highlightsRaw).slice(0, 2),
-    frictionPoints: filterSafeStrings(frictionRaw).slice(0, 3),
-    reflectionQuestion,
-    narrative: isSafeCopy(narrative) ? narrative : fallback.narrative,
-    reason,
-  };
-}
-
-export function normalizeJournalPromptDraft(
-  raw: unknown,
-  fallback: JournalPromptDraft,
-): JournalPromptDraft {
-  if (!raw || typeof raw !== "object") return fallback;
-  const candidate = raw as Record<string, unknown>;
-  const promptValue =
-    candidate.prompt === null
-      ? null
-      : typeof candidate.prompt === "string"
-        ? safeCopy(candidate.prompt, fallback.prompt ?? "")
-        : fallback.prompt;
-  const reasonRaw = candidate.reason as
-    | { code?: string; detail?: string }
-    | undefined;
-  const reason =
-    reasonRaw?.code && typeof reasonRaw.code === "string"
-      ? {
-          code: reasonRaw.code,
-          detail: safeCopy(
-            typeof reasonRaw.detail === "string"
-              ? reasonRaw.detail
-              : (fallback.reason?.detail ?? ""),
-            fallback.reason?.detail ?? "",
-          ),
-        }
-      : fallback.reason;
-  const quiet =
-    typeof candidate.quiet === "boolean" ? candidate.quiet : fallback.quiet;
-
-  return {
-    day: fallback.day,
-    prompt:
-      promptValue && isSafeCopy(promptValue) ? promptValue : fallback.prompt,
-    reason,
-    quiet,
-  };
-}
-
 export function normalizeNextStepDraft(
   raw: unknown,
   fallback: NextStepDraft,
@@ -492,5 +384,3 @@ export function normalizeWeeklyPlanDraft(
     reason,
   };
 }
-
-export { journalReasonDetails };

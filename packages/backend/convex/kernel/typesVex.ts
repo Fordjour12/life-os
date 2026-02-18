@@ -91,16 +91,16 @@ export type AiSuggestRawData = {
   }>;
 };
 
-export type WeeklyReviewRawData = {
+export type WeeklyPlanRawData = {
+  activeTasks: Array<{ title: string; estimateMin: number; priority?: number }>;
+  pausedTasks: Array<{ title: string; estimateMin: number; priority?: number }>;
   stateDocs: Array<{ day: string; state: LifeState }>;
-  events: Array<{ ts: number; type: string; meta: unknown }>;
-};
-
-export type JournalPromptRawData = {
-  skip: boolean;
-  stateDoc: { state: LifeState } | null;
-  suggestions: Array<{ type: string; status: string }>;
-  events: Array<{ ts: number; type: string; meta: unknown }>;
+  calendarBlocks: Array<{
+    day: string;
+    startMin: number;
+    endMin: number;
+    kind: string;
+  }>;
 };
 
 export type NextStepRawData = {
@@ -119,33 +119,6 @@ export type RecoveryProtocolRawData = {
   stateDoc: { state: LifeState } | null;
   calendarBlocks: Array<{ startMin: number; endMin: number; kind: string }>;
   events: Array<{ ts: number; type: string; meta: unknown }>;
-};
-
-export type WeeklyPlanRawData = {
-  activeTasks: Array<{ title: string; estimateMin: number; priority?: number }>;
-  pausedTasks: Array<{ title: string; estimateMin: number; priority?: number }>;
-  stateDocs: Array<{ day: string; state: LifeState }>;
-  calendarBlocks: Array<{
-    day: string;
-    startMin: number;
-    endMin: number;
-    kind: string;
-  }>;
-};
-
-export type WeeklyReviewDraft = {
-  highlights: string[];
-  frictionPoints: string[];
-  reflectionQuestion: string;
-  narrative: string;
-  reason: { code: string; detail: string };
-};
-
-export type JournalPromptDraft = {
-  day: string;
-  prompt: string | null;
-  reason: { code: string; detail: string } | null;
-  quiet: boolean;
 };
 
 export type NextStepDraft = {

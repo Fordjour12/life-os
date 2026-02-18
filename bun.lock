@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 1,
   "workspaces": {
     "": {
       "name": "life-os",
@@ -83,6 +82,7 @@
         "@better-auth/expo": "catalog:",
         "@convex-dev/agent": "^0.3.2",
         "@convex-dev/better-auth": "catalog:",
+        "@life-os/domain-kernel": "workspace:*",
         "@openrouter/ai-sdk-provider": "^1.5.4",
         "ai": "^5.0.29",
         "better-auth": "catalog:",
@@ -99,6 +99,14 @@
     "packages/config": {
       "name": "@life-os/config",
       "version": "0.0.0",
+    },
+    "packages/domain-kernel": {
+      "name": "@life-os/domain-kernel",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@life-os/config": "workspace:*",
+        "typescript": "catalog:",
+      },
     },
     "packages/env": {
       "name": "@life-os/env",
@@ -511,6 +519,8 @@
     "@life-os/backend": ["@life-os/backend@workspace:packages/backend"],
 
     "@life-os/config": ["@life-os/config@workspace:packages/config"],
+
+    "@life-os/domain-kernel": ["@life-os/domain-kernel@workspace:packages/domain-kernel"],
 
     "@life-os/env": ["@life-os/env@workspace:packages/env"],
 

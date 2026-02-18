@@ -5,8 +5,6 @@ import {
 import { v } from "convex/values";
 import { requireAuthUser } from "../auth";
 import type {
-  WeeklyReviewRawData,
-  JournalPromptRawData,
   NextStepRawData,
   RecoveryProtocolRawData,
   WeeklyPlanRawData,
@@ -25,87 +23,6 @@ const suggestionValidator = v.object({
   payload: v.any(),
   status: v.string(),
   cooldownKey: v.optional(v.string()),
-});
-
-export const getWeeklyReviewRawData = internalQuery({
-  args: {
-    startDay: v.string(),
-    endDay: v.string(),
-    weekStartMs: v.number(),
-    weekEndMs: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const { startDay, endDay, weekStartMs, weekEndMs } = args;
-    const user = await requireAuthUser(ctx);
-    const userId = user._id;
-
-    const stateDocs = await ctx.db
-      .query("stateDaily")
-      .withIndex("by_user_day", (q) => q.eq("userId", userId))
-      .collect();
-
-    const filteredStates = stateDocs
-      .filter((entry) => entry.day >= startDay && entry.day <= endDay)
-      .map((entry) => ({ day: entry.day, state: entry.state as LifeState }));
-
-    const events = await ctx.db
-      .query("events")
-      .withIndex("by_user_ts", (q) => q.eq("userId", userId))
-      .collect();
-
-    const filteredEvents = events
-      .filter((event) => event.ts >= weekStartMs && event.ts < weekEndMs)
-      .map((event) => ({ ts: event.ts, type: event.type, meta: event.meta }));
-
-    return {
-      stateDocs: filteredStates,
-      events: filteredEvents,
-    } as WeeklyReviewRawData;
-  },
-});
-
-export const getJournalPromptRawData = internalQuery({
-  args: {
-    day: v.string(),
-  },
-  handler: async (ctx, { day }) => {
-    const user = await requireAuthUser(ctx);
-    const userId = user._id;
-
-    const skip = await ctx.db
-      .query("journalSkips")
-      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
-      .first();
-
-    const stateDoc = await ctx.db
-      .query("stateDaily")
-      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
-      .first();
-
-    const suggestions = await ctx.db
-      .query("suggestions")
-      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
-      .collect();
-
-    const events = await ctx.db
-      .query("events")
-      .withIndex("by_user_ts", (q) => q.eq("userId", userId))
-      .collect();
-
-    return {
-      skip: Boolean(skip),
-      stateDoc: stateDoc ? { state: stateDoc.state as LifeState } : null,
-      suggestions: suggestions.map((s) => ({
-        type: s.type,
-        status: s.status,
-      })),
-      events: events.map((event) => ({
-        ts: event.ts,
-        type: event.type,
-        meta: event.meta,
-      })),
-    } as JournalPromptRawData;
-  },
 });
 
 export const getNextStepRawData = internalQuery({
