@@ -114,9 +114,8 @@ export default function Planner() {
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
   const generateWeeklyPlanDraft = useAction(api.kernel.vexAgents.generateWeeklyPlanDraft);
-  const applyWeeklyPlanDraft = useAction((api.kernel.vexAgents as any).applyWeeklyPlanDraft);
-  const plannerPrefs = useQuery((api.kernel.commands as any).getPlannerPrefs, {});
-  const setPlannerHardMode = useMutation((api.kernel.commands as any).setPlannerHardMode);
+  const applyWeeklyPlanDraft = useAction(api.kernel.vexAgents.applyWeeklyPlanDraft);
+  const plannerPrefs = useQuery(api.kernel.commands.getPlannerPrefs, {});
 
   const [draftItems, setDraftItems] = useState<DraftItem[]>(() => createEmptyDraft());
   const [isEditing, setIsEditing] = useState(false);
@@ -323,16 +322,6 @@ export default function Planner() {
     setAcceptedDays((days) => days.filter((entry) => entry !== day));
   };
 
-  const toggleHardMode = async () => {
-    const next = !hardModeEnabled;
-    setHardModeEnabled(next);
-    try {
-      await setPlannerHardMode({ enabled: next });
-    } catch {
-      setHardModeEnabled(!next);
-    }
-  };
-
   const subtitle = (() => {
     if (plannerState === "RETURNING") return "Welcome back. No pressure.";
     if (plannerState === "RECOVERY") return "Recovery mode. Keep it small.";
@@ -385,6 +374,9 @@ export default function Planner() {
           <MachineText className="text-xs text-muted">
             AI proposes. You decide. Hard mode auto-applies non-conflicting days.
           </MachineText>
+          <MachineText className="text-xs text-muted">
+            HARD MODE: {hardModeEnabled ? "ON" : "OFF"} (CHANGE IN SETTINGS TAB)
+          </MachineText>
         </View>
         <View className="flex-row gap-2 flex-wrap">
           <Button
@@ -400,16 +392,6 @@ export default function Planner() {
                 GENERATE_WEEKLY_AI_PLAN
               </MachineText>
             )}
-          </Button>
-          <Button
-            onPress={toggleHardMode}
-            isDisabled={isGeneratingWeekPlan || isApplyingWeekPlan}
-            className="bg-surface border border-foreground rounded-none"
-            size="sm"
-          >
-            <MachineText className="text-foreground font-bold">
-              {hardModeEnabled ? "HARD_MODE_ON" : "HARD_MODE_OFF"}
-            </MachineText>
           </Button>
           {!hardModeEnabled ? (
             <Button

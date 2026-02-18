@@ -157,6 +157,86 @@ function withReservations(
   return reservations;
 }
 
+function dedupeFocusItems(
+  items: Array<{ id: string; label: string; estimatedMinutes: number }>,
+) {
+  const seen = new Set<string>();
+  const deduped: Array<{ id: string; label: string; estimatedMinutes: number }> = [];
+  for (const item of items) {
+    const key = item.label.trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(item);
+  }
+  return deduped;
+}
+
+function resolveDayForApply(
+  dayPlan: WeeklyPlanDraft["days"][number],
+  raw: WeeklyPlanRawData,
+) {
+  const existing = raw.existingPlans.find((plan) => plan.day === dayPlan.day);
+  const mergedItems = dayPlan.conflict?.code === "existing_plan" && existing
+    ? dedupeFocusItems([...existing.focusItems, ...dayPlan.focusItems]).slice(0, 4)
+    : dayPlan.focusItems.slice(0, 3);
+
+  const busyMinutes = getBusyMinutesForDay(raw.calendarBlocks, dayPlan.day);
+  const budgetMinutes = getPlanBudget(raw, dayPlan.day, busyMinutes);
+  const adapted = applyAdaptiveReplan(
+    {
+      ...dayPlan,
+      focusItems: mergedItems.length
+        ? mergedItems
+        : [
+            {
+              id: `focus-${dayPlan.day}-fallback`,
+              label: "Rest & recovery",
+              estimatedMinutes: 10,
+            },
+          ],
+    },
+    budgetMinutes,
+  );
+
+  const reservations = withReservations(adapted, getPlanningWindows(raw, dayPlan.day));
+  const reservedItemIds = new Set(
+    reservations
+      .filter((reservation) => reservation.status === "reserved")
+      .map((reservation) => reservation.itemId),
+  );
+  const fittedItems = adapted.focusItems.filter((item) => reservedItemIds.has(item.id));
+
+  const finalItems = fittedItems.length
+    ? fittedItems.slice(0, 3)
+    : [
+        {
+          id: `focus-${dayPlan.day}-tiny`,
+          label: adapted.focusItems[0]?.label ?? "Rest & recovery",
+          estimatedMinutes: 10,
+        },
+      ];
+
+  return {
+    ...adapted,
+    focusItems: finalItems,
+    conflict: undefined,
+    adjustment: {
+      code: "conflict_resolved",
+      detail:
+        dayPlan.conflict?.code === "existing_plan"
+          ? "Merged with existing plan and resized to fit."
+          : "Reduced scope to fit your available time windows.",
+    },
+    reservations: withReservations(
+      {
+        ...adapted,
+        focusItems: finalItems,
+      },
+      getPlanningWindows(raw, dayPlan.day),
+    ),
+  } as WeeklyPlanDraft["days"][number];
+}
+
 function enrichWeeklyDraft(draft: WeeklyPlanDraft, raw: WeeklyPlanRawData) {
   const existingPlanDays = new Set(raw.existingPlans.map((plan) => plan.day));
   return {
@@ -443,11 +523,8 @@ export const applyWeeklyPlanDraft = action({
       endDay,
     })) as WeeklyPlanRawData;
     const enriched = enrichWeeklyDraft(normalizedDraft, raw);
-    const existingPlanDays = new Set(raw.existingPlans.map((plan) => plan.day));
 
     const daysToApply = enriched.days.filter((dayPlan) => {
-      if (dayPlan.conflict) return false;
-      if (existingPlanDays.has(dayPlan.day)) return false;
       if (hardModeEnabled) return true;
       return acceptedSet.has(dayPlan.day);
     });
@@ -479,13 +556,14 @@ export const applyWeeklyPlanDraft = action({
 
       sequence += 1;
       try {
+        const resolved = resolveDayForApply(dayPlan, raw);
         await (ctx.runMutation as any)("kernel/commands/executeCommand", {
           command: {
             cmd: "set_daily_plan",
             input: {
-              day: dayPlan.day,
+              day: resolved.day,
               reason: "adjust",
-              focusItems: dayPlan.focusItems,
+              focusItems: resolved.focusItems,
             },
             idempotencyKey: `weekly-plan:${normalizedDraft.week}:${dayPlan.day}:${sequence}`,
             tzOffsetMinutes: offset,

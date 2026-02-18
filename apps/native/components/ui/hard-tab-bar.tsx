@@ -53,6 +53,7 @@ export function HardTabBar({ state, descriptors, navigation }: any) {
           if (route.name === "time-reality") iconName = "time";
           if (route.name === "journal") iconName = "book";
           if (route.name === "weekly-review") iconName = "infinite";
+          if (route.name === "settings") iconName = "settings";
 
           const colors = useSemanticColors();
 
