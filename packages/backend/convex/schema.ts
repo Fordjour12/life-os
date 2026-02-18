@@ -52,6 +52,7 @@ export default defineSchema({
   userKernelPrefs: defineTable({
     userId: v.string(),
     lastGentleReturnTaskId: v.optional(v.id("tasks")),
+    weeklyPlannerHardMode: v.optional(v.boolean()),
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
