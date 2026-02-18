@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import type { LifeState } from "../../../../src/kernel/types";
+import type { LifeState } from "@life-os/domain-kernel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { mutation, query } from "../_generated/server";
 import { requireAuthUser } from "../auth";

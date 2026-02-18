@@ -1,4 +1,4 @@
-import type { KernelSuggestion, LifeState } from "../../../../src/kernel/types";
+import type { KernelSuggestion, LifeState } from "@life-os/domain-kernel";
 import { DAILY_SUGGESTION_CAP, getBoundaryFlagsFromBlocks, normalizeOffsetMinutes } from "./stabilization";
 import { normalizePlanEstimate } from "./helpers";
 import {

@@ -1,4 +1,4 @@
-import type { KernelSuggestion, LifeState } from "../../../../src/kernel/types";
+import type { KernelSuggestion, LifeState } from "@life-os/domain-kernel";
 import type { Id } from "../_generated/dataModel";
 
 export type { KernelSuggestion, LifeState };

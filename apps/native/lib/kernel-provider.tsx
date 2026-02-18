@@ -15,6 +15,7 @@ import {
   overloadGuard,
 } from "@life-os/kernel";
 import type { KernelEvent, LifeState, PolicyContext, ProposedAction } from "@life-os/kernel";
+import { initializeLocalFirstStore } from "@/lib/local-first";
 
 type KernelContextValue = {
   state: LifeState | null;
@@ -66,6 +67,8 @@ export function KernelProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
+    initializeLocalFirstStore();
+
     const existing = new Set(
       policyEngine.getPolicies().map((policy: { name: string }) => policy.name),
     );

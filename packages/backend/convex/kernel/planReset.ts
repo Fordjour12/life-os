@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import type { KernelEvent } from "../../../../src/kernel/types";
+import type { KernelEvent } from "@life-os/domain-kernel";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";

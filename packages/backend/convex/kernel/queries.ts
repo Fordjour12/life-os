@@ -12,7 +12,7 @@ import type {
   WeeklyPlanRawData,
   AiSuggestRawData,
 } from "./typesVex";
-import type { LifeState } from "../../../../src/kernel/types";
+import type { LifeState } from "@life-os/domain-kernel";
 
 const suggestionValidator = v.object({
   day: v.string(),

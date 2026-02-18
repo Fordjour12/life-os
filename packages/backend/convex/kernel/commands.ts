@@ -5,12 +5,13 @@ import type {
   LifeState,
   PlannerState,
   PlanSetReason,
-} from "../../../../src/kernel/types";
+} from "@life-os/domain-kernel";
+import { buildTraceContext } from "@life-os/domain-kernel";
 import type { Id } from "../_generated/dataModel";
-import type { QueryCtx } from "../_generated/server";
-import { internal } from "../_generated/api";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { mutation, query } from "../_generated/server";
 import { requireAuthUser } from "../auth";
+import { kernelFeatureFlags } from "./featureFlags";
 import { computeDailyState } from "./reducer";
 import { sanitizeSuggestionCopy } from "../identity/guardrails";
 import { runPolicies } from "./policies";
@@ -20,14 +21,6 @@ import {
   getTimeMetricsFromBlocks,
   normalizeOffsetMinutes,
 } from "./stabilization";
-
-function getTodayYYYYMMDD() {
-  const date = new Date();
-  const yyyy = date.getUTCFullYear();
-  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(date.getUTCDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
 
 function formatYYYYMMDDWithOffset(ts: number, tzOffsetMinutes: number) {
   const shifted = new Date(ts + tzOffsetMinutes * 60 * 1000);
@@ -67,6 +60,74 @@ const TRACKED_EVENT_TYPES = new Set([
   "EXPENSE_ADDED",
 ]);
 
+type CommandTraceContext = ReturnType<typeof buildTraceContext>;
+type CommandEnvelope = {
+  cmd: string;
+  input: Record<string, unknown>;
+  idempotencyKey: string;
+  tzOffsetMinutes?: number;
+  traceId?: string;
+  commandId?: string;
+};
+
+const commandEnvelopeValidator = v.object({
+  cmd: v.string(),
+  input: v.any(),
+  idempotencyKey: v.string(),
+  tzOffsetMinutes: v.optional(v.number()),
+  traceId: v.optional(v.string()),
+  commandId: v.optional(v.string()),
+});
+
+function withTraceMeta(
+  meta: Record<string, unknown>,
+  trace: CommandTraceContext,
+) {
+  return {
+    ...meta,
+    _trace: trace,
+  };
+}
+
+function assertCommandInputObject(input: unknown): asserts input is Record<string, unknown> {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new Error("Invalid command input");
+  }
+}
+
+async function findExistingByIdempotency(
+  ctx: MutationCtx,
+  userId: string,
+  idempotencyKey: string,
+) {
+  return ctx.db
+    .query("events")
+    .withIndex("by_user_idem", (q) =>
+      q.eq("userId", userId).eq("idempotencyKey", idempotencyKey),
+    )
+    .first();
+}
+
+async function insertUserEvent(
+  ctx: MutationCtx,
+  args: {
+    userId: string;
+    ts: number;
+    type: string;
+    meta: Record<string, unknown>;
+    idempotencyKey: string;
+    trace: CommandTraceContext;
+  },
+) {
+  return ctx.db.insert("events", {
+    userId: args.userId,
+    ts: args.ts,
+    type: args.type,
+    meta: withTraceMeta(args.meta, args.trace),
+    idempotencyKey: args.idempotencyKey,
+  });
+}
+
 function getDailyEvents(
   events: Array<{ ts: number; type: string; meta: unknown }>,
   day: string,
@@ -99,24 +160,26 @@ const planReasons: PlanSetReason[] = [
 
 export const executeCommand = mutation({
   args: {
-    command: v.any(),
+    command: commandEnvelopeValidator,
   },
   handler: async (ctx, { command }) => {
+    const typedCommand = command as CommandEnvelope;
     const user = await requireAuthUser(ctx);
     const userId = user._id;
     const now = Date.now();
-    const tzOffsetMinutes = normalizeOffsetMinutes(command?.tzOffsetMinutes);
+    const tzOffsetMinutes = normalizeOffsetMinutes(typedCommand.tzOffsetMinutes);
+    assertCommandInputObject(typedCommand.input);
+    const trace = buildTraceContext({
+      traceId: typedCommand.traceId,
+      commandId: typedCommand.commandId,
+      fallbackKey: typedCommand.idempotencyKey,
+    });
 
-    if (!command?.cmd || !command?.input || !command?.idempotencyKey) {
-      throw new Error("Invalid command shape");
-    }
-
-    const existing = await ctx.db
-      .query("events")
-      .withIndex("by_user_idem", (q) =>
-        q.eq("userId", userId).eq("idempotencyKey", command.idempotencyKey),
-      )
-      .first();
+    const existing = await findExistingByIdempotency(
+      ctx,
+      userId,
+      typedCommand.idempotencyKey,
+    );
     if (existing) {
       return { ok: true, deduped: true };
     }
@@ -125,12 +188,12 @@ export const executeCommand = mutation({
     let meta: Record<string, unknown> = {};
     let day = getTodayYYYYMMDDWithOffset(tzOffsetMinutes);
 
-    if (command.cmd === "create_task") {
-      const title = String(command.input.title ?? "").trim();
-      const estimateMin = Number(command.input.estimateMin ?? 0);
-      const priority = Number(command.input.priority ?? 2);
-      const notes = command.input.notes
-        ? String(command.input.notes)
+    if (typedCommand.cmd === "create_task") {
+      const title = String(typedCommand.input.title ?? "").trim();
+      const estimateMin = Number(typedCommand.input.estimateMin ?? 0);
+      const priority = Number(typedCommand.input.priority ?? 2);
+      const notes = typedCommand.input.notes
+        ? String(typedCommand.input.notes)
         : undefined;
 
       if (!title) {
@@ -157,8 +220,8 @@ export const executeCommand = mutation({
 
       eventType = "TASK_CREATED";
       meta = { taskId, estimateMin };
-    } else if (command.cmd === "complete_task") {
-      const taskId = command.input.taskId as Id<"tasks">;
+    } else if (typedCommand.cmd === "complete_task") {
+      const taskId = typedCommand.input.taskId as Id<"tasks">;
       const task = await ctx.db.get(taskId);
 
       if (!task || task.userId !== userId) {
@@ -176,9 +239,9 @@ export const executeCommand = mutation({
 
       eventType = "TASK_COMPLETED";
       meta = { taskId, estimateMin: task.estimateMin };
-    } else if (command.cmd === "accept_rest") {
-      const minutes = Number(command.input.minutes ?? 0);
-      const dayInput = String(command.input.day ?? "").trim();
+    } else if (typedCommand.cmd === "accept_rest") {
+      const minutes = Number(typedCommand.input.minutes ?? 0);
+      const dayInput = String(typedCommand.input.day ?? "").trim();
 
       if (!Number.isFinite(minutes) || minutes <= 0) {
         throw new Error("Rest minutes must be a positive number");
@@ -191,18 +254,18 @@ export const executeCommand = mutation({
       eventType = "REST_ACCEPTED";
       meta = { minutes };
       day = dayInput;
-    } else if (command.cmd === "set_daily_plan") {
+    } else if (typedCommand.cmd === "set_daily_plan") {
       const allowedEstimates = [10, 25, 45, 60];
-      const dayInput = String(command.input.day ?? "").trim();
-      const rawItems = Array.isArray(command.input.focusItems)
-        ? (command.input.focusItems as Array<{
+      const dayInput = String(typedCommand.input.day ?? "").trim();
+      const rawItems = Array.isArray(typedCommand.input.focusItems)
+        ? (typedCommand.input.focusItems as Array<{
             id?: string;
             label?: string;
             estimatedMinutes?: number;
           }>)
         : [];
       const reasonInput = String(
-        command.input.reason ?? "",
+        typedCommand.input.reason ?? "",
       ).trim() as PlanSetReason;
 
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dayInput)) {
@@ -264,8 +327,8 @@ export const executeCommand = mutation({
       eventType = "PLAN_SET";
       meta = { day: dayInput, focusItems, version, reason };
       day = dayInput;
-    } else if (command.cmd === "apply_plan_reset") {
-      const keepCount = command.input.keepCount as 1 | 2 | undefined;
+    } else if (typedCommand.cmd === "apply_plan_reset") {
+      const keepCount = typedCommand.input.keepCount as 1 | 2 | undefined;
       const keepN = keepCount ?? 1;
 
       if (![1, 2].includes(keepN)) {
@@ -278,7 +341,7 @@ export const executeCommand = mutation({
           q.eq("userId", userId).eq("status", "active"),
         )
         .collect();
-      day = command.input.day;
+      day = String(typedCommand.input.day ?? "");
 
       const sorted = [...activeTasks].sort((a, b) => {
         if (a.estimateMin !== b.estimateMin)
@@ -300,8 +363,8 @@ export const executeCommand = mutation({
           userId,
           ts: now,
           type: "TASK_PAUSED",
-          meta: { taskId: task._id, reason: "plan_reset" },
-          idempotencyKey: `${command.idempotencyKey}:pause:${task._id}`,
+          meta: withTraceMeta({ taskId: task._id, reason: "plan_reset" }, trace),
+          idempotencyKey: `${typedCommand.idempotencyKey}:pause:${task._id}`,
         });
       }
 
@@ -311,17 +374,17 @@ export const executeCommand = mutation({
         keptTaskIds: kept.map((task) => task._id),
         pausedTaskIds: paused.map((task) => task._id),
       };
-    } else if (command.cmd === "submit_feedback") {
+    } else if (typedCommand.cmd === "submit_feedback") {
       eventType = "SUGGESTION_FEEDBACK";
       meta = {
-        suggestionId: command.input.suggestionId,
-        vote: command.input.vote,
+        suggestionId: typedCommand.input.suggestionId,
+        vote: typedCommand.input.vote,
       };
-    } else if (command.cmd === "log_habit") {
-      const habitId = String(command.input.habitId ?? "").trim();
-      const status = String(command.input.status ?? "").trim();
-      const note = command.input.note
-        ? String(command.input.note).trim()
+    } else if (typedCommand.cmd === "log_habit") {
+      const habitId = String(typedCommand.input.habitId ?? "").trim();
+      const status = String(typedCommand.input.status ?? "").trim();
+      const note = typedCommand.input.note
+        ? String(typedCommand.input.note).trim()
         : undefined;
 
       if (!habitId) {
@@ -334,11 +397,11 @@ export const executeCommand = mutation({
 
       eventType = status === "done" ? "HABIT_DONE" : "HABIT_MISSED";
       meta = note ? { habitId, note } : { habitId };
-    } else if (command.cmd === "add_expense") {
-      const amount = Number(command.input.amount ?? 0);
-      const category = String(command.input.category ?? "").trim();
-      const note = command.input.note
-        ? String(command.input.note).trim()
+    } else if (typedCommand.cmd === "add_expense") {
+      const amount = Number(typedCommand.input.amount ?? 0);
+      const category = String(typedCommand.input.category ?? "").trim();
+      const note = typedCommand.input.note
+        ? String(typedCommand.input.note).trim()
         : undefined;
 
       if (!Number.isFinite(amount) || amount <= 0) {
@@ -355,21 +418,23 @@ export const executeCommand = mutation({
       throw new Error("Unknown command");
     }
 
-    await ctx.db.insert("events", {
+    await insertUserEvent(ctx, {
       userId,
       ts: now,
       type: eventType,
       meta,
-      idempotencyKey: command.idempotencyKey,
+      idempotencyKey: typedCommand.idempotencyKey,
+      trace,
     });
 
-    if (command.cmd === "accept_rest") {
-      await ctx.db.insert("events", {
+    if (typedCommand.cmd === "accept_rest") {
+      await insertUserEvent(ctx, {
         userId,
         ts: now,
         type: "RECOVERY_PROTOCOL_USED",
         meta: { day, didTinyWin: false, didRest: true },
-        idempotencyKey: `${command.idempotencyKey}:protocol`,
+        idempotencyKey: `${typedCommand.idempotencyKey}:protocol`,
+        trace,
       });
     }
 
@@ -420,8 +485,11 @@ export const executeCommand = mutation({
           userId,
           ts: now,
           type: "TASK_PAUSED",
-          meta: { taskId: task._id, reason: "micro_recovery" },
-          idempotencyKey: `${command.idempotencyKey}:micro_pause:${task._id}`,
+          meta: withTraceMeta(
+            { taskId: task._id, reason: "micro_recovery" },
+            trace,
+          ),
+          idempotencyKey: `${typedCommand.idempotencyKey}:micro_pause:${task._id}`,
         });
       }
     }
@@ -713,12 +781,16 @@ export const executeCommand = mutation({
       }
     }
 
-    const scheduleAction: any = "generateAiSuggestions";
-    await ctx.scheduler.runAfter(0, scheduleAction, {
-      day,
-      tzOffsetMinutes,
-      source: "executeCommand",
-    });
+    if (kernelFeatureFlags.aiSuggestionSchedulingEnabled) {
+      const scheduleAction: any = "generateAiSuggestions";
+      await ctx.scheduler.runAfter(0, scheduleAction, {
+        day,
+        tzOffsetMinutes,
+        source: "executeCommand",
+        traceId: trace.traceId,
+        commandId: trace.commandId,
+      });
+    }
 
     return { ok: true, state, suggestionsCount: cappedSuggestions.length };
   },

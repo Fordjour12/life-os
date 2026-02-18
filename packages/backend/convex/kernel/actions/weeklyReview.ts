@@ -1,4 +1,4 @@
-import type { LifeState } from "../../../../../src/kernel/types";
+import type { LifeState } from "@life-os/domain-kernel";
 import { action } from "../../_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser } from "../../auth";
