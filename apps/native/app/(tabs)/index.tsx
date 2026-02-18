@@ -1,13 +1,12 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Button, Spinner, TextField } from "heroui-native";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
 import { DailyIntentCard } from "@/components/daily-intent-card";
-import { JournalPromptCard } from "@/components/journal-prompt-card";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
@@ -75,29 +74,6 @@ type TaskItem = {
   status: string;
 };
 
-type JournalMood = "low" | "neutral" | "ok" | "good";
-
-type JournalPromptReason =
-  | "quiet"
-  | "reflection"
-  | "recovery"
-  | "plan_reset"
-  | "micro_recovery"
-  | null;
-
-const allowedJournalReasons = new Set([
-  "quiet",
-  "reflection",
-  "recovery",
-  "plan_reset",
-  "micro_recovery",
-]);
-
-function normalizeJournalReason(value: unknown): JournalPromptReason {
-  if (typeof value !== "string") return null;
-  return allowedJournalReasons.has(value) ? (value as JournalPromptReason) : null;
-}
-
 function idem() {
   return `device:${Date.now()}:${Math.random().toString(16).slice(2)}`;
 }
@@ -111,28 +87,11 @@ export default function Today() {
   const applyPlanResetMutation = useMutation(api.kernel.planReset.applyPlanReset);
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
   const executeCommandMutation = useMutation(api.kernel.commands.executeCommand);
-  const generateJournalPromptDraft = useAction(api.kernel.vexAgents.generateJournalPromptDraft);
-  const createJournalEntryMutation = useMutation(api.identity.createJournalEntry);
-  const journalEntries = useQuery(
-    api.identity.getJournalEntriesForDay,
-    data ? { day: data.day } : "skip",
-  );
-  const createJournalSkipMutation = useMutation(api.identity.createJournalSkip);
 
   const [title, setTitle] = useState("");
   const [estimate, setEstimate] = useState("25");
   const [isCreating, setIsCreating] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
-  const [journalDraft, setJournalDraft] = useState<{
-    day: string;
-    prompt: string | null;
-    reason: { code: string; detail: string } | null;
-    quiet: boolean;
-  } | null>(null);
-  const [isLoadingJournalDraft, setIsLoadingJournalDraft] = useState(false);
-  const [isRegeneratingJournalDraft, setIsRegeneratingJournalDraft] = useState(false);
-  const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
-  const [isSkippingJournal, setIsSkippingJournal] = useState(false);
   const trimmedTitle = title.trim();
   const parsedEstimate = Number.parseInt(estimate, 10);
   const isEstimateValid =
@@ -202,24 +161,6 @@ export default function Today() {
     }
   };
 
-  const submitJournalEntry = async (input: { day: string; text?: string; mood?: JournalMood }) => {
-    setIsSubmittingJournal(true);
-    try {
-      await createJournalEntryMutation(input);
-    } finally {
-      setIsSubmittingJournal(false);
-    }
-  };
-
-  const skipJournal = async (day: string) => {
-    setIsSkippingJournal(true);
-    try {
-      await createJournalSkipMutation({ day });
-    } finally {
-      setIsSkippingJournal(false);
-    }
-  };
-
   const getStatusIntent = (value: string): "success" | "warning" | "danger" | "default" => {
     const val = value?.toLowerCase();
     if (["high", "balanced", "strong", "operational"].includes(val)) return "success";
@@ -229,38 +170,6 @@ export default function Today() {
   };
 
   const suggestions = useMemo(() => (data?.suggestions ?? []) as SuggestionItem[], [data]);
-
-  useEffect(() => {
-    if (!data) return;
-    let cancelled = false;
-    setIsLoadingJournalDraft(true);
-    generateJournalPromptDraft({ day: data.day })
-      .then((result) => {
-        if (cancelled) return;
-        if (result.status === "success") {
-          setJournalDraft(result.draft);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingJournalDraft(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [data, generateJournalPromptDraft]);
-
-  const regenerateJournalPrompt = async () => {
-    if (!data) return;
-    setIsRegeneratingJournalDraft(true);
-    try {
-      const result = await generateJournalPromptDraft({ day: data.day });
-      if (result.status === "success") {
-        setJournalDraft(result.draft);
-      }
-    } finally {
-      setIsRegeneratingJournalDraft(false);
-    }
-  };
 
   const tasks = useMemo(() => (tasksData ?? []) as TaskItem[], [tasksData]);
   const eventSummary = useMemo(
@@ -457,35 +366,6 @@ export default function Today() {
             </View>
           </View>
         </HardCard>
-      ) : null}
-
-      {isLoadingJournalDraft && !journalDraft ? (
-        <HardCard label="REFLECTION_MODULE" className="mb-6 bg-surface">
-          <View className="p-4 items-center">
-            <Spinner size="sm" color="warning" />
-          </View>
-        </HardCard>
-      ) : journalDraft ? (
-        <JournalPromptCard
-          day={data.day}
-          prompt={journalDraft.prompt}
-          quiet={journalDraft.quiet}
-          reason={normalizeJournalReason(journalDraft.reason?.code)}
-          onSubmit={submitJournalEntry}
-          onSkip={skipJournal}
-          onRegenerate={regenerateJournalPrompt}
-          isRegenerating={isRegeneratingJournalDraft}
-          entries={
-            (journalEntries ?? []) as Array<{
-              _id: string;
-              text?: string;
-              mood?: JournalMood;
-              createdAt: number;
-            }>
-          }
-          isSkipping={isSkippingJournal}
-          isSubmitting={isSubmittingJournal}
-        />
       ) : null}
 
       {/* Suggestions Section - Highlighted */}

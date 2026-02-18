@@ -1,12 +1,10 @@
 import React from "react";
 import { View } from "react-native";
 import { Button } from "heroui-native";
-import type { Id } from "@life-os/backend/convex/_generated/dataModel";
-import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 
 type JournalEntry = {
-  _id: Id<"journalEntries">;
+  _id: string;
   day: string;
   text?: string;
   mood?: "low" | "neutral" | "ok" | "good";
@@ -15,8 +13,8 @@ type JournalEntry = {
 
 type EntryCardProps = {
   entry: JournalEntry;
-  deletingId: Id<"journalEntries"> | null;
-  onDelete: (entryId: Id<"journalEntries">) => void;
+  deletingId: string | null;
+  onDelete: (entryId: string) => void;
 };
 
 const formatTime = (ts: number) =>
