@@ -44,7 +44,7 @@ export {
 
 export { generateAiSuggestions } from "./actions/suggestions";
 
-export { generateWeeklyPlanDraft } from "./actions/weeklyPlan";
+export { generateWeeklyPlanDraft, applyWeeklyPlanDraft } from "./actions/weeklyPlan";
 
 export { generateNextStepDraft } from "./actions/nextStep";
 

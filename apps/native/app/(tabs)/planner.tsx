@@ -1,7 +1,7 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Button, Spinner, TextField } from "heroui-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { Container } from "@/components/container";
@@ -114,6 +114,9 @@ export default function Planner() {
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const execute = useMutation(api.kernel.commands.executeCommand);
   const generateWeeklyPlanDraft = useAction(api.kernel.vexAgents.generateWeeklyPlanDraft);
+  const applyWeeklyPlanDraft = useAction((api.kernel.vexAgents as any).applyWeeklyPlanDraft);
+  const plannerPrefs = useQuery((api.kernel.commands as any).getPlannerPrefs, {});
+  const setPlannerHardMode = useMutation((api.kernel.commands as any).setPlannerHardMode);
 
   const [draftItems, setDraftItems] = useState<DraftItem[]>(() => createEmptyDraft());
   const [isEditing, setIsEditing] = useState(false);
@@ -127,6 +130,12 @@ export default function Planner() {
   const [weeklyPlanDraft, setWeeklyPlanDraft] = useState<WeeklyPlanDraft | null>(null);
   const [acceptedDays, setAcceptedDays] = useState<string[]>([]);
   const [declinedDays, setDeclinedDays] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof plannerPrefs?.weeklyPlannerHardMode === "boolean") {
+      setHardModeEnabled(plannerPrefs.weeklyPlannerHardMode);
+    }
+  }, [plannerPrefs?.weeklyPlannerHardMode]);
 
   if (!data) {
     return <PlannerSkeleton />;
@@ -174,20 +183,17 @@ export default function Planner() {
     }
   };
 
-  const applyDraftDayPlan = async (dayPlan: WeeklyPlanDraft["days"][number]) => {
-    await setPlan("adjust", dayPlan.focusItems, dayPlan.day);
-  };
-
   const applyAcceptedDays = async (daysToApply: string[], draftOverride?: WeeklyPlanDraft) => {
     const draft = draftOverride ?? weeklyPlanDraft;
     if (!draft || !daysToApply.length) return;
     setIsApplyingWeekPlan(true);
     try {
-      const acceptedSet = new Set(daysToApply);
-      for (const dayPlan of draft.days) {
-        if (!acceptedSet.has(dayPlan.day) || dayPlan.conflict) continue;
-        await applyDraftDayPlan(dayPlan);
-      }
+      await applyWeeklyPlanDraft({
+        draft,
+        acceptedDays: daysToApply,
+        hardMode: false,
+        tzOffsetMinutes,
+      });
     } finally {
       setIsApplyingWeekPlan(false);
     }
@@ -210,7 +216,16 @@ export default function Planner() {
         setDeclinedDays(
           draft.days.filter((dayPlan) => dayPlan.conflict).map((dayPlan) => dayPlan.day),
         );
-        await applyAcceptedDays(nonConflictingDays, draft);
+        setIsApplyingWeekPlan(true);
+        try {
+          await applyWeeklyPlanDraft({
+            draft,
+            hardMode: true,
+            tzOffsetMinutes,
+          });
+        } finally {
+          setIsApplyingWeekPlan(false);
+        }
       } else {
         setAcceptedDays([]);
         setDeclinedDays([]);
@@ -308,6 +323,16 @@ export default function Planner() {
     setAcceptedDays((days) => days.filter((entry) => entry !== day));
   };
 
+  const toggleHardMode = async () => {
+    const next = !hardModeEnabled;
+    setHardModeEnabled(next);
+    try {
+      await setPlannerHardMode({ enabled: next });
+    } catch {
+      setHardModeEnabled(!next);
+    }
+  };
+
   const subtitle = (() => {
     if (plannerState === "RETURNING") return "Welcome back. No pressure.";
     if (plannerState === "RECOVERY") return "Recovery mode. Keep it small.";
@@ -377,7 +402,7 @@ export default function Planner() {
             )}
           </Button>
           <Button
-            onPress={() => setHardModeEnabled((value) => !value)}
+            onPress={toggleHardMode}
             isDisabled={isGeneratingWeekPlan || isApplyingWeekPlan}
             className="bg-surface border border-foreground rounded-none"
             size="sm"

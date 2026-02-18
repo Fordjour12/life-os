@@ -8,6 +8,7 @@ import {
   getDefaultWeekId,
   normalizePlanEstimate,
 } from "../helpers";
+import { normalizeOffsetMinutes } from "../stabilization";
 import { normalizeWeeklyPlanDraft } from "../validators";
 import type { WeeklyPlanRawData, WeeklyPlanDraft } from "../typesVex";
 
@@ -206,6 +207,92 @@ function enrichWeeklyDraft(draft: WeeklyPlanDraft, raw: WeeklyPlanRawData) {
   } as WeeklyPlanDraft;
 }
 
+function isValidDay(day: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(day);
+}
+
+function normalizeDraftInput(input: unknown): WeeklyPlanDraft {
+  if (!input || typeof input !== "object") {
+    throw new Error("Draft is required");
+  }
+  const value = input as Record<string, unknown>;
+  const week = String(value.week ?? "").trim();
+  if (!/^\d{4}-\d{2}$/.test(week)) {
+    throw new Error("Draft week must be YYYY-WW");
+  }
+  if (!Array.isArray(value.days)) {
+    throw new Error("Draft days are required");
+  }
+  const reasonRaw = value.reason as { code?: unknown; detail?: unknown } | undefined;
+  const reason = {
+    code: typeof reasonRaw?.code === "string" ? reasonRaw.code : "draft",
+    detail:
+      typeof reasonRaw?.detail === "string"
+        ? reasonRaw.detail
+        : "Weekly draft generated for review.",
+  };
+
+  const days: WeeklyPlanDraft["days"] = [];
+  for (const entry of value.days) {
+    if (!entry || typeof entry !== "object") continue;
+    const dayValue = entry as Record<string, unknown>;
+    const day = String(dayValue.day ?? "").trim();
+    if (!isValidDay(day)) continue;
+
+    const focusItemsRaw = Array.isArray(dayValue.focusItems) ? dayValue.focusItems : [];
+    const focusItems = focusItemsRaw
+      .slice(0, 3)
+      .map((item, index) => {
+        if (!item || typeof item !== "object") return null;
+        const focus = item as Record<string, unknown>;
+        const label = String(focus.label ?? "").trim();
+        if (!label) return null;
+        const estimatedMinutes = normalizePlanEstimate(Number(focus.estimatedMinutes ?? 25));
+        const id = String(focus.id ?? "").trim() || `focus-${day}-${index}`;
+        return { id, label, estimatedMinutes };
+      })
+      .filter(
+        (
+          item,
+        ): item is { id: string; label: string; estimatedMinutes: number } => Boolean(item),
+      );
+    if (!focusItems.length) continue;
+
+    const dayReasonRaw = dayValue.reason as { code?: unknown; detail?: unknown } | undefined;
+    const conflictRaw = dayValue.conflict as { code?: unknown; detail?: unknown } | undefined;
+    days.push({
+      day,
+      focusItems,
+      reason: {
+        code: typeof dayReasonRaw?.code === "string" ? dayReasonRaw.code : "draft",
+        detail:
+          typeof dayReasonRaw?.detail === "string"
+            ? dayReasonRaw.detail
+            : "Drafted to fit the day.",
+      },
+      conflict:
+        typeof conflictRaw?.code === "string" && typeof conflictRaw?.detail === "string"
+          ? { code: conflictRaw.code, detail: conflictRaw.detail }
+          : undefined,
+    });
+  }
+
+  if (!days.length) {
+    throw new Error("Draft must include at least one day with focus items");
+  }
+
+  return { week, days, reason };
+}
+
+function getWeekBoundaries(weekId: string) {
+  const weekStart = getISOWeekStartDate(weekId);
+  const weekEndExclusive = new Date(weekStart);
+  weekEndExclusive.setUTCDate(weekStart.getUTCDate() + 7);
+  const startDay = formatYYYYMMDD(weekStart);
+  const endDay = formatYYYYMMDD(new Date(weekEndExclusive.getTime() - 24 * 60 * 60 * 1000));
+  return { startDay, endDay };
+}
+
 export const generateWeeklyPlanDraft = action({
   args: {
     week: v.optional(v.string()),
@@ -218,12 +305,8 @@ export const generateWeeklyPlanDraft = action({
       throw new Error("Week must be YYYY-WW");
     }
 
+    const { startDay, endDay } = getWeekBoundaries(weekId);
     const weekStart = getISOWeekStartDate(weekId);
-    const weekEndExclusive = new Date(weekStart);
-    weekEndExclusive.setUTCDate(weekStart.getUTCDate() + 7);
-
-    const startDay = formatYYYYMMDD(weekStart);
-    const endDay = formatYYYYMMDD(new Date(weekEndExclusive.getTime() - 24 * 60 * 60 * 1000));
 
     const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getWeeklyPlanRawData", {
       startDay,
@@ -337,5 +420,87 @@ OUTPUT FORMAT:
         draft: enrichWeeklyDraft(fallback, raw),
       } as const;
     }
+  },
+});
+
+export const applyWeeklyPlanDraft = action({
+  args: {
+    draft: v.any(),
+    acceptedDays: v.optional(v.array(v.string())),
+    hardMode: v.optional(v.boolean()),
+    tzOffsetMinutes: v.optional(v.number()),
+  },
+  handler: async (ctx, { draft, acceptedDays, hardMode, tzOffsetMinutes }) => {
+    await requireAuthUser(ctx);
+    const normalizedDraft = normalizeDraftInput(draft);
+    const offset = normalizeOffsetMinutes(tzOffsetMinutes);
+    const hardModeEnabled = Boolean(hardMode);
+    const acceptedSet = new Set((acceptedDays ?? []).filter((day) => isValidDay(day)));
+
+    const { startDay, endDay } = getWeekBoundaries(normalizedDraft.week);
+    const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getWeeklyPlanRawData", {
+      startDay,
+      endDay,
+    })) as WeeklyPlanRawData;
+    const enriched = enrichWeeklyDraft(normalizedDraft, raw);
+    const existingPlanDays = new Set(raw.existingPlans.map((plan) => plan.day));
+
+    const daysToApply = enriched.days.filter((dayPlan) => {
+      if (dayPlan.conflict) return false;
+      if (existingPlanDays.has(dayPlan.day)) return false;
+      if (hardModeEnabled) return true;
+      return acceptedSet.has(dayPlan.day);
+    });
+
+    if (!daysToApply.length) {
+      return {
+        ok: true,
+        appliedDays: [] as string[],
+        skippedDays: enriched.days.map((dayPlan) => ({
+          day: dayPlan.day,
+          reason: dayPlan.conflict ? dayPlan.conflict.code : "not_selected",
+        })),
+      };
+    }
+
+    const appliedDays: string[] = [];
+    const skippedDays: Array<{ day: string; reason: string }> = [];
+    let sequence = 0;
+
+    for (const dayPlan of enriched.days) {
+      const selected = daysToApply.some((candidate) => candidate.day === dayPlan.day);
+      if (!selected) {
+        skippedDays.push({
+          day: dayPlan.day,
+          reason: dayPlan.conflict ? dayPlan.conflict.code : "not_selected",
+        });
+        continue;
+      }
+
+      sequence += 1;
+      try {
+        await (ctx.runMutation as any)("kernel/commands/executeCommand", {
+          command: {
+            cmd: "set_daily_plan",
+            input: {
+              day: dayPlan.day,
+              reason: "adjust",
+              focusItems: dayPlan.focusItems,
+            },
+            idempotencyKey: `weekly-plan:${normalizedDraft.week}:${dayPlan.day}:${sequence}`,
+            tzOffsetMinutes: offset,
+          },
+        });
+        appliedDays.push(dayPlan.day);
+      } catch {
+        skippedDays.push({ day: dayPlan.day, reason: "apply_failed" });
+      }
+    }
+
+    return {
+      ok: true,
+      appliedDays,
+      skippedDays,
+    };
   },
 });
