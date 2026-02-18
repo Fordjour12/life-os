@@ -26,6 +26,7 @@ import type * as kernel_actions_weeklyPlan from "../kernel/actions/weeklyPlan.js
 import type * as kernel_actions_weeklyReview from "../kernel/actions/weeklyReview.js";
 import type * as kernel_agents from "../kernel/agents.js";
 import type * as kernel_commands from "../kernel/commands.js";
+import type * as kernel_featureFlags from "../kernel/featureFlags.js";
 import type * as kernel_helpers from "../kernel/helpers.js";
 import type * as kernel_planReset from "../kernel/planReset.js";
 import type * as kernel_policies from "../kernel/policies.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   "kernel/actions/weeklyReview": typeof kernel_actions_weeklyReview;
   "kernel/agents": typeof kernel_agents;
   "kernel/commands": typeof kernel_commands;
+  "kernel/featureFlags": typeof kernel_featureFlags;
   "kernel/helpers": typeof kernel_helpers;
   "kernel/planReset": typeof kernel_planReset;
   "kernel/policies": typeof kernel_policies;

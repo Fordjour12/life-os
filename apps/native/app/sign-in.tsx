@@ -2,6 +2,7 @@ import { Link, useRouter } from "expo-router";
 import { Button, ErrorView, Spinner, TextField } from "heroui-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
+import { useConvexAuth } from "convex/react";
 
 import { Container } from "@/components/container";
 import { MachineText } from "@/components/ui/machine-text";
@@ -14,12 +15,13 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { signIn, isLoading, error, clearError, user } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
 
   useEffect(() => {
-    if (user) {
+    if (user && isAuthenticated) {
       router.replace("/(tabs)");
     }
-  }, [user, router]);
+  }, [isAuthenticated, user, router]);
 
   const handleLogin = async () => {
     clearError();
