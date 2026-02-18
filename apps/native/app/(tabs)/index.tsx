@@ -4,21 +4,16 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { Button, Spinner, TextField } from "heroui-native";
 import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
 
 import { DailyIntentCard } from "@/components/daily-intent-card";
-import { DriftSignalsCard } from "@/components/drift-signals-card";
 import { JournalPromptCard } from "@/components/journal-prompt-card";
-import { PatternInsightsCard } from "@/components/pattern-insights-card";
-import { WeeklyReviewCard } from "@/components/weekly-review-card";
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
 import { Container } from "@/components/container";
 import { TodaySkeleton } from "@/components/skeletons/today-skeleton";
 import { getTimezoneOffsetMinutes } from "@/lib/date";
 import { TaskCard } from "@/components/task-card";
-import { Link } from "expo-router";
 
 // We'll define a local component for the "Engineering Badge" for now to match the style
 function EngBadge({
@@ -116,19 +111,7 @@ export default function Today() {
   const applyPlanResetMutation = useMutation(api.kernel.planReset.applyPlanReset);
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
   const executeCommandMutation = useMutation(api.kernel.commands.executeCommand);
-  const weeklyReview = useQuery(api.identity.weeklyReview.getWeeklyReview, {});
-  const generateWeeklyReviewMutation = useMutation(api.identity.weeklyReview.generateWeeklyReview);
-  const patternInsights = useQuery(api.identity.getPatternInsights, {
-    window: "week",
-  });
-  const driftSignals = useQuery(api.identity.getDriftSignals, {
-    window: "month",
-  });
-  const generateWeeklyReviewDraft = useAction(api.kernel.vexAgents.generateWeeklyReviewDraft);
   const generateJournalPromptDraft = useAction(api.kernel.vexAgents.generateJournalPromptDraft);
-  const generateRecoveryProtocolDraft = useAction(
-    api.kernel.vexAgents.generateRecoveryProtocolDraft,
-  );
   const createJournalEntryMutation = useMutation(api.identity.createJournalEntry);
   const journalEntries = useQuery(
     api.identity.getJournalEntriesForDay,
@@ -138,12 +121,7 @@ export default function Today() {
 
   const [title, setTitle] = useState("");
   const [estimate, setEstimate] = useState("25");
-  const [habitId, setHabitId] = useState("");
-  const [expenseAmount, setExpenseAmount] = useState("");
-  const [expenseCategory, setExpenseCategory] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [isLoggingHabit, setIsLoggingHabit] = useState(false);
-  const [isLoggingExpense, setIsLoggingExpense] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
   const [journalDraft, setJournalDraft] = useState<{
     day: string;
@@ -153,39 +131,21 @@ export default function Today() {
   } | null>(null);
   const [isLoadingJournalDraft, setIsLoadingJournalDraft] = useState(false);
   const [isRegeneratingJournalDraft, setIsRegeneratingJournalDraft] = useState(false);
-  const [recoveryDraft, setRecoveryDraft] = useState<{
-    day: string;
-    title: string;
-    steps: string[];
-    minutes: number;
-    reason: { code: string; detail: string };
-  } | null>(null);
-  const [isLoadingRecoveryDraft, setIsLoadingRecoveryDraft] = useState(false);
-  const [weeklyDraft, setWeeklyDraft] = useState<{
-    highlights: string[];
-    frictionPoints: string[];
-    reflectionQuestion: string;
-    narrative: string;
-    reason: { code: string; detail: string };
-    week: string;
-  } | null>(null);
-  const [isLoadingWeeklyDraft, setIsLoadingWeeklyDraft] = useState(false);
-  const [isGeneratingWeeklyReview, setIsGeneratingWeeklyReview] = useState(false);
   const [isSubmittingJournal, setIsSubmittingJournal] = useState(false);
   const [isSkippingJournal, setIsSkippingJournal] = useState(false);
-  const [showAllEvents, setShowAllEvents] = useState(false);
-  const [eventFilter, setEventFilter] = useState<"all" | "habits" | "expenses">("all");
+  const trimmedTitle = title.trim();
+  const parsedEstimate = Number.parseInt(estimate, 10);
+  const isEstimateValid = Number.isFinite(parsedEstimate) && parsedEstimate >= 5 && parsedEstimate <= 480;
+  const canCreateTask = trimmedTitle.length > 0 && isEstimateValid && !isCreating;
 
   const createTask = async () => {
-    const trimmedTitle = title.trim();
-    const estimateMin = Number.parseInt(estimate, 10);
-    if (!trimmedTitle || !Number.isFinite(estimateMin) || estimateMin <= 0) return;
+    if (!canCreateTask) return;
 
     setIsCreating(true);
     try {
       await createTaskMutation({
         title: trimmedTitle,
-        estimateMin,
+        estimateMin: parsedEstimate,
         priority: 2,
         idempotencyKey: idem(),
       });
@@ -220,46 +180,6 @@ export default function Today() {
     });
   };
 
-  const logHabit = async (status: "done" | "missed") => {
-    const trimmedHabitId = habitId.trim();
-    if (!trimmedHabitId) return;
-    setIsLoggingHabit(true);
-    try {
-      await executeCommandMutation({
-        command: {
-          cmd: "log_habit",
-          input: { habitId: trimmedHabitId, status },
-          idempotencyKey: idem(),
-          tzOffsetMinutes,
-        },
-      });
-      setHabitId("");
-    } finally {
-      setIsLoggingHabit(false);
-    }
-  };
-
-  const logExpense = async () => {
-    const amount = Number(expenseAmount);
-    const category = expenseCategory.trim();
-    if (!Number.isFinite(amount) || amount <= 0 || !category) return;
-    setIsLoggingExpense(true);
-    try {
-      await executeCommandMutation({
-        command: {
-          cmd: "add_expense",
-          input: { amount, category },
-          idempotencyKey: idem(),
-          tzOffsetMinutes,
-        },
-      });
-      setExpenseAmount("");
-      setExpenseCategory("");
-    } finally {
-      setIsLoggingExpense(false);
-    }
-  };
-
   const doTinyWin = async (tinyWin?: TinyWinPayload) => {
     if (!tinyWin) return;
     if (tinyWin.kind === "task" && tinyWin.taskId) {
@@ -278,15 +198,6 @@ export default function Today() {
       if (createdId) {
         await completeTask(createdId);
       }
-    }
-  };
-
-  const generateWeeklyReview = async () => {
-    setIsGeneratingWeeklyReview(true);
-    try {
-      await generateWeeklyReviewMutation({});
-    } finally {
-      setIsGeneratingWeeklyReview(false);
     }
   };
 
@@ -316,29 +227,6 @@ export default function Today() {
     return "default";
   };
 
-  const formatEventTime = (ts: number) =>
-    new Date(ts).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-
-  const formatEventLabel = (event: { type: string; meta?: Record<string, unknown> }) => {
-    if (event.type === "HABIT_DONE") return "Habit done";
-    if (event.type === "HABIT_MISSED") return "Habit missed";
-    if (event.type === "EXPENSE_ADDED") {
-      const amount = Number(event.meta?.amount ?? 0);
-      const category = String(event.meta?.category ?? "").trim();
-      if (Number.isFinite(amount) && amount > 0 && category) {
-        return `Expense $${amount} (${category})`;
-      }
-      if (Number.isFinite(amount) && amount > 0) {
-        return `Expense $${amount}`;
-      }
-      return "Expense added";
-    }
-    return "Event";
-  };
-
   const suggestions = useMemo(() => (data?.suggestions ?? []) as SuggestionItem[], [data]);
 
   useEffect(() => {
@@ -360,25 +248,6 @@ export default function Today() {
     };
   }, [data, generateJournalPromptDraft]);
 
-  useEffect(() => {
-    if (!weeklyReview?.week) return;
-    let cancelled = false;
-    setIsLoadingWeeklyDraft(true);
-    generateWeeklyReviewDraft({ week: weeklyReview.week })
-      .then((result) => {
-        if (cancelled) return;
-        if (result.status === "success") {
-          setWeeklyDraft({ ...result.draft, week: result.week });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingWeeklyDraft(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [generateWeeklyReviewDraft, weeklyReview?.week]);
-
   const regenerateJournalPrompt = async () => {
     if (!data) return;
     setIsRegeneratingJournalDraft(true);
@@ -392,21 +261,6 @@ export default function Today() {
     }
   };
 
-  const loadRecoveryProtocol = async () => {
-    if (!data) return;
-    setIsLoadingRecoveryDraft(true);
-    try {
-      const result = await generateRecoveryProtocolDraft({
-        day: data.day,
-        tzOffsetMinutes,
-      });
-      if (result.status === "success") {
-        setRecoveryDraft(result.draft);
-      }
-    } finally {
-      setIsLoadingRecoveryDraft(false);
-    }
-  };
   const tasks = useMemo(() => (tasksData ?? []) as TaskItem[], [tasksData]);
   const eventSummary = useMemo(
     () =>
@@ -417,26 +271,12 @@ export default function Today() {
       },
     [data],
   );
-  const todayEvents = useMemo(
-    () =>
-      (data?.dailyEvents ?? []) as Array<{
-        type: string;
-        ts: number;
-        meta?: Record<string, unknown>;
-      }>,
-    [data],
-  );
-  const filteredEvents = useMemo(() => {
-    if (eventFilter === "habits") {
-      return todayEvents.filter(
-        (event) => event.type === "HABIT_DONE" || event.type === "HABIT_MISSED",
-      );
-    }
-    if (eventFilter === "expenses") {
-      return todayEvents.filter((event) => event.type === "EXPENSE_ADDED");
-    }
-    return todayEvents;
-  }, [eventFilter, todayEvents]);
+  const plannedMinutes = data?.state?.plannedMinutes ?? 0;
+  const completedMinutes = data?.state?.completedMinutes ?? 0;
+  const completionPercent =
+    plannedMinutes > 0 ? Math.min(100, Math.round((completedMinutes / plannedMinutes) * 100)) : 0;
+  const primarySuggestion = suggestions[0] ?? null;
+  const secondarySuggestions = suggestions.slice(1, 3);
 
   if (!data) {
     return <TodaySkeleton />;
@@ -492,7 +332,26 @@ export default function Today() {
         </View>
       </HardCard>
 
-      <HardCard className="mb-8" padding="sm" label="TODAY EVENTS">
+      <HardCard className="mb-8" padding="sm" label="PLAN_PROGRESS">
+        <View className="gap-3 p-2">
+          <View className="flex-row justify-between items-center">
+            <MachineText variant="label" className="text-[10px]">
+              COMPLETED
+            </MachineText>
+            <MachineText variant="value" className="text-sm">
+              {completedMinutes} / {plannedMinutes} MIN ({completionPercent}%)
+            </MachineText>
+          </View>
+          <View className="h-2 border border-divider bg-surface">
+            <View
+              className="h-full bg-accent"
+              style={{ width: `${completionPercent}%` }}
+            />
+          </View>
+        </View>
+      </HardCard>
+
+      <HardCard className="mb-8" padding="sm" label="TODAY_EVENTS">
         <View className="gap-3 p-2">
           <View className="flex-row justify-between">
             <MachineText variant="label" className="text-[10px]">
@@ -518,166 +377,6 @@ export default function Today() {
               {eventSummary.expenseAdded}
             </MachineText>
           </View>
-
-          <View className="flex-row gap-2 pt-1">
-            <Button
-              size="sm"
-              className={`border border-foreground rounded-none ${
-                eventFilter === "all" ? "bg-accent" : "bg-surface"
-              }`}
-              onPress={() => setEventFilter("all")}
-            >
-              <MachineText
-                className={`text-xs font-bold ${
-                  eventFilter === "all" ? "text-accent-foreground" : "text-foreground"
-                }`}
-              >
-                ALL
-              </MachineText>
-            </Button>
-            <Button
-              size="sm"
-              className={`border border-foreground rounded-none ${
-                eventFilter === "habits" ? "bg-accent" : "bg-surface"
-              }`}
-              onPress={() => setEventFilter("habits")}
-            >
-              <MachineText
-                className={`text-xs font-bold ${
-                  eventFilter === "habits" ? "text-accent-foreground" : "text-foreground"
-                }`}
-              >
-                HABITS
-              </MachineText>
-            </Button>
-            <Button
-              size="sm"
-              className={`border border-foreground rounded-none ${
-                eventFilter === "expenses" ? "bg-accent" : "bg-surface"
-              }`}
-              onPress={() => setEventFilter("expenses")}
-            >
-              <MachineText
-                className={`text-xs font-bold ${
-                  eventFilter === "expenses" ? "text-accent-foreground" : "text-foreground"
-                }`}
-              >
-                EXPENSES
-              </MachineText>
-            </Button>
-          </View>
-
-          {filteredEvents.length > 0 ? (
-            <View className="gap-2 pt-2">
-              {(showAllEvents ? filteredEvents : filteredEvents.slice(0, 3)).map((event, index) => (
-                <View
-                  key={`${event.type}-${event.ts}-${index}`}
-                  className="flex-row justify-between"
-                >
-                  <MachineText variant="label" className="text-[10px] text-foreground/70">
-                    {formatEventLabel(event)}
-                  </MachineText>
-                  <MachineText variant="value" className="text-xs">
-                    {formatEventTime(event.ts)}
-                  </MachineText>
-                </View>
-              ))}
-              {filteredEvents.length > 3 ? (
-                <Button
-                  size="sm"
-                  className="self-start bg-surface border border-foreground rounded-none"
-                  onPress={() => setShowAllEvents((value) => !value)}
-                >
-                  <MachineText className="text-xs font-bold text-foreground">
-                    {showAllEvents ? "SHOW LESS" : "SHOW ALL"}
-                  </MachineText>
-                </Button>
-              ) : null}
-            </View>
-          ) : (
-            <MachineText variant="label" className="pt-2 text-[10px] text-foreground/60">
-              No events in this filter yet today.
-            </MachineText>
-          )}
-        </View>
-      </HardCard>
-
-      <HardCard className="mb-8" padding="sm" label="QUICK LOG">
-        <View className="gap-4 p-2">
-          <View className="gap-2">
-            <MachineText variant="label" className="text-[10px]">
-              HABIT ID
-            </MachineText>
-            <TextField>
-              <TextField.Input
-                value={habitId}
-                onChangeText={setHabitId}
-                placeholder="habit-id"
-                className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
-                style={{ fontFamily: "Menlo" }}
-              />
-            </TextField>
-            <View className="flex-row gap-2">
-              <Button
-                size="sm"
-                className="bg-accent border border-foreground rounded-none"
-                onPress={() => logHabit("done")}
-                isDisabled={isLoggingHabit || !habitId.trim()}
-              >
-                <MachineText className="text-xs font-bold text-accent-foreground">DONE</MachineText>
-              </Button>
-              <Button
-                size="sm"
-                className="bg-surface border border-foreground rounded-none"
-                onPress={() => logHabit("missed")}
-                isDisabled={isLoggingHabit || !habitId.trim()}
-              >
-                <MachineText className="text-xs font-bold text-foreground">MISSED</MachineText>
-              </Button>
-            </View>
-          </View>
-
-          <View className="gap-2">
-            <MachineText variant="label" className="text-[10px]">
-              EXPENSE
-            </MachineText>
-            <View className="flex-row gap-2">
-              <TextField className="flex-1">
-                <TextField.Input
-                  value={expenseAmount}
-                  onChangeText={setExpenseAmount}
-                  placeholder="$"
-                  keyboardType="numeric"
-                  className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
-                  style={{ fontFamily: "Menlo" }}
-                />
-              </TextField>
-              <TextField className="flex-2">
-                <TextField.Input
-                  value={expenseCategory}
-                  onChangeText={setExpenseCategory}
-                  placeholder="category"
-                  className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
-                  style={{ fontFamily: "Menlo" }}
-                />
-              </TextField>
-            </View>
-            <Button
-              size="sm"
-              className="bg-accent border border-foreground rounded-none self-start"
-              onPress={logExpense}
-              isDisabled={
-                isLoggingExpense ||
-                !expenseCategory.trim() ||
-                !Number.isFinite(Number(expenseAmount)) ||
-                Number(expenseAmount) <= 0
-              }
-            >
-              <MachineText className="text-xs font-bold text-accent-foreground">
-                ADD EXPENSE
-              </MachineText>
-            </Button>
-          </View>
         </View>
       </HardCard>
 
@@ -698,79 +397,66 @@ export default function Today() {
         completedMinutes={data.state?.completedMinutes ?? null}
       />
 
-      {weeklyReview && (
-        <WeeklyReviewCard
-          review={weeklyReview ?? null}
-          onGenerate={generateWeeklyReview}
-          isGenerating={isGeneratingWeeklyReview}
-        />
-      )}
-
-      {weeklyReview ? (
-        <HardCard label="AI_NARRATIVE" className="mb-6 bg-surface">
-          <View className="p-2 gap-3">
-            <MachineText variant="label" className="text-accent">
-              WEEKLY_AI_SUMMARY
+      {primarySuggestion ? (
+        <HardCard label="NEXT_BEST_ACTION" className="mb-8 border-accent bg-surface">
+          <View className="gap-3 p-2">
+            <MachineText className="font-bold text-base">
+              {primarySuggestion.type.replace(/_/g, " ")}
             </MachineText>
-            {weeklyDraft ? (
-              <View className="gap-2">
-                <MachineText className="text-sm">{weeklyDraft.narrative}</MachineText>
-                <MachineText className="text-[10px] text-muted">
-                  REASON: {weeklyDraft.reason.detail}
-                </MachineText>
-              </View>
-            ) : isLoadingWeeklyDraft ? (
-              <Spinner size="sm" color="warning" />
-            ) : (
-              <MachineText className="text-sm">NO_AI_DRAFT_YET.</MachineText>
-            )}
-          </View>
-        </HardCard>
-      ) : null}
-
-      {patternInsights !== undefined ? (
-        <PatternInsightsCard insights={patternInsights ?? null} windowLabel="WEEK_WINDOW" />
-      ) : null}
-
-      {driftSignals !== undefined ? (
-        <DriftSignalsCard signals={driftSignals ?? null} windowLabel="MONTH_WINDOW" />
-      ) : null}
-
-      {data?.state?.mode === "recovery" ? (
-        <HardCard label="RECOVERY_PROTOCOL" className="mb-6 bg-surface">
-          <View className="p-2 gap-3">
-            <MachineText variant="label" className="text-accent">
-              RECOVERY_MODE_ACTIVE
+            <MachineText className="text-xs opacity-70">
+              {primarySuggestion.reason?.detail ?? "Small next step with clear reason."}
             </MachineText>
-            {recoveryDraft ? (
-              <View className="gap-2">
-                <MachineText className="text-lg font-bold">{recoveryDraft.title}</MachineText>
-                <View className="gap-1">
-                  {recoveryDraft.steps.map((step, index) => (
-                    <MachineText key={`${step}-${index}`} className="text-sm">
-                      {index + 1}. {step}
+            <View className="flex-row gap-2">
+              {primarySuggestion.type === "PLAN_RESET" ? (
+                <Button
+                  size="sm"
+                  className="bg-accent border border-foreground rounded-none"
+                  onPress={() =>
+                    applyPlanResetMutation({
+                      day: data.day,
+                      keepCount: primarySuggestion.payload?.keepCount ?? 1,
+                      idempotencyKey: idem(),
+                      tzOffsetMinutes,
+                    })
+                  }
+                >
+                  <MachineText className="text-xs font-bold text-accent-foreground">
+                    EXECUTE
+                  </MachineText>
+                </Button>
+              ) : null}
+              {primarySuggestion.type === "GENTLE_RETURN" ? (
+                <Button
+                  size="sm"
+                  className="bg-accent border border-foreground rounded-none"
+                  onPress={() => resumeTask(primarySuggestion.payload?.taskId)}
+                >
+                  <MachineText className="text-xs font-bold text-accent-foreground">
+                    RESUME
+                  </MachineText>
+                </Button>
+              ) : null}
+              {primarySuggestion.type === "MICRO_RECOVERY_PROTOCOL" ? (
+                <>
+                  <Button
+                    size="sm"
+                    className="bg-accent border border-foreground rounded-none"
+                    onPress={() => doTinyWin(primarySuggestion.payload?.tinyWin)}
+                  >
+                    <MachineText className="text-xs font-bold text-accent-foreground">
+                      DO TINY WIN
                     </MachineText>
-                  ))}
-                </View>
-                <MachineText className="text-[10px] text-muted">
-                  REASON: {recoveryDraft.reason.detail}
-                </MachineText>
-              </View>
-            ) : (
-              <MachineText className="text-sm">NO_RECOVERY_DRAFT_YET.</MachineText>
-            )}
-            <Button
-              size="sm"
-              onPress={loadRecoveryProtocol}
-              isDisabled={isLoadingRecoveryDraft}
-              className="bg-foreground rounded-none shadow-[2px_2px_0px_var(--color-accent)]"
-            >
-              {isLoadingRecoveryDraft ? (
-                <Spinner size="sm" color="white" />
-              ) : (
-                <MachineText className="text-background font-bold">GENERATE_PROTOCOL</MachineText>
-              )}
-            </Button>
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-surface border border-foreground rounded-none"
+                    onPress={() => acceptRest(primarySuggestion.payload?.rest?.minutes ?? 15)}
+                  >
+                    <MachineText className="text-xs font-bold text-foreground">REST</MachineText>
+                  </Button>
+                </>
+              ) : null}
+            </View>
           </View>
         </HardCard>
       ) : null}
@@ -805,13 +491,13 @@ export default function Today() {
       ) : null}
 
       {/* Suggestions Section - Highlighted */}
-      {suggestions.length > 0 && (
+      {secondarySuggestions.length > 0 && (
         <View className="mb-8">
           <MachineText variant="label" className="mb-2 text-accent">
-            INPUT_SIGNALS ({suggestions.length})
+            INPUT_SIGNALS ({secondarySuggestions.length})
           </MachineText>
           <View className="gap-3">
-            {suggestions.slice(0, 2).map((suggestion: SuggestionItem) => (
+            {secondarySuggestions.map((suggestion: SuggestionItem) => (
               <HardCard
                 key={suggestion._id}
                 variant="default"
@@ -906,10 +592,22 @@ export default function Today() {
       {/* Tasks Section */}
       <View className="mb-8">
         <View className="flex-row justify-between items-end mb-4 px-1 border-b border-divider pb-2">
-          <MachineText variant="header" size="lg">
-            EXECUTION_QUEUE
-          </MachineText>
-          <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
+          <View>
+            <MachineText variant="header" size="lg">
+              EXECUTION_QUEUE
+            </MachineText>
+            <MachineText className="text-[10px] text-foreground/60">
+              MARK DONE OR CAPTURE THE NEXT CONCRETE ACTION.
+            </MachineText>
+          </View>
+          <View className="items-end">
+            <MachineText className="text-xs">COUNT: {tasks.length}</MachineText>
+            {tasks.length > 0 ? (
+              <MachineText className="text-[10px] text-foreground/60">
+                NEXT: {tasks[0]?.estimateMin ?? 0} MIN
+              </MachineText>
+            ) : null}
+          </View>
         </View>
 
         <View className="gap-2 mb-6 min-h-25">
@@ -959,7 +657,7 @@ export default function Today() {
               </View>
               <Button
                 onPress={createTask}
-                isDisabled={isCreating}
+                isDisabled={!canCreateTask}
                 className="bg-foreground px-6 shadow-[2px_2px_0px_var(--color-accent)]"
               >
                 {isCreating ? (
@@ -969,6 +667,48 @@ export default function Today() {
                 )}
               </Button>
             </View>
+
+            <View className="flex-row gap-2">
+              {[10, 25, 45].map((minutes) => (
+                <Button
+                  key={minutes}
+                  size="sm"
+                  onPress={() => setEstimate(String(minutes))}
+                  className={`border border-foreground rounded-none ${
+                    estimate === String(minutes) ? "bg-accent" : "bg-surface"
+                  }`}
+                >
+                  <MachineText
+                    className={`text-xs font-bold ${
+                      estimate === String(minutes) ? "text-accent-foreground" : "text-foreground"
+                    }`}
+                  >
+                    {minutes} MIN
+                  </MachineText>
+                </Button>
+              ))}
+            </View>
+
+            {trimmedTitle.length > 0 ? (
+              <View className="border border-divider bg-muted px-2 py-2">
+                <MachineText className="text-[10px] text-foreground/70">
+                  WILL ADD:
+                </MachineText>
+                <MachineText className="text-xs font-bold">
+                  {trimmedTitle} ({estimate || "?"} MIN)
+                </MachineText>
+              </View>
+            ) : (
+              <MachineText className="text-[10px] text-foreground/60">
+                TIP: Keep tasks concrete, e.g. "Send invoice draft", "10 min walk".
+              </MachineText>
+            )}
+
+            {!isEstimateValid && estimate.length > 0 ? (
+              <MachineText className="text-[10px] text-danger">
+                ESTIMATE MUST BE BETWEEN 5 AND 480 MINUTES.
+              </MachineText>
+            ) : null}
           </View>
         </HardCard>
       </View>

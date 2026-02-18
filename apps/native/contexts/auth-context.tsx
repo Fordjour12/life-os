@@ -61,42 +61,40 @@ export function AuthProvider({ children }: PropsWithChildren) {
    const signIn = useCallback(async (credentials: { email: string; password: string }) => {
       setIsLoading(true);
       setError(null);
-
-      await authClient.signIn.email(credentials, {
-         onError: (err) => {
-            setError(err.error?.message ?? "Failed to sign in");
-            setIsLoading(false);
-         },
-         onSuccess: async () => {
-            const session = await authClient.getSession();
-            setUser((session.data?.user as AuthUser | undefined) ?? null);
-         },
-          onFinished: () => {
-             setIsLoading(false);
-          },
-      });
-   }, []);
+      try {
+         const result = await authClient.signIn.email(credentials);
+         if (result.error) {
+            setError(result.error.message ?? "Failed to sign in");
+            return;
+         }
+         setUser((result.data?.user as AuthUser | undefined) ?? null);
+         await refreshSession();
+      } catch {
+         setError("Failed to sign in");
+      } finally {
+         setIsLoading(false);
+      }
+   }, [refreshSession]);
 
    const signUp = useCallback(
       async (credentials: { name: string; email: string; password: string }) => {
          setIsLoading(true);
          setError(null);
-
-         await authClient.signUp.email(credentials, {
-            onError: (err) => {
-               setError(err.error?.message ?? "Failed to sign up");
-               setIsLoading(false);
-            },
-            onSuccess: async () => {
-               const session = await authClient.getSession();
-               setUser((session.data?.user as AuthUser | undefined) ?? null);
-            },
-             onFinished: () => {
-                setIsLoading(false);
-             },
-         });
+         try {
+            const result = await authClient.signUp.email(credentials);
+            if (result.error) {
+               setError(result.error.message ?? "Failed to sign up");
+               return;
+            }
+            setUser((result.data?.user as AuthUser | undefined) ?? null);
+            await refreshSession();
+         } catch {
+            setError("Failed to sign up");
+         } finally {
+            setIsLoading(false);
+         }
       },
-      [],
+      [refreshSession],
    );
 
    const signOut = useCallback(async () => {
@@ -104,10 +102,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setError(null);
       try {
          await authClient.signOut();
-         setUser(null);
       } catch {
          setError("Failed to sign out");
       } finally {
+         setUser(null);
          setIsLoading(false);
       }
    }, []);

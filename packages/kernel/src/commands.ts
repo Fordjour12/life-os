@@ -38,7 +38,6 @@ const commandHandlers: { [K in keyof CommandMap]: CommandHandler<CommandMap[K]> 
       }
       return { valid: true };
     },
-    },
     guardrails: () => ({ pass: true }),
     execute: async (cmd) => {
       const taskId = `tsk_${Date.now()}`;
@@ -110,7 +109,6 @@ const commandHandlers: { [K in keyof CommandMap]: CommandHandler<CommandMap[K]> 
         return { valid: false, error: "Amount must be a number greater than 0" };
       }
       return { valid: true };
-    },
     },
     guardrails: () => ({ pass: true }),
     execute: async (cmd) => [
