@@ -13,6 +13,8 @@ import type * as calendar from "../calendar.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as identity_guardrails from "../identity/guardrails.js";
+import type * as journal from "../journal.js";
+import type * as kernel_actions_journalCheckin from "../kernel/actions/journalCheckin.js";
 import type * as kernel_actions_nextStep from "../kernel/actions/nextStep.js";
 import type * as kernel_actions_recoveryProtocol from "../kernel/actions/recoveryProtocol.js";
 import type * as kernel_actions_suggestions from "../kernel/actions/suggestions.js";
@@ -47,6 +49,8 @@ declare const fullApi: ApiFromModules<{
   healthCheck: typeof healthCheck;
   http: typeof http;
   "identity/guardrails": typeof identity_guardrails;
+  journal: typeof journal;
+  "kernel/actions/journalCheckin": typeof kernel_actions_journalCheckin;
   "kernel/actions/nextStep": typeof kernel_actions_nextStep;
   "kernel/actions/recoveryProtocol": typeof kernel_actions_recoveryProtocol;
   "kernel/actions/suggestions": typeof kernel_actions_suggestions;

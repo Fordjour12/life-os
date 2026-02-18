@@ -49,6 +49,7 @@ export { generateWeeklyPlanDraft, applyWeeklyPlanDraft } from "./actions/weeklyP
 export { generateNextStepDraft } from "./actions/nextStep";
 
 export { generateRecoveryProtocolDraft } from "./actions/recoveryProtocol";
+export { generateDailyJournalCheckin } from "./actions/journalCheckin";
 
 export {
   getNextStepRawData,

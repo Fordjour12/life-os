@@ -2,6 +2,7 @@ import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Button, Spinner } from "heroui-native";
 import { useMemo, useState } from "react";
 import { View } from "react-native";
@@ -484,18 +485,20 @@ export default function Today() {
         <HardCard label="TASK_CAPTURE" className="bg-surface">
           <View className="gap-3">
             <MachineText className="text-[10px] text-foreground/60">
-              OPEN THE CAPTURE MODAL FOR A CLEAN TASK ENTRY FLOW.
+              USE THE BOTTOM ADD CONTROL TO CAPTURE A TASK.
             </MachineText>
-            <View className="flex-row gap-2">
-              <Button
-                onPress={() => router.push("/new-task?estimate=25")}
-                className="bg-foreground px-6 shadow-[2px_2px_0px_var(--color-accent)]"
-              >
-                <MachineText className="text-background font-bold">ADD_TASK</MachineText>
-              </Button>
-            </View>
           </View>
         </HardCard>
+
+        <View className="items-end mt-2 mb-4">
+          <Button
+            onPress={() => router.push("/new-task?estimate=25")}
+            className="w-14 h-14 min-w-14 rounded-none bg-foreground border border-foreground shadow-[3px_3px_0px_var(--color-accent)]"
+          >
+            <Ionicons name="add" size={24} color="white" />
+          </Button>
+          <MachineText className="text-[10px] mt-1">ADD_TASK</MachineText>
+        </View>
       </View>
     </Container>
   );
