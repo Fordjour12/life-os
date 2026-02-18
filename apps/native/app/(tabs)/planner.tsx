@@ -505,50 +505,77 @@ export default function Planner() {
 
       {showEditor ? (
         <HardCard label="EDIT_PLAN" className="gap-4 p-4">
-          <View className="gap-1">
+          <View className="gap-2">
             <MachineText className="font-bold">TODAY'S FOCUS</MachineText>
             <MachineText className="text-xs text-muted">
-              Up to three items, rough effort only.
+              Pick up to three slots. Keep each one concrete and small.
             </MachineText>
+            <View className="border border-divider bg-surface px-2 py-1">
+              <MachineText className="text-[10px] text-muted">
+                QUICK RULE: IF IT FEELS VAGUE, SHRINK THE WORDING.
+              </MachineText>
+            </View>
           </View>
-          <View className="gap-4">
+          <View className="gap-3">
             {draftItems.map((item, index) => (
-              <HardCard
+              <View
                 key={item.id}
-                variant="flat"
-                padding="sm"
-                className="gap-2 bg-surface border-dashed"
+                className="border border-divider bg-surface"
               >
-                <View>
-                  <MachineText variant="label" className="mb-1">
-                    FOCUS ITEM {index + 1}
-                  </MachineText>
-                  <TextField>
-                    <TextField.Input
-                      value={item.label}
-                      onChangeText={(value) => updateDraft(index, { label: value })}
-                      placeholder="Small, meaningful thing"
-                      className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
-                      style={{ fontFamily: "Menlo" }}
-                    />
-                  </TextField>
+                <View className="flex-row border-b border-divider">
+                  <View className="w-12 items-center justify-center bg-muted border-r border-divider py-3">
+                    <MachineText className="text-xs font-bold">{String(index + 1).padStart(2, "0")}</MachineText>
+                  </View>
+                  <View className="flex-1 px-3 py-2 gap-2">
+                    <MachineText className="text-[10px] text-muted">FOCUS SLOT</MachineText>
+                    <TextField>
+                      <TextField.Input
+                        value={item.label}
+                        onChangeText={(value) => updateDraft(index, { label: value })}
+                        placeholder="ex: Send invoice draft"
+                        className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
+                        style={{ fontFamily: "Menlo" }}
+                      />
+                    </TextField>
+                  </View>
                 </View>
-                <View>
-                  <MachineText variant="label" className="mb-1">
-                    ESTIMATE (MIN)
-                  </MachineText>
-                  <TextField>
-                    <TextField.Input
-                      value={item.estimatedMinutes}
-                      onChangeText={(value) => updateDraft(index, { estimatedMinutes: value })}
-                      placeholder="25"
-                      keyboardType="number-pad"
-                      className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
-                      style={{ fontFamily: "Menlo" }}
-                    />
-                  </TextField>
+                <View className="px-3 py-2 gap-2">
+                  <MachineText className="text-[10px] text-muted">ESTIMATE</MachineText>
+                  <View className="flex-row gap-2 flex-wrap">
+                    {allowedEstimates.map((minutes) => {
+                      const selected = Number(item.estimatedMinutes) === minutes;
+                      return (
+                        <Button
+                          key={`${item.id}-${minutes}`}
+                          size="sm"
+                          onPress={() => updateDraft(index, { estimatedMinutes: String(minutes) })}
+                          className={`rounded-none border ${
+                            selected ? "bg-foreground border-foreground" : "bg-surface border-divider"
+                          }`}
+                        >
+                          <MachineText
+                            className={`text-[10px] font-bold ${selected ? "text-background" : "text-foreground"}`}
+                          >
+                            {minutes}M
+                          </MachineText>
+                        </Button>
+                      );
+                    })}
+                    <View className="min-w-20 flex-1">
+                      <TextField>
+                        <TextField.Input
+                          value={item.estimatedMinutes}
+                          onChangeText={(value) => updateDraft(index, { estimatedMinutes: value })}
+                          placeholder="25"
+                          keyboardType="number-pad"
+                          className="font-mono text-sm text-foreground bg-surface border-b border-divider py-2 h-10"
+                          style={{ fontFamily: "Menlo" }}
+                        />
+                      </TextField>
+                    </View>
+                  </View>
                 </View>
-              </HardCard>
+              </View>
             ))}
           </View>
           <View className="flex-row gap-2 flex-wrap">
@@ -587,24 +614,78 @@ export default function Planner() {
           </View>
         </HardCard>
       ) : (
-        <HardCard label="CURRENT_Plan" className="gap-4 p-4">
-          <View className="gap-1">
-            <MachineText className="font-bold">TODAY'S PLAN</MachineText>
-            <MachineText className="text-xs text-muted">TOTAL: {totalMinutes} MIN</MachineText>
-          </View>
+        <HardCard label="FOCUS_CONSOLE" className="gap-4 p-4">
           <View className="gap-3">
-            {plan?.focusItems.map((item) => (
-              <HardCard key={item.id} variant="default" padding="sm" className="bg-surface">
-                <View className="flex-row items-center justify-between">
-                  <View className="gap-1">
-                    <MachineText className="font-bold">{item.label}</MachineText>
-                    <MachineText className="text-xs text-muted">
-                      {item.estimatedMinutes} MIN
-                    </MachineText>
+            <View className="flex-row items-end justify-between">
+              <View className="gap-1">
+                <MachineText className="font-bold">TODAY'S FOCUS</MachineText>
+                <MachineText className="text-xs text-muted">TOTAL_LOAD {totalMinutes} MIN</MachineText>
+              </View>
+              <View className="border border-divider bg-surface px-2 py-1">
+                <MachineText className="text-[10px]">{plannerState}</MachineText>
+              </View>
+            </View>
+            <View className="border border-divider bg-surface p-2 gap-2">
+              <MachineText className="text-[10px] text-muted">LOAD DISTRIBUTION</MachineText>
+              <View className="h-2 flex-row border border-divider bg-background overflow-hidden">
+                {plan?.focusItems.map((item, index) => {
+                  const widthPercent =
+                    totalMinutes > 0 ? (item.estimatedMinutes / totalMinutes) * 100 : 0;
+                  const stripe =
+                    index === 0 ? "bg-accent" : index === 1 ? "bg-warning" : "bg-success";
+                  return (
+                    <View
+                      key={`meter-${item.id}`}
+                      className={stripe}
+                      style={{ width: `${Math.max(8, widthPercent)}%` }}
+                    />
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+          <View className="gap-2">
+            {plan?.focusItems.map((item, index) => {
+              const isActiveStep = showNextStep && nextStepIndex === index;
+              return (
+                <View
+                  key={item.id}
+                  className={`border px-3 py-3 flex-row items-center justify-between ${
+                    isActiveStep
+                      ? "border-accent bg-accent/10"
+                      : "border-divider bg-surface"
+                  }`}
+                >
+                  <View className="flex-row items-start gap-3 flex-1 pr-3">
+                    <View
+                      className={`w-6 h-6 items-center justify-center border ${
+                        isActiveStep ? "border-accent bg-accent" : "border-divider bg-background"
+                      }`}
+                    >
+                      <MachineText
+                        className={`text-[10px] font-bold ${
+                          isActiveStep ? "text-accent-foreground" : "text-muted"
+                        }`}
+                      >
+                        {index + 1}
+                      </MachineText>
+                    </View>
+                    <View className="gap-1 flex-1">
+                      <MachineText className="font-bold">{item.label}</MachineText>
+                      <MachineText className="text-[10px] text-muted">
+                        FOCUS_SLOT_{index + 1}
+                      </MachineText>
+                    </View>
+                  </View>
+                  <View className="items-end gap-1">
+                    <MachineText className="text-xs font-bold">{item.estimatedMinutes} MIN</MachineText>
+                    {isActiveStep ? (
+                      <MachineText className="text-[10px] text-accent">ACTIVE_STEP</MachineText>
+                    ) : null}
                   </View>
                 </View>
-              </HardCard>
-            ))}
+              );
+            })}
           </View>
 
           {showNextStep ? (

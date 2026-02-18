@@ -1,10 +1,10 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Button, Spinner, TextField } from "heroui-native";
+import { useRouter } from "expo-router";
+import { Button, Spinner } from "heroui-native";
 import { useState } from "react";
-import { View, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
 
 import { HardCard } from "@/components/ui/hard-card";
 import { MachineText } from "@/components/ui/machine-text";
@@ -23,6 +23,7 @@ function idem() {
 }
 
 export default function Tasks() {
+  const router = useRouter();
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
   const pausedTasksData = useQuery(api.kernel.taskQueries.getPausedTasks);
   const createTaskMutation = useMutation(api.kernel.taskCommands.createTask);
@@ -30,9 +31,6 @@ export default function Tasks() {
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
   const generateNextStepDraftAction = useAction(api.kernel.vexAgents.generateNextStepDraft);
 
-  const [title, setTitle] = useState("");
-  const [estimate, setEstimate] = useState("25");
-  const [isCreating, setIsCreating] = useState(false);
   const [showPaused, setShowPaused] = useState(false);
   const [nextStepDrafts, setNextStepDrafts] = useState<
     Record<
@@ -50,29 +48,6 @@ export default function Tasks() {
 
   const tasks = (tasksData ?? []) as TaskItem[];
   const pausedTasks = (pausedTasksData ?? []) as TaskItem[];
-
-  const createTask = async () => {
-    const trimmedTitle = title.trim();
-    const estimateMin = Number.parseInt(estimate, 10);
-
-    if (!trimmedTitle || !Number.isFinite(estimateMin) || estimateMin <= 0) {
-      return;
-    }
-
-    setIsCreating(true);
-    try {
-      await createTaskMutation({
-        title: trimmedTitle,
-        estimateMin,
-        priority: 2,
-        idempotencyKey: idem(),
-      });
-      setTitle("");
-      setEstimate("25");
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   const completeTask = async (taskId: Id<"tasks">) => {
     await completeTaskMutation({ taskId, idempotencyKey: idem() });
@@ -135,47 +110,17 @@ export default function Tasks() {
       </View>
 
       <View className="gap-6">
-        <HardCard label="CREATE_TASK" className="bg-surface gap-4 p-4">
-          <View className="gap-3">
-            <View>
-              <MachineText variant="label" className="mb-1">
-                TASK NAME
-              </MachineText>
-              <TextField>
-                <TextField.Input
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="Small, doable task..."
-                  className="bg-surface border text-sm font-mono h-10 border-divider"
-                  style={{ fontFamily: "Menlo" }}
-                />
-              </TextField>
-            </View>
-            <View>
-              <MachineText variant="label" className="mb-1">
-                ESTIMATE (MIN)
-              </MachineText>
-              <TextField>
-                <TextField.Input
-                  value={estimate}
-                  onChangeText={setEstimate}
-                  placeholder="25"
-                  keyboardType="number-pad"
-                  className="bg-surface border text-sm font-mono h-10 border-divider"
-                  style={{ fontFamily: "Menlo" }}
-                />
-              </TextField>
-            </View>
+        <HardCard label="CAPTURE_TASK" className="bg-surface gap-3 p-4">
+          <MachineText className="text-xs text-muted">
+            Use a dedicated capture screen to keep input consistent everywhere.
+          </MachineText>
+          <View className="flex-row gap-2">
             <Button
-              onPress={createTask}
-              isDisabled={isCreating}
+              onPress={() => router.push("/new-task")}
               className="bg-accent rounded-none shadow-[2px_2px_0px_var(--color-foreground)]"
+              size="sm"
             >
-              {isCreating ? (
-                <Spinner size="sm" color="white" />
-              ) : (
-                <MachineText className="text-accent-foreground font-bold">ADD_TASK</MachineText>
-              )}
+              <MachineText className="text-accent-foreground font-bold">ADD_TASK</MachineText>
             </Button>
           </View>
         </HardCard>

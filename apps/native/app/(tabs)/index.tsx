@@ -1,7 +1,8 @@
 import { api } from "@life-os/backend/convex/_generated/api";
 import type { Id } from "@life-os/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Button, Spinner, TextField } from "heroui-native";
+import { useRouter } from "expo-router";
+import { Button, Spinner } from "heroui-native";
 import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
@@ -79,6 +80,7 @@ function idem() {
 }
 
 export default function Today() {
+  const router = useRouter();
   const tzOffsetMinutes = getTimezoneOffsetMinutes();
   const data = useQuery(api.kernel.commands.getToday, { tzOffsetMinutes });
   const tasksData = useQuery(api.kernel.taskQueries.getActiveTasks);
@@ -88,33 +90,7 @@ export default function Today() {
   const resumeTaskMutation = useMutation(api.kernel.resumeTasks.resumeTask);
   const executeCommandMutation = useMutation(api.kernel.commands.executeCommand);
 
-  const [title, setTitle] = useState("");
-  const [estimate, setEstimate] = useState("25");
-  const [isCreating, setIsCreating] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
-  const trimmedTitle = title.trim();
-  const parsedEstimate = Number.parseInt(estimate, 10);
-  const isEstimateValid =
-    Number.isFinite(parsedEstimate) && parsedEstimate >= 5 && parsedEstimate <= 480;
-  const canCreateTask = trimmedTitle.length > 0 && isEstimateValid && !isCreating;
-
-  const createTask = async () => {
-    if (!canCreateTask) return;
-
-    setIsCreating(true);
-    try {
-      await createTaskMutation({
-        title: trimmedTitle,
-        estimateMin: parsedEstimate,
-        priority: 2,
-        idempotencyKey: idem(),
-      });
-      setTitle("");
-      setEstimate("25");
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   const completeTask = async (taskId: Id<"tasks">) => {
     await completeTaskMutation({ taskId, idempotencyKey: idem() });
@@ -505,86 +481,19 @@ export default function Today() {
           )}
         </View>
 
-        {/* Quick Add Form */}
-        <HardCard label="CMD_LINE_INPUT" className="bg-surface">
+        <HardCard label="TASK_CAPTURE" className="bg-surface">
           <View className="gap-3">
-            <View className="bg-surface border border-divider p-1">
-              <TextField>
-                <TextField.Input
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="> TYPE_TASK_NAME..."
-                  className="font-mono text-sm"
-                  style={{ fontFamily: "Menlo", fontSize: 14 }}
-                />
-              </TextField>
-            </View>
-
-            <View className="flex-row gap-3">
-              <View className="flex-1 bg-surface border border-divider p-1">
-                <TextField>
-                  <TextField.Input
-                    value={estimate}
-                    onChangeText={setEstimate}
-                    placeholder="MIN"
-                    keyboardType="number-pad"
-                    className="font-mono text-sm"
-                    style={{ fontFamily: "Menlo" }}
-                  />
-                </TextField>
-              </View>
+            <MachineText className="text-[10px] text-foreground/60">
+              OPEN THE CAPTURE MODAL FOR A CLEAN TASK ENTRY FLOW.
+            </MachineText>
+            <View className="flex-row gap-2">
               <Button
-                onPress={createTask}
-                isDisabled={!canCreateTask}
+                onPress={() => router.push("/new-task?estimate=25")}
                 className="bg-foreground px-6 shadow-[2px_2px_0px_var(--color-accent)]"
               >
-                {isCreating ? (
-                  <Spinner size="sm" color="white" />
-                ) : (
-                  <MachineText className="text-background font-bold">ENTER</MachineText>
-                )}
+                <MachineText className="text-background font-bold">ADD_TASK</MachineText>
               </Button>
             </View>
-
-            <View className="flex-row gap-2">
-              {[10, 25, 45].map((minutes) => (
-                <Button
-                  key={minutes}
-                  size="sm"
-                  onPress={() => setEstimate(String(minutes))}
-                  className={`border border-foreground rounded-none ${
-                    estimate === String(minutes) ? "bg-accent" : "bg-surface"
-                  }`}
-                >
-                  <MachineText
-                    className={`text-xs font-bold ${
-                      estimate === String(minutes) ? "text-accent-foreground" : "text-foreground"
-                    }`}
-                  >
-                    {minutes} MIN
-                  </MachineText>
-                </Button>
-              ))}
-            </View>
-
-            {trimmedTitle.length > 0 ? (
-              <View className="border border-divider bg-muted px-2 py-2">
-                <MachineText className="text-[10px] text-foreground/70">WILL ADD:</MachineText>
-                <MachineText className="text-xs font-bold">
-                  {trimmedTitle} ({estimate || "?"} MIN)
-                </MachineText>
-              </View>
-            ) : (
-              <MachineText className="text-[10px] text-foreground/60">
-                TIP: Keep tasks concrete, e.g. "Send invoice draft", "10 min walk".
-              </MachineText>
-            )}
-
-            {!isEstimateValid && estimate.length > 0 ? (
-              <MachineText className="text-[10px] text-danger">
-                ESTIMATE MUST BE BETWEEN 5 AND 480 MINUTES.
-              </MachineText>
-            ) : null}
           </View>
         </HardCard>
       </View>

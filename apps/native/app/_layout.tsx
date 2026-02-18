@@ -65,6 +65,13 @@ function StackLayout() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="new-task"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
+        />
       </Stack.Protected>
 
       <Stack.Protected guard={!isLoggedIn}>
