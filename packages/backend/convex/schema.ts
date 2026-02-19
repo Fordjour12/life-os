@@ -70,4 +70,12 @@ export default defineSchema({
   })
     .index("by_user_day", ["userId", "day"])
     .index("by_user_external", ["userId", "externalId"]),
+
+  budgets: defineTable({
+    userId: v.string(),
+    category: v.string(),
+    monthlyLimit: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user_category", ["userId", "category"]),
 });

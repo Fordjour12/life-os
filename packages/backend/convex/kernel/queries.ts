@@ -310,3 +310,120 @@ export const insertSuggestion = internalMutation({
     });
   },
 });
+
+export const getExpenses = internalQuery({
+  args: {
+    startDay: v.string(),
+    endDay: v.string(),
+    category: v.optional(v.string()),
+  },
+  handler: async (ctx, { startDay, endDay, category }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
+
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_user_ts", (q) => q.eq("userId", userId))
+      .collect();
+
+    const expenses = events
+      .filter((event) => {
+        if (event.type !== "EXPENSE_ADDED") return false;
+        const meta = event.meta as { amount?: number; category?: string };
+        const eventDay = new Date(event.ts).toISOString().split("T")[0].replace(/-/g, "");
+        if (eventDay < startDay || eventDay > endDay) return false;
+        if (category && meta.category !== category) return false;
+        return true;
+      })
+      .map((event) => {
+        const meta = event.meta as { amount: number; category: string; note?: string };
+        const day = new Date(event.ts).toISOString().split("T")[0].replace(/-/g, "");
+        return {
+          id: event._id,
+          ts: event.ts,
+          day,
+          amount: meta.amount,
+          category: meta.category,
+          note: meta.note,
+        };
+      })
+      .sort((a, b) => b.ts - a.ts);
+
+    return expenses;
+  },
+});
+
+export const getBudgets = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
+
+    const budgets = await ctx.db
+      .query("budgets")
+      .withIndex("by_user_category", (q) => q.eq("userId", userId))
+      .collect();
+
+    return budgets.map((b) => ({
+      category: b.category,
+      monthlyLimit: b.monthlyLimit,
+      createdAt: b.createdAt,
+      updatedAt: b.updatedAt,
+    }));
+  },
+});
+
+export const getFinancialSummary = internalQuery({
+  args: {
+    month: v.string(),
+  },
+  handler: async (ctx, { month }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
+
+    const startDay = `${month}-01`;
+    const endDay = `${month}-31`;
+
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_user_ts", (q) => q.eq("userId", userId))
+      .collect();
+
+    const budgets = await ctx.db
+      .query("budgets")
+      .withIndex("by_user_category", (q) => q.eq("userId", userId))
+      .collect();
+
+    const budgetMap = new Map(budgets.map((b) => [b.category, b.monthlyLimit]));
+
+    const categorySpending = new Map<string, number>();
+
+    for (const event of events) {
+      if (event.type !== "EXPENSE_ADDED") continue;
+      const meta = event.meta as { amount: number; category: string };
+      const eventDay = new Date(event.ts).toISOString().split("T")[0].replace(/-/g, "");
+      if (eventDay < startDay || eventDay > endDay) continue;
+
+      const current = categorySpending.get(meta.category) || 0;
+      categorySpending.set(meta.category, current + meta.amount);
+    }
+
+    const byCategory = Array.from(categorySpending.entries()).map(([category, spent]) => ({
+      category,
+      spent,
+      budget: budgetMap.get(category) || 0,
+      remaining: (budgetMap.get(category) || 0) - spent,
+    }));
+
+    const totalSpent = Array.from(categorySpending.values()).reduce((a, b) => a + b, 0);
+    const totalBudget = Array.from(budgetMap.values()).reduce((a, b) => a + b, 0);
+
+    return {
+      month,
+      byCategory,
+      totalSpent,
+      totalBudget,
+      totalRemaining: totalBudget - totalSpent,
+    };
+  },
+});

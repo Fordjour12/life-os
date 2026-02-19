@@ -62,6 +62,12 @@ export type KernelCommand =
       input: { amount: number; category: string; note?: string };
       idempotencyKey: string;
       tzOffsetMinutes?: number;
+    }
+  | {
+      cmd: "set_budget";
+      input: { category: string; monthlyLimit: number };
+      idempotencyKey: string;
+      tzOffsetMinutes?: number;
     };
 
 export type KernelEvent =
@@ -145,12 +151,35 @@ export type KernelEvent =
       type: "EXPENSE_ADDED";
       ts: number;
       meta: { amount: number; category: string; note?: string };
+    }
+  | {
+      type: "BUDGET_SET";
+      ts: number;
+      meta: { category: string; monthlyLimit: number };
     };
 
 export type LoadState = "underloaded" | "balanced" | "overloaded";
 export type Momentum = "stalled" | "steady" | "strong";
 export type FocusCapacity = "very_low" | "low" | "medium" | "high";
 export type LifeMode = "recovery" | "maintain" | "build" | "sprint";
+export type FinancialDrift = "ok" | "watch" | "risk";
+
+export type SpendingPattern = {
+  type: "spike" | "late_night" | "rapid_fire" | "reward_after_negative";
+  category?: string;
+  detail: string;
+};
+
+export type FinancialState = {
+  drift: FinancialDrift;
+  disciplineScore: number;
+  monthlySpend: number;
+  monthlyBudget: number;
+  dailyAverage: number;
+  trend: "improving" | "stable" | "worsening";
+  patterns: SpendingPattern[];
+  byCategory: Map<string, number>;
+};
 
 export type LifeState = {
   day: string;
@@ -169,7 +198,8 @@ export type LifeState = {
   momentum: Momentum;
   focusCapacity: FocusCapacity;
   habitHealth: "fragile" | "stable" | "strong";
-  financialDrift: "ok" | "watch" | "risk";
+  financialDrift: FinancialDrift;
+  financialState?: FinancialState;
   backlogPressure: number;
 
   reasons: Array<{ code: string; detail: string }>;
@@ -185,7 +215,10 @@ export type KernelSuggestion = {
     | "DAILY_REVIEW_QUESTION"
     | "GENTLE_RETURN"
     | "MICRO_RECOVERY_PROTOCOL"
-    | "NEXT_STEP";
+    | "NEXT_STEP"
+    | "BUDGET_WARNING"
+    | "SPENDING_ALERT"
+    | "MICRO_CORRECTION";
   priority: 1 | 2 | 3 | 4 | 5;
   reason: { code: string; detail: string };
   payload: Record<string, unknown>;

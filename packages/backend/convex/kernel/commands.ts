@@ -366,6 +366,40 @@ export const executeCommand = mutation({
 
       eventType = "EXPENSE_ADDED";
       meta = note ? { amount, category, note } : { amount, category };
+    } else if (typedCommand.cmd === "set_budget") {
+      const category = String(typedCommand.input.category ?? "").trim();
+      const monthlyLimit = Number(typedCommand.input.monthlyLimit ?? 0);
+
+      if (!category) {
+        throw new Error("Budget category is required");
+      }
+
+      if (!Number.isFinite(monthlyLimit) || monthlyLimit <= 0) {
+        throw new Error("Budget limit must be a positive number");
+      }
+
+      const existingBudget = await ctx.db
+        .query("budgets")
+        .withIndex("by_user_category", (q) => q.eq("userId", userId).eq("category", category))
+        .first();
+
+      if (existingBudget) {
+        await ctx.db.patch(existingBudget._id, {
+          monthlyLimit,
+          updatedAt: now,
+        });
+      } else {
+        await ctx.db.insert("budgets", {
+          userId,
+          category,
+          monthlyLimit,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      eventType = "BUDGET_SET";
+      meta = { category, monthlyLimit };
     } else {
       throw new Error("Unknown command");
     }
@@ -406,7 +440,17 @@ export const executeCommand = mutation({
       .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
       .collect();
     const timeMetrics = getTimeMetricsFromBlocks(blocks);
-    const state = computeDailyState(day, kernelEvents, timeMetrics);
+
+    const budgets = await ctx.db
+      .query("budgets")
+      .withIndex("by_user_category", (q) => q.eq("userId", userId))
+      .collect();
+    const budgetMap = new Map(budgets.map((b) => [b.category, b.monthlyLimit]));
+
+    const state = computeDailyState(day, kernelEvents, {
+      ...timeMetrics,
+      budgets: budgetMap,
+    });
 
     const activeTasks = await ctx.db
       .query("tasks")
@@ -606,6 +650,7 @@ export const executeCommand = mutation({
           }
         : undefined,
       boundaries,
+      financialState: state.financialState,
     });
 
     const existingSugs = await ctx.db
@@ -897,5 +942,86 @@ export const setPlannerHardMode = mutation({
     }
 
     return { ok: true, weeklyPlannerHardMode: enabled };
+  },
+});
+
+export const getFinancialData = query({
+  args: {
+    month: v.optional(v.string()),
+  },
+  handler: async (ctx: QueryCtx, { month }: { month?: string }) => {
+    const user = await requireAuthUser(ctx);
+    const userId = user._id;
+
+    const targetMonth = month ?? getTodayYYYYMMDDWithOffset(0).slice(0, 7);
+    const startDay = `${targetMonth}-01`;
+    const endDay = `${targetMonth}-31`;
+
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_user_ts", (q) => q.eq("userId", userId))
+      .collect();
+
+    const budgets = await ctx.db
+      .query("budgets")
+      .withIndex("by_user_category", (q) => q.eq("userId", userId))
+      .collect();
+
+    const budgetMap = new Map(budgets.map((b) => [b.category, b.monthlyLimit]));
+    const categorySpending = new Map<string, number>();
+    const recentExpenses: Array<{
+      id: string;
+      ts: number;
+      day: string;
+      amount: number;
+      category: string;
+      note?: string;
+    }> = [];
+
+    for (const event of events) {
+      if (event.type !== "EXPENSE_ADDED") continue;
+      const meta = event.meta as { amount: number; category: string; note?: string };
+      const eventDay = new Date(event.ts).toISOString().split("T")[0].replace(/-/g, "");
+      if (eventDay < startDay || eventDay > endDay) continue;
+
+      const current = categorySpending.get(meta.category) || 0;
+      categorySpending.set(meta.category, current + meta.amount);
+
+      recentExpenses.push({
+        id: event._id,
+        ts: event.ts,
+        day: eventDay,
+        amount: meta.amount,
+        category: meta.category,
+        note: meta.note,
+      });
+    }
+
+    recentExpenses.sort((a, b) => b.ts - a.ts);
+
+    const byCategory = Array.from(categorySpending.entries()).map(([category, spent]) => ({
+      category,
+      spent,
+      budget: budgetMap.get(category) || 0,
+      remaining: (budgetMap.get(category) || 0) - spent,
+    }));
+
+    const totalSpent = Array.from(categorySpending.values()).reduce((a, b) => a + b, 0);
+    const totalBudget = Array.from(budgetMap.values()).reduce((a, b) => a + b, 0);
+
+    const budgetsList = budgets.map((b) => ({
+      category: b.category,
+      monthlyLimit: b.monthlyLimit,
+    }));
+
+    return {
+      month: targetMonth,
+      expenses: recentExpenses,
+      budgets: budgetsList,
+      byCategory,
+      totalSpent,
+      totalBudget,
+      totalRemaining: totalBudget - totalSpent,
+    };
   },
 });

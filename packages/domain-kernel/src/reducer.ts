@@ -1,6 +1,126 @@
-import type { FocusCapacity, KernelEvent, LifeMode, LifeState, LoadState, Momentum } from "./types";
+import type {
+  FocusCapacity,
+  KernelEvent,
+  LifeMode,
+  LifeState,
+  LoadState,
+  Momentum,
+  FinancialDrift,
+  SpendingPattern,
+  FinancialState,
+} from "./types";
 
 const DEFAULT_FREE_MINUTES = 240;
+
+function computeFinancialState(
+  events: KernelEvent[],
+  budgets: Map<string, number> = new Map(),
+  now: number = Date.now(),
+): { drift: FinancialDrift; financialState: FinancialState } {
+  const monthStart = new Date(now);
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const monthStartTs = monthStart.getTime();
+
+  const monthEvents = events.filter((e) => e.type === "EXPENSE_ADDED" && e.ts >= monthStartTs);
+
+  const byCategory = new Map<string, number>();
+  let totalSpent = 0;
+
+  for (const event of monthEvents) {
+    if (event.type !== "EXPENSE_ADDED") continue;
+    const meta = event.meta as { amount: number; category: string };
+    const category = meta.category || "other";
+    const current = byCategory.get(category) || 0;
+    byCategory.set(category, current + meta.amount);
+    totalSpent += meta.amount;
+  }
+
+  const totalBudget = Array.from(budgets.values()).reduce((a, b) => a + b, 0);
+  const nowDate = new Date(now);
+  const daysInMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate();
+  const dayOfMonth = nowDate.getDate();
+  const dailyAverage = totalSpent / Math.max(1, dayOfMonth);
+  const projectedTotal = dailyAverage * daysInMonth;
+
+  let drift: FinancialDrift = "ok";
+  if (totalBudget > 0) {
+    const spentRatio = totalSpent / totalBudget;
+    if (spentRatio > 1) drift = "risk";
+    else if (spentRatio >= 0.8) drift = "watch";
+  }
+
+  const patterns: SpendingPattern[] = [];
+  const recentEvents = monthEvents.filter((e) => e.ts >= now - 7 * 24 * 60 * 60 * 1000);
+  const categoryTotals = new Map<string, number>();
+  for (const event of recentEvents) {
+    if (event.type !== "EXPENSE_ADDED") continue;
+    const meta = event.meta as { amount: number; category: string };
+    const cat = meta.category || "other";
+    categoryTotals.set(cat, (categoryTotals.get(cat) || 0) + meta.amount);
+  }
+
+  for (const [cat, spent] of categoryTotals) {
+    const budget = budgets.get(cat) || totalBudget / Math.max(1, budgets.size) || 500;
+    if (spent > budget * 0.5 && budget > 0) {
+      patterns.push({
+        type: "spike",
+        category: cat,
+        detail: `High spending in ${cat} this week`,
+      });
+    }
+  }
+
+  const lateNightEvents = monthEvents.filter((e) => {
+    const hour = new Date(e.ts).getHours();
+    return e.type === "EXPENSE_ADDED" && (hour >= 23 || hour <= 4);
+  });
+  if (lateNightEvents.length >= 2) {
+    patterns.push({
+      type: "late_night",
+      detail: `${lateNightEvents.length} late-night transactions this month`,
+    });
+  }
+
+  const today = new Date(now).toDateString();
+  const todayEvents = monthEvents.filter((e) => new Date(e.ts).toDateString() === today);
+  if (todayEvents.length >= 3) {
+    patterns.push({
+      type: "rapid_fire",
+      detail: `${todayEvents.length} purchases today`,
+    });
+  }
+
+  let disciplineScore = 50;
+  if (totalBudget > 0) {
+    const budgetAdherence = Math.max(0, 1 - totalSpent / totalBudget);
+    const consistency = Math.min(1, monthEvents.length / 10);
+    const trendVal = projectedTotal <= totalBudget ? 1 : 0;
+    disciplineScore = Math.round(budgetAdherence * 40 + consistency * 30 + trendVal * 30);
+  }
+
+  let trend: "improving" | "stable" | "worsening" = "stable";
+  if (totalBudget > 0 && totalSpent > 0) {
+    const projectedRatio = projectedTotal / totalBudget;
+    const currentRatio = totalSpent / totalBudget;
+    if (currentRatio < 0.7 && projectedRatio < currentRatio + 0.1) trend = "improving";
+    else if (projectedRatio > 1.2) trend = "worsening";
+  }
+
+  return {
+    drift,
+    financialState: {
+      drift,
+      disciplineScore,
+      monthlySpend: totalSpent,
+      monthlyBudget: totalBudget,
+      dailyAverage,
+      trend,
+      patterns,
+      byCategory,
+    },
+  };
+}
 
 export function computeDailyState(
   day: string,
@@ -10,6 +130,8 @@ export function computeDailyState(
     effectiveFreeMinutes?: number;
     focusMinutes?: number;
     busyMinutes?: number;
+    budgets?: Map<string, number>;
+    monthStartTs?: number;
   },
 ): LifeState {
   let completed = 0;
@@ -108,6 +230,22 @@ export function computeDailyState(
       detail: "Plan was softened to protect recovery and momentum.",
     });
 
+  const budgets = options?.budgets || new Map();
+  const { drift, financialState } = computeFinancialState(events, budgets);
+
+  if (drift === "watch") {
+    reasons.push({
+      code: "FINANCIAL_WATCH",
+      detail: "Approaching budget limit",
+    });
+  }
+  if (drift === "risk") {
+    reasons.push({
+      code: "FINANCIAL_RISK",
+      detail: "Over budget - review spending",
+    });
+  }
+
   return {
     day,
     mode,
@@ -123,7 +261,8 @@ export function computeDailyState(
     momentum,
     focusCapacity,
     habitHealth: "stable",
-    financialDrift: "ok",
+    financialDrift: drift,
+    financialState,
     backlogPressure: 0,
     reasons,
   };

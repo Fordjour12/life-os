@@ -1,4 +1,4 @@
-import type { KernelSuggestion, LifeState } from "./types";
+import type { KernelSuggestion, LifeState, FinancialState } from "./types";
 
 export type PolicyContext = {
   lastPlanResetAt?: number;
@@ -13,6 +13,7 @@ export type PolicyContext = {
     isRestWindow: boolean;
     isFocusProtection: boolean;
   };
+  financialState?: FinancialState;
 };
 
 const PLAN_RESET_COOLDOWN_MS = 6 * 60 * 60 * 1000;
@@ -175,6 +176,94 @@ export function runPolicies(state: LifeState, context?: PolicyContext): KernelSu
     status: "new",
     cooldownKey: "daily_review",
   });
+
+  const financialState = context?.financialState ?? state.financialState;
+  if (financialState) {
+    if (financialState.drift === "risk") {
+      const overBy = financialState.monthlySpend - financialState.monthlyBudget;
+      out.push({
+        day,
+        type: "BUDGET_WARNING",
+        priority: 5,
+        reason: {
+          code: "OVER_BUDGET",
+          detail: `You've gone $${overBy.toFixed(0)} over budget this month.`,
+        },
+        payload: {
+          spent: financialState.monthlySpend,
+          budget: financialState.monthlyBudget,
+          overBy: overBy,
+          categories: Array.from(financialState.byCategory.entries()),
+        },
+        status: "new",
+        cooldownKey: "budget_warning",
+      });
+    } else if (financialState.drift === "watch") {
+      const remaining = financialState.monthlyBudget - financialState.monthlySpend;
+      const daysLeft =
+        new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() -
+        new Date().getDate();
+      const dailyAllowance = remaining / Math.max(1, daysLeft);
+      out.push({
+        day,
+        type: "BUDGET_WARNING",
+        priority: 4,
+        reason: {
+          code: "APPROACHING_LIMIT",
+          detail: `$${dailyAllowance.toFixed(0)} daily to stay on track.`,
+        },
+        payload: {
+          spent: financialState.monthlySpend,
+          budget: financialState.monthlyBudget,
+          remaining,
+          dailyAllowance,
+        },
+        status: "new",
+        cooldownKey: "budget_warning",
+      });
+    }
+
+    if (financialState.patterns.length > 0) {
+      const pattern = financialState.patterns[0]!;
+      if (pattern.type === "late_night" || pattern.type === "rapid_fire") {
+        out.push({
+          day,
+          type: "SPENDING_ALERT",
+          priority: 3,
+          reason: {
+            code: "SPENDING_PATTERN",
+            detail: pattern.detail,
+          },
+          payload: {
+            pattern: pattern.type,
+            detail: pattern.detail,
+          },
+          status: "new",
+          cooldownKey: "spending_alert",
+        });
+      }
+    }
+
+    if (financialState.disciplineScore < 60 && financialState.disciplineScore >= 40) {
+      const potentialSavings = financialState.monthlySpend * 0.1;
+      out.push({
+        day,
+        type: "MICRO_CORRECTION",
+        priority: 2,
+        reason: {
+          code: "DISCIPLINE_OPPORTUNITY",
+          detail: `Small changes could save ~$${potentialSavings.toFixed(0)}/month.`,
+        },
+        payload: {
+          disciplineScore: financialState.disciplineScore,
+          potentialSavings,
+          suggestion: "Try one small swap this week - like bringing lunch one day.",
+        },
+        status: "new",
+        cooldownKey: "micro_correction",
+      });
+    }
+  }
 
   return applyBoundaryFilters(out, boundaries)
     .sort((a, b) => b.priority - a.priority)

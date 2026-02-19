@@ -50,6 +50,12 @@ export default function TabLayout() {
           title: "INPUT",
         }}
       />
+      <Tabs.Screen
+        name="finance"
+        options={{
+          title: "FINANCE",
+        }}
+      />
 
       <Tabs.Screen
         name="weekly-review"
