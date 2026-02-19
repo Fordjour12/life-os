@@ -82,10 +82,7 @@ function getPlanningWindows(raw: WeeklyPlanRawData, day: string) {
   return windows.filter((window) => window.end > window.start);
 }
 
-function applyAdaptiveReplan(
-  dayPlan: WeeklyPlanDraft["days"][number],
-  budgetMinutes: number,
-) {
+function applyAdaptiveReplan(dayPlan: WeeklyPlanDraft["days"][number], budgetMinutes: number) {
   const totalPlanned = dayPlan.focusItems.reduce((sum, item) => sum + item.estimatedMinutes, 0);
   if (totalPlanned <= budgetMinutes) {
     return dayPlan;
@@ -131,7 +128,9 @@ function withReservations(
   const reservations: NonNullable<WeeklyPlanDraft["days"][number]["reservations"]> = [];
 
   for (const item of dayPlan.focusItems) {
-    const index = mutableWindows.findIndex((window) => window.end - window.start >= item.estimatedMinutes);
+    const index = mutableWindows.findIndex(
+      (window) => window.end - window.start >= item.estimatedMinutes,
+    );
     if (index < 0) {
       reservations.push({
         itemId: item.id,
@@ -157,9 +156,7 @@ function withReservations(
   return reservations;
 }
 
-function dedupeFocusItems(
-  items: Array<{ id: string; label: string; estimatedMinutes: number }>,
-) {
+function dedupeFocusItems(items: Array<{ id: string; label: string; estimatedMinutes: number }>) {
   const seen = new Set<string>();
   const deduped: Array<{ id: string; label: string; estimatedMinutes: number }> = [];
   for (const item of items) {
@@ -171,14 +168,12 @@ function dedupeFocusItems(
   return deduped;
 }
 
-function resolveDayForApply(
-  dayPlan: WeeklyPlanDraft["days"][number],
-  raw: WeeklyPlanRawData,
-) {
+function resolveDayForApply(dayPlan: WeeklyPlanDraft["days"][number], raw: WeeklyPlanRawData) {
   const existing = raw.existingPlans.find((plan) => plan.day === dayPlan.day);
-  const mergedItems = dayPlan.conflict?.code === "existing_plan" && existing
-    ? dedupeFocusItems([...existing.focusItems, ...dayPlan.focusItems]).slice(0, 4)
-    : dayPlan.focusItems.slice(0, 3);
+  const mergedItems =
+    dayPlan.conflict?.code === "existing_plan" && existing
+      ? dedupeFocusItems([...existing.focusItems, ...dayPlan.focusItems]).slice(0, 4)
+      : dayPlan.focusItems.slice(0, 3);
 
   const busyMinutes = getBusyMinutesForDay(raw.calendarBlocks, dayPlan.day);
   const budgetMinutes = getPlanBudget(raw, dayPlan.day, busyMinutes);
@@ -331,10 +326,8 @@ function normalizeDraftInput(input: unknown): WeeklyPlanDraft {
         const id = String(focus.id ?? "").trim() || `focus-${day}-${index}`;
         return { id, label, estimatedMinutes };
       })
-      .filter(
-        (
-          item,
-        ): item is { id: string; label: string; estimatedMinutes: number } => Boolean(item),
+      .filter((item): item is { id: string; label: string; estimatedMinutes: number } =>
+        Boolean(item),
       );
     if (!focusItems.length) continue;
 

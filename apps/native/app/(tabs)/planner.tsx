@@ -518,13 +518,12 @@ export default function Planner() {
           </View>
           <View className="gap-3">
             {draftItems.map((item, index) => (
-              <View
-                key={item.id}
-                className="border border-divider bg-surface"
-              >
+              <View key={item.id} className="border border-divider bg-surface">
                 <View className="flex-row border-b border-divider">
                   <View className="w-12 items-center justify-center bg-muted border-r border-divider py-3">
-                    <MachineText className="text-xs font-bold">{String(index + 1).padStart(2, "0")}</MachineText>
+                    <MachineText className="text-xs font-bold">
+                      {String(index + 1).padStart(2, "0")}
+                    </MachineText>
                   </View>
                   <View className="flex-1 px-3 py-2 gap-2">
                     <MachineText className="text-[10px] text-muted">FOCUS SLOT</MachineText>
@@ -550,7 +549,9 @@ export default function Planner() {
                           size="sm"
                           onPress={() => updateDraft(index, { estimatedMinutes: String(minutes) })}
                           className={`rounded-none border ${
-                            selected ? "bg-foreground border-foreground" : "bg-surface border-divider"
+                            selected
+                              ? "bg-foreground border-foreground"
+                              : "bg-surface border-divider"
                           }`}
                         >
                           <MachineText
@@ -619,7 +620,9 @@ export default function Planner() {
             <View className="flex-row items-end justify-between">
               <View className="gap-1">
                 <MachineText className="font-bold">TODAY'S FOCUS</MachineText>
-                <MachineText className="text-xs text-muted">TOTAL_LOAD {totalMinutes} MIN</MachineText>
+                <MachineText className="text-xs text-muted">
+                  TOTAL_LOAD {totalMinutes} MIN
+                </MachineText>
               </View>
               <View className="border border-divider bg-surface px-2 py-1">
                 <MachineText className="text-[10px]">{plannerState}</MachineText>
@@ -651,9 +654,7 @@ export default function Planner() {
                 <View
                   key={item.id}
                   className={`border px-3 py-3 flex-row items-center justify-between ${
-                    isActiveStep
-                      ? "border-accent bg-accent/10"
-                      : "border-divider bg-surface"
+                    isActiveStep ? "border-accent bg-accent/10" : "border-divider bg-surface"
                   }`}
                 >
                   <View className="flex-row items-start gap-3 flex-1 pr-3">
@@ -678,7 +679,9 @@ export default function Planner() {
                     </View>
                   </View>
                   <View className="items-end gap-1">
-                    <MachineText className="text-xs font-bold">{item.estimatedMinutes} MIN</MachineText>
+                    <MachineText className="text-xs font-bold">
+                      {item.estimatedMinutes} MIN
+                    </MachineText>
                     {isActiveStep ? (
                       <MachineText className="text-[10px] text-accent">ACTIVE_STEP</MachineText>
                     ) : null}

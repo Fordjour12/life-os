@@ -144,7 +144,9 @@ export default function NewTaskModal() {
 
             {error ? <MachineText className="text-xs text-danger">{error}</MachineText> : null}
             {parsedEstimate === null && estimate.trim().length > 0 ? (
-              <MachineText className="text-xs text-danger">ESTIMATE MUST BE BETWEEN 5 AND 480.</MachineText>
+              <MachineText className="text-xs text-danger">
+                ESTIMATE MUST BE BETWEEN 5 AND 480.
+              </MachineText>
             ) : null}
           </View>
         </HardCard>
