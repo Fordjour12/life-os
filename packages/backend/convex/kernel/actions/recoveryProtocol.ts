@@ -19,7 +19,7 @@ export const generateRecoveryProtocolDraft = action({
     const targetDay = day ?? getTodayYYYYMMDD();
     const offset = normalizeOffsetMinutes(tzOffsetMinutes ?? 0);
 
-    const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getRecoveryProtocolRawData", {
+    const raw = (await (ctx.runQuery as any)("kernel/vexAgents:getRecoveryProtocolRawData", {
       day: targetDay,
     })) as RecoveryProtocolRawData;
 

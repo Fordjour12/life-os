@@ -17,7 +17,7 @@ export const generateNextStepDraft = action({
     const userId = user._id;
     const targetDay = day ?? getTodayYYYYMMDD();
 
-    const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getNextStepRawData", {
+    const raw = (await (ctx.runQuery as any)("kernel/vexAgents:getNextStepRawData", {
       taskId,
       day: targetDay,
     })) as NextStepRawData;

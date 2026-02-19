@@ -388,7 +388,7 @@ export const generateWeeklyPlanDraft = action({
     const { startDay, endDay } = getWeekBoundaries(weekId);
     const weekStart = getISOWeekStartDate(weekId);
 
-    const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getWeeklyPlanRawData", {
+    const raw = (await (ctx.runQuery as any)("kernel/vexAgents:getWeeklyPlanRawData", {
       startDay,
       endDay,
     })) as WeeklyPlanRawData;
@@ -518,7 +518,7 @@ export const applyWeeklyPlanDraft = action({
     const acceptedSet = new Set((acceptedDays ?? []).filter((day) => isValidDay(day)));
 
     const { startDay, endDay } = getWeekBoundaries(normalizedDraft.week);
-    const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getWeeklyPlanRawData", {
+    const raw = (await (ctx.runQuery as any)("kernel/vexAgents:getWeeklyPlanRawData", {
       startDay,
       endDay,
     })) as WeeklyPlanRawData;
@@ -557,7 +557,7 @@ export const applyWeeklyPlanDraft = action({
       sequence += 1;
       try {
         const resolved = resolveDayForApply(dayPlan, raw);
-        await (ctx.runMutation as any)("kernel/commands/executeCommand", {
+        await (ctx.runMutation as any)("kernel/commands:executeCommand", {
           command: {
             cmd: "set_daily_plan",
             input: {

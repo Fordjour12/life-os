@@ -1,70 +1,169 @@
 # life-os
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines Convex, and more.
+Recovery-first Life OS built as a Bun + Turborepo monorepo with:
 
-## Features
+- `apps/native`: Expo React Native client (Expo Router + Uniwind + HeroUI Native)
+- `packages/backend`: Convex backend (auth, commands, queries, policies, AI actions)
+- shared packages for environment parsing and domain/kernel logic
 
-- **TypeScript** - For type safety and improved developer experience
-- **React Native** - Build mobile apps using React
-- **Expo** - Tools for React Native development
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **shadcn/ui** - Reusable UI components
-- **Convex** - Reactive backend-as-a-service platform
-- **Authentication** - Better-Auth
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
-- **Turborepo** - Optimized monorepo build system
+## Product Principles
+
+- Shame is a bug.
+- AI proposes; humans decide.
+- Events are source of truth; state is derived.
+- Suggestions stay sparse (1-3 visible at once).
+- Rest is a valid state.
+
+## Architecture
+
+The app follows an event-driven command loop:
+
+1. UI sends a command with an `idempotencyKey`.
+2. Backend validates input + auth.
+3. Backend deduplicates and appends event(s).
+4. Reducers derive current state from events.
+5. Policies generate bounded suggestions.
+6. UI consumes reactive queries from Convex.
+
+This keeps writes explicit, auditable, and safe:
+
+- no direct AI mutation of state
+- command validation before persistence
+- idempotent sync-friendly writes
+
+## Kernel Architecture
+
+The kernel is the behavioral core of Life OS: commands, events, reducer logic, and policy suggestions.
+
+### Packages
+
+- `packages/domain-kernel`: canonical shared domain primitives (types, reducer, policies, trace/test harness).
+- `packages/kernel`: existing local kernel package used by parts of the native app.
+- `packages/backend/convex/kernel`: server orchestration layer that validates commands, writes events, derives state, and runs policies.
+
+### Current Execution Model
+
+1. A command is proposed from UI.
+2. Convex kernel validates and executes it with idempotency protection.
+3. Domain state is reduced from events.
+4. Policies produce limited suggestions (proposals, not forced actions).
+
+### Important Current Caveat
+
+Today, two kernel tracks coexist:
+
+- shared/domain behavior in `packages/domain-kernel`
+- legacy/local behavior in `packages/kernel`
+
+This is intentional short-term, but the long-term direction is a single shared kernel used consistently by both native and backend runtimes.
+
+### Runtime Components
+
+- Native app shell: `apps/native/app/_layout.tsx`
+- Auth client/context: `apps/native/lib/auth-client.ts`, `apps/native/contexts/auth-context.tsx`
+- Command entrypoint: `packages/backend/convex/kernel/commands.ts`
+- Reducers/policies: `packages/backend/convex/kernel/reducer.ts`, `packages/backend/convex/kernel/policies.ts`
+- Data model: `packages/backend/convex/schema.ts`
+
+### Key Backend Tables
+
+- `events`: append-only event log
+- `stateDaily`: derived daily state cache
+- `suggestions`: proposal lifecycle
+- `tasks`: task domain projection
+
+Supporting domains include calendar, journal, weekly reviews, and identity guardrails.
+
+### Local-First Direction
+
+The product is converging on a unified local-first model:
+
+- device handles instant/offline experience for today
+- server provides shared truth, validation, and dedupe
+- command outbox + idempotency keys drive resilient sync
+
+See `docs/application-architecture.md` for the canonical architecture write-up.
+
+## Monorepo Layout
+
+```txt
+life-os/
+├── apps/
+│   └── native/                  # Expo React Native app
+├── packages/
+│   ├── backend/                 # Convex backend
+│   ├── domain-kernel/           # Shared domain reducer/policy logic
+│   ├── kernel/                  # Existing local kernel package
+│   ├── env/                     # Shared env parsing helpers
+│   └── config/                  # Shared TS config
+├── docs/
+│   └── application-architecture.md
+└── AGENTS.md
+```
 
 ## Getting Started
 
-First, install the dependencies:
+### Prerequisites
+
+- Bun `>=1.3`
+- Node.js (needed by Expo/React Native toolchain)
+- Expo tooling for native device/simulator workflows
+- Convex account/project
+
+### Install
 
 ```bash
 bun install
 ```
 
-## Convex Setup
-
-This project uses Convex as a backend. You'll need to set up Convex before running the app:
+### Configure Convex
 
 ```bash
 bun run dev:setup
 ```
 
-Follow the prompts to create a new Convex project and connect it to your application.
+This runs Convex configure flow (`convex dev --configure --until-success`) in `packages/backend`.
 
-Copy environment variables from `packages/backend/.env.local` to `apps/*/.env`.
+If needed, copy environment values from `packages/backend/.env.local` into native app env files (client-safe values only, `EXPO_PUBLIC_*` on client).
 
-Then, run the development server:
+### Run Development
 
 ```bash
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-Use the Expo Go app to run the mobile application.
-Your app will connect to the Convex cloud backend automatically.
+Useful focused commands:
 
-## Git Hooks and Formatting
+- `bun run dev:native` - run Expo app only
+- `bun run dev:server` - run Convex backend only
+- `bun run -C apps/native ios` - run iOS native build
+- `bun run -C apps/native android` - run Android native build
 
-- Format and lint fix: `bun run check`
+## Scripts
 
-## Project Structure
+- `bun run dev` - turbo dev for all workspaces
+- `bun run build` - turbo build
+- `bun run check-types` - turbo typecheck
+- `bun run check` - oxlint + oxfmt
+- `bun run dev:native` - native app dev server
+- `bun run dev:server` - backend dev server
+- `bun run dev:setup` - Convex setup/bootstrap
 
-```
-life-os/
-├── apps/
-│   ├── web/         # Frontend application ()
-│   ├── native/      # Mobile application (React Native, Expo)
-├── packages/
-│   ├── backend/     # Convex backend functions and schema
-```
+## Codebase Conventions
 
-## Available Scripts
+- TypeScript strict mode across workspaces.
+- Expo Router for navigation in `apps/native/app`.
+- Uniwind class-based styling and HeroUI Native components.
+- Convex functions in `packages/backend/convex`.
+- Do not edit generated Convex files in `packages/backend/convex/_generated`.
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run dev:setup`: Setup and configure your Convex project
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run dev:native`: Start the React Native/Expo development server
-- `bun run check`: Run Oxlint and Oxfmt
+## Testing Status
+
+There is currently no dedicated test runner configured in root scripts.
+
+Use:
+
+- `bun run check-types`
+- `bun run check`
+
+as baseline quality gates until test scripts are added.

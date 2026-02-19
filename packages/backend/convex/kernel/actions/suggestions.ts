@@ -101,7 +101,7 @@ export const generateAiSuggestions = internalAction({
     );
 
     try {
-      const raw = (await (ctx.runQuery as any)("kernel/vexAgents/getAiSuggestRawData", {
+      const raw = (await (ctx.runQuery as any)("kernel/vexAgents:getAiSuggestRawData", {
         day,
       })) as AiSuggestRawData;
       const context = buildAiContext(raw, day, tzOffsetMinutes ?? 0);
@@ -120,7 +120,7 @@ export const generateAiSuggestions = internalAction({
         return { status: "success", count: 0 };
       }
 
-      const existingSugs = (await (ctx.runQuery as any)("kernel/vexAgents/getSuggestionsForDay", {
+      const existingSugs = (await (ctx.runQuery as any)("kernel/vexAgents:getSuggestionsForDay", {
         day,
       })) as AiSuggestRawData["existingSuggestions"];
 
@@ -159,7 +159,7 @@ export const generateAiSuggestions = internalAction({
 
         const safeSuggestion = sanitizeSuggestionCopy(suggestion);
 
-        await (ctx.runMutation as any)("kernel/vexAgents/insertSuggestion", {
+        await (ctx.runMutation as any)("kernel/vexAgents:insertSuggestion", {
           suggestion: safeSuggestion,
           createdAt: now,
           updatedAt: now,

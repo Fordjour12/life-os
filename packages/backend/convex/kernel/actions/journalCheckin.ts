@@ -99,7 +99,7 @@ export const generateDailyJournalCheckin = action({
 
     const fallback = fallbackDraft(targetDay);
 
-    const todayData = (await (ctx.runQuery as any)("kernel/commands/getToday", {
+    const todayData = (await (ctx.runQuery as any)("kernel/commands:getToday", {
       tzOffsetMinutes: tzOffsetMinutes ?? 0,
     })) as
       | {
